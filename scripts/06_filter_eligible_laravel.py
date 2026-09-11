@@ -1,579 +1,1351 @@
+#!/usr/bin/env python3
+
+"""
+06_filter_eligible_laravel.py
+
+FINAL Laravel eligibility screening.
+
+Data sources
+------------
+1. github_enriched.csv
+   - GitHub repository metadata
+   - pushed_at
+   - default_branch
+   - latest_sha
+   - archived
+   - fork
+   - license
+   - language
+
+2. verified_laravel_apps.csv
+   - Laravel verification
+   - Laravel classification
+   - artisan
+   - app_dir
+   - bootstrap_dir
+   - config_dir
+   - routes_dir
+   - tests_dir
+
+The two datasets are merged using repo_full_name.
+
+Deep repository checks are performed only for
+Confirmed Laravel Application repositories.
+
+Checks
+------
+Activity:
+    pushed_at
+
+Testing:
+    tests/
+    phpunit.xml
+    phpunit.xml.dist
+    Composer test scripts
+
+Dependencies:
+    composer.json
+    composer.lock
+
+Laravel:
+    laravel/framework constraint
+
+PHP:
+    PHP constraint
+
+Docker:
+    Dockerfile
+    docker-compose.yml
+    docker-compose.yaml
+    compose.yml
+    compose.yaml
+
+Docker is recorded and, by default, excluded because the
+planned experiment evaluates native cross-OS portability.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import json
 import os
-import time
-from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 import requests
-from dotenv import load_dotenv
+
+
+# ============================================================
+# PATHS
+# ============================================================
+
+ROOT = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+    )
+)
+
+GITHUB_FILE = os.path.join(
+    ROOT,
+    "data/interim/github_enriched.csv",
+)
+
+LARAVEL_FILE = os.path.join(
+    ROOT,
+    "data/interim/verified_laravel_apps.csv",
+)
+
+OUTPUT_CSV = os.path.join(
+    ROOT,
+    "data/interim/eligible_laravel_apps.csv",
+)
+
+OUTPUT_XLSX = os.path.join(
+    ROOT,
+    "data/interim/laravel_eligibility_results.xlsx",
+)
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-ROOT = Path(__file__).resolve().parents[1]
+RECENT_MONTHS = 24
 
-# PILOT INPUT
-# Change this to verified_laravel_apps.csv for full run.
-INPUT_FILE = (
-    ROOT / "data/interim/verified_laravel_apps.csv"
-)
+REQUIRE_TESTS_DIRECTORY = True
 
-ENRICHED_FILE = (
-    ROOT / "data/interim/github_enriched.csv"
-)
+REQUIRE_PHPUNIT_OR_COMPOSER_TEST = True
 
-OUTPUT_CSV = (
-    ROOT / "data/interim/eligible_laravel_apps.csv"
-)
+EXCLUDE_DOCKER = True
 
-OUTPUT_EXCEL = (
-    ROOT / "data/interim/laravel_eligibility_results.xlsx"
-)
 
-CHECKPOINT_FILE = (
-    ROOT / "data/interim/eligibility_checkpoint.csv"
-)
+DOCKER_FILES = [
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "compose.yml",
+    "compose.yaml",
+]
 
-load_dotenv(ROOT / ".env")
 
-TOKEN = os.getenv("GITHUB_TOKEN")
+PHPUNIT_FILES = [
+    "phpunit.xml",
+    "phpunit.xml.dist",
+]
 
-if not TOKEN:
-    raise RuntimeError(
-        "GITHUB_TOKEN is not configured."
+
+# ============================================================
+# GITHUB AUTHENTICATION
+# ============================================================
+
+def load_github_token():
+
+    token = os.getenv(
+        "GITHUB_TOKEN"
     )
+
+    if token:
+        return token
+
+    env_file = os.path.join(
+        ROOT,
+        ".env",
+    )
+
+    if os.path.exists(env_file):
+
+        with open(
+            env_file,
+            "r",
+            encoding="utf-8",
+        ) as f:
+
+            for line in f:
+
+                line = line.strip()
+
+                if (
+                    not line
+                    or line.startswith("#")
+                ):
+                    continue
+
+                if line.startswith(
+                    "GITHUB_TOKEN="
+                ):
+
+                    return (
+                        line.split(
+                            "=",
+                            1,
+                        )[1]
+                        .strip()
+                        .strip('"')
+                        .strip("'")
+                    )
+
+    return None
+
+
+TOKEN = load_github_token()
 
 
 HEADERS = {
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "Authorization": f"Bearer {TOKEN}",
+    "Accept":
+        "application/vnd.github+json",
+
+    "X-GitHub-Api-Version":
+        "2022-11-28",
 }
 
-session = requests.Session()
-session.headers.update(HEADERS)
+
+if TOKEN:
+
+    HEADERS[
+        "Authorization"
+    ] = f"Bearer {TOKEN}"
 
 
 # ============================================================
 # GITHUB API
 # ============================================================
 
-def github_get(url, retries=3):
+SESSION = requests.Session()
 
-    for attempt in range(1, retries + 1):
-
-        try:
-
-            response = session.get(
-                url,
-                timeout=30
-            )
-
-            if response.status_code == 200:
-                return response.json()
-
-            if response.status_code == 404:
-                return None
-
-            if response.status_code in (403, 429):
-
-                print(
-                    f"Rate limit / forbidden "
-                    f"(attempt {attempt}/{retries})"
-                )
-
-                reset = response.headers.get(
-                    "X-RateLimit-Reset"
-                )
-
-                if reset:
-
-                    try:
-                        wait = max(
-                            5,
-                            int(reset)
-                            - int(time.time())
-                            + 2
-                        )
-                    except Exception:
-                        wait = 30
-
-                else:
-                    wait = 30
-
-                print(
-                    f"Waiting {wait} seconds..."
-                )
-
-                time.sleep(wait)
-                continue
-
-            print(
-                "API error:",
-                response.status_code,
-                url
-            )
-
-        except requests.RequestException as e:
-
-            print(
-                f"Request error "
-                f"(attempt {attempt}/{retries}):",
-                repr(e)
-            )
-
-            time.sleep(
-                min(10 * attempt, 30)
-            )
-
-    return None
+SESSION.headers.update(
+    HEADERS
+)
 
 
-# ============================================================
-# REPOSITORY TREE
-# ============================================================
+def github_get(
+    url,
+    timeout=30,
+):
 
-def get_tree(repo, sha):
+    try:
+
+        response = SESSION.get(
+            url,
+            timeout=timeout,
+        )
+
+        if response.status_code == 200:
+
+            return response.json()
+
+        return {
+            "_error": True,
+            "_status": response.status_code,
+        }
+
+    except Exception as e:
+
+        return {
+            "_error": True,
+            "_exception": repr(e),
+        }
+
+
+def repo_contents(
+    repo,
+    path,
+    ref,
+):
 
     url = (
-        f"https://api.github.com/repos/"
-        f"{repo}/git/trees/{sha}"
-        f"?recursive=1"
+        "https://api.github.com/repos/"
+        f"{repo}/contents/{path}"
     )
 
-    return github_get(url)
+    response = github_get(
+        f"{url}?ref={ref}"
+    )
+
+    return response
 
 
-# ============================================================
-# PATH NORMALIZATION
-# ============================================================
+def github_file_exists(
+    repo,
+    filename,
+    ref,
+):
 
-def normalize_paths(tree_data):
+    data = repo_contents(
+        repo,
+        filename,
+        ref,
+    )
 
-    if not tree_data:
-        return set()
+    if isinstance(
+        data,
+        dict,
+    ) and data.get("_error"):
 
-    return {
-        item.get("path", "").lower()
-        for item in tree_data.get(
-            "tree",
-            []
+        return False
+
+    return isinstance(
+        data,
+        dict,
+    )
+
+
+def github_directory_exists(
+    repo,
+    dirname,
+    ref,
+):
+
+    data = repo_contents(
+        repo,
+        dirname,
+        ref,
+    )
+
+    if isinstance(
+        data,
+        dict,
+    ) and data.get("_error"):
+
+        return False
+
+    return isinstance(
+        data,
+        list,
+    )
+
+
+def github_file_text(
+    repo,
+    filename,
+    ref,
+):
+
+    data = repo_contents(
+        repo,
+        filename,
+        ref,
+    )
+
+    if not isinstance(
+        data,
+        dict,
+    ):
+
+        return ""
+
+    if data.get("_error"):
+
+        return ""
+
+    encoded = data.get(
+        "content"
+    )
+
+    if not encoded:
+
+        return ""
+
+    try:
+
+        return base64.b64decode(
+            encoded
+        ).decode(
+            "utf-8",
+            errors="ignore",
         )
-        if item.get("path")
+
+    except Exception:
+
+        return ""
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def clean(value):
+
+    if value is None:
+
+        return ""
+
+    if pd.isna(value):
+
+        return ""
+
+    return str(
+        value
+    ).strip()
+
+
+def as_bool(value):
+
+    if isinstance(
+        value,
+        bool,
+    ):
+
+        return value
+
+    return clean(
+        value
+    ).lower() in {
+        "true",
+        "1",
+        "yes",
     }
 
 
-# ============================================================
-# TEST CHECK
-# ============================================================
+def parse_datetime(value):
 
-def check_tests(paths):
-
-    test_directory = any(
-        p == "tests"
-        or p.startswith("tests/")
-        for p in paths
+    value = clean(
+        value
     )
 
-    phpunit_config = any(
-        p in {
-            "phpunit.xml",
-            "phpunit.xml.dist",
-        }
-        for p in paths
+    if not value:
+
+        return None
+
+    try:
+
+        return pd.to_datetime(
+            value,
+            utc=True,
+        )
+
+    except Exception:
+
+        return None
+
+
+# ============================================================
+# LOAD DATA
+# ============================================================
+
+def load_input_data():
+
+    if not os.path.exists(
+        GITHUB_FILE
+    ):
+
+        raise FileNotFoundError(
+            GITHUB_FILE
+        )
+
+    if not os.path.exists(
+        LARAVEL_FILE
+    ):
+
+        raise FileNotFoundError(
+            LARAVEL_FILE
+        )
+
+    github = pd.read_csv(
+        GITHUB_FILE
+    )
+
+    laravel = pd.read_csv(
+        LARAVEL_FILE
+    )
+
+    return github, laravel
+
+
+# ============================================================
+# MERGE DATA
+# ============================================================
+
+def prepare_confirmed_laravel(
+    github,
+    laravel,
+):
+
+    confirmed = laravel[
+        laravel[
+            "laravel_classification"
+        ]
+        ==
+        "Confirmed Laravel Application"
+    ].copy()
+
+    print(
+        "Confirmed Laravel applications:",
+        len(confirmed),
+    )
+
+    merged = confirmed.merge(
+        github,
+        on="repo_full_name",
+        how="left",
+        suffixes=(
+            "_laravel",
+            "_github",
+        ),
+    )
+
+    print(
+        "Merged rows:",
+        len(merged),
+    )
+
+    return merged
+
+
+# ============================================================
+# ACTIVITY
+# ============================================================
+
+def activity_check(
+    pushed_at,
+):
+
+    pushed = parse_datetime(
+        pushed_at
+    )
+
+    if pushed is None:
+
+        return (
+            False,
+            "",
+        )
+
+    cutoff = (
+        pd.Timestamp.now(
+            tz="UTC"
+        )
+        -
+        pd.DateOffset(
+            months=RECENT_MONTHS
+        )
     )
 
     return (
-        test_directory,
-        phpunit_config
+        pushed >= cutoff,
+        pushed.isoformat(),
     )
 
 
 # ============================================================
-# DOCKERFILE CHECK
+# COMPOSER
 # ============================================================
 
-def check_dockerfile(paths):
-
-    return any(
-        Path(p).name.lower()
-        == "dockerfile"
-        for p in paths
-    )
-
-
-# ============================================================
-# REPOSITORY EVALUATION
-# ============================================================
-
-def evaluate_repository(row):
-
-    repo = row["repo_full_name"]
-
-    pushed_at = row.get(
-        "pushed_at",
-        None
-    )
-
-    latest_sha = row.get(
-        "latest_sha",
-        None
-    )
+def composer_analysis(
+    repo,
+    ref,
+):
 
     result = {
-        "repo_full_name": repo,
-
-        "url": row.get(
-            "url",
-            ""
-        ),
-
-        "stars_github": row.get(
-            "stars_github",
-            None
-        ),
-
-        "pushed_at": pushed_at,
-
-        "latest_sha": latest_sha,
-
-        # ---------------------------------------------
-        # Individual checks
-        # ---------------------------------------------
-
-        "recent_activity": False,
-
-        "composer_json": False,
-
-        "composer_lock": False,
-
-        "test_directory": False,
-
-        "phpunit_config": False,
-
-        "dockerfile": False,
-
-        # ---------------------------------------------
-        # Final decision
-        # ---------------------------------------------
-
-        "eligibility_status":
-            "Not Eligible",
-
-        "exclusion_reason":
-            "",
+        "composer_json_present": False,
+        "composer_lock_present": False,
+        "composer_test_script_present": False,
+        "composer_test_scripts": "",
+        "php_version_constraint": "",
+        "laravel_version_constraint": "",
     }
 
-    # ========================================================
-    # RECENT ACTIVITY
-    # ========================================================
-
-    if pd.notna(pushed_at):
-
-        pushed_date = pd.to_datetime(
-            pushed_at,
-            utc=True,
-            errors="coerce"
-        )
-
-        cutoff = (
-            pd.Timestamp.now(
-                tz="UTC"
-            )
-            - pd.Timedelta(
-                days=365
-            )
-        )
-
-        if (
-            pd.notna(pushed_date)
-            and pushed_date >= cutoff
-        ):
-
-            result[
-                "recent_activity"
-            ] = True
-
-    # ========================================================
-    # GITHUB TREE
-    # ========================================================
-
-    tree_data = get_tree(
+    composer_text = github_file_text(
         repo,
-        latest_sha
+        "composer.json",
+        ref,
     )
 
-    if not tree_data:
-
-        result[
-            "exclusion_reason"
-        ] = "GitHub tree unavailable"
+    if not composer_text:
 
         return result
 
-    paths = normalize_paths(
-        tree_data
-    )
-
-    # ========================================================
-    # COMPOSER
-    # ========================================================
+    result[
+        "composer_json_present"
+    ] = True
 
     result[
-        "composer_json"
-    ] = (
-        "composer.json"
-        in paths
+        "composer_lock_present"
+    ] = github_file_exists(
+        repo,
+        "composer.lock",
+        ref,
+    )
+
+    try:
+
+        data = json.loads(
+            composer_text
+        )
+
+    except Exception:
+
+        return result
+
+    require = data.get(
+        "require",
+        {},
+    )
+
+    if isinstance(
+        require,
+        dict,
+    ):
+
+        result[
+            "php_version_constraint"
+        ] = clean(
+            require.get(
+                "php",
+                "",
+            )
+        )
+
+        result[
+            "laravel_version_constraint"
+        ] = clean(
+            require.get(
+                "laravel/framework",
+                "",
+            )
+        )
+
+    scripts = data.get(
+        "scripts",
+        {},
+    )
+
+    test_scripts = []
+
+    if isinstance(
+        scripts,
+        dict,
+    ):
+
+        for name, command in scripts.items():
+
+            name_lower = clean(
+                name
+            ).lower()
+
+            if (
+                "test" in name_lower
+                or name_lower in {
+                    "phpunit",
+                    "pest",
+                }
+            ):
+
+                test_scripts.append(
+                    f"{name}: {command}"
+                )
+
+    result[
+        "composer_test_scripts"
+    ] = " | ".join(
+        test_scripts
     )
 
     result[
-        "composer_lock"
-    ] = (
-        "composer.lock"
-        in paths
+        "composer_test_script_present"
+    ] = bool(
+        test_scripts
     )
-
-    # ========================================================
-    # TESTS
-    # ========================================================
-
-    (
-        result["test_directory"],
-        result["phpunit_config"]
-    ) = check_tests(
-        paths
-    )
-
-    # ========================================================
-    # DOCKER
-    # ========================================================
-
-    result[
-        "dockerfile"
-    ] = check_dockerfile(
-        paths
-    )
-
-    # ========================================================
-    # EXCLUSION REASONS
-    # ========================================================
-
-    reasons = []
-
-    if not result["recent_activity"]:
-
-        reasons.append(
-            "Not recently active"
-        )
-
-    if not result["test_directory"]:
-
-        reasons.append(
-            "No tests directory"
-        )
-
-    if not result["phpunit_config"]:
-
-        reasons.append(
-            "No PHPUnit configuration"
-        )
-
-    if result["dockerfile"]:
-
-        reasons.append(
-            "Dockerfile present"
-        )
-
-    if not result["composer_json"]:
-
-        reasons.append(
-            "composer.json missing"
-        )
-
-    # ========================================================
-    # FINAL ELIGIBILITY
-    # ========================================================
-
-    if not reasons:
-
-        result[
-            "eligibility_status"
-        ] = "Eligible"
-
-        result[
-            "exclusion_reason"
-        ] = ""
-
-    else:
-
-        result[
-            "eligibility_status"
-        ] = "Not Eligible"
-
-        result[
-            "exclusion_reason"
-        ] = "; ".join(
-            reasons
-        )
 
     return result
 
 
 # ============================================================
-# EXCEL GENERATION
+# TESTING
 # ============================================================
 
-def save_excel(result_df):
+def testing_analysis(
+    repo,
+    ref,
+    existing_tests_dir,
+):
 
-    summary = (
-        result_df[
-            "eligibility_status"
-        ]
-        .value_counts()
-        .rename_axis(
-            "eligibility_status"
-        )
-        .reset_index(
-            name="count"
-        )
+    result = {
+        "tests_directory_present": bool(
+            existing_tests_dir
+        ),
+        "phpunit_config_present": False,
+        "phpunit_config_file": "",
+    }
+
+    found = []
+
+    for filename in PHPUNIT_FILES:
+
+        if github_file_exists(
+            repo,
+            filename,
+            ref,
+        ):
+
+            found.append(
+                filename
+            )
+
+    result[
+        "phpunit_config_present"
+    ] = bool(
+        found
     )
 
-    summary["percentage"] = (
-        summary["count"]
-        / len(result_df)
+    result[
+        "phpunit_config_file"
+    ] = "; ".join(
+        found
     )
 
-    # --------------------------------------------------------
-    # Individual filter summary
-    # --------------------------------------------------------
+    return result
 
-    filter_rows = []
 
-    filter_columns = [
-        "recent_activity",
-        "composer_json",
-        "composer_lock",
-        "test_directory",
-        "phpunit_config",
-        "dockerfile",
-    ]
+# ============================================================
+# DOCKER
+# ============================================================
 
-    for column in filter_columns:
+def docker_analysis(
+    repo,
+    ref,
+):
 
-        counts = (
-            result_df[column]
-            .value_counts()
-        )
+    found = []
 
-        for value, count in counts.items():
+    for filename in DOCKER_FILES:
 
-            filter_rows.append({
-                "filter": column,
-                "value": value,
-                "count": count,
-                "percentage":
-                    count / len(result_df)
-            })
+        if github_file_exists(
+            repo,
+            filename,
+            ref,
+        ):
 
-    filter_summary = pd.DataFrame(
-        filter_rows
-    )
+            found.append(
+                filename
+            )
 
-    # --------------------------------------------------------
-    # Exclusion reason summary
-    # --------------------------------------------------------
+    return {
+        "dockerfile_present":
+            "Dockerfile" in found,
 
-    exclusion_summary = (
-        result_df[
-            "exclusion_reason"
-        ]
-        .replace(
+        "compose_present":
+            any(
+                x != "Dockerfile"
+                for x in found
+            ),
+
+        "compose_files":
+            "; ".join(
+                [
+                    x
+                    for x in found
+                    if x != "Dockerfile"
+                ]
+            ),
+
+        "docker_present":
+            bool(found),
+    }
+
+
+# ============================================================
+# SCREEN ONE REPOSITORY
+# ============================================================
+
+def screen_repository(
+    row,
+    index,
+    total,
+):
+
+    repo = clean(
+        row.get(
+            "repo_full_name",
             "",
-            "Eligible"
-        )
-        .value_counts()
-        .rename_axis(
-            "exclusion_reason"
-        )
-        .reset_index(
-            name="count"
         )
     )
 
-    exclusion_summary["percentage"] = (
-        exclusion_summary["count"]
-        / len(result_df)
+    branch = clean(
+        row.get(
+            "default_branch",
+            "",
+        )
+    )
+
+    sha = clean(
+        row.get(
+            "latest_sha",
+            "",
+        )
+    )
+
+    ref = sha or branch or "main"
+
+    print(
+        f"[{index}/{total}] {repo}"
+    )
+
+    result = {}
+
+    # --------------------------------------------------------
+    # Basic metadata
+    # --------------------------------------------------------
+
+    result[
+        "project_id"
+    ] = clean(
+        row.get(
+            "project_id_laravel",
+            "",
+        )
+    )
+
+    result[
+        "repo_full_name"
+    ] = repo
+
+    result[
+        "url"
+    ] = clean(
+        row.get(
+            "url_github",
+            row.get(
+                "url_laravel",
+                "",
+            ),
+        )
+    )
+
+    result[
+        "default_branch"
+    ] = branch
+
+    result[
+        "latest_sha"
+    ] = sha
+
+    result[
+        "stars"
+    ] = clean(
+        row.get(
+            "stars_github",
+            "",
+        )
+    )
+
+    result[
+        "license"
+    ] = clean(
+        row.get(
+            "license",
+            "",
+        )
+    )
+
+    result[
+        "created_at"
+    ] = clean(
+        row.get(
+            "created_at",
+            "",
+        )
+    )
+
+    result[
+        "updated_at"
+    ] = clean(
+        row.get(
+            "updated_at",
+            "",
+        )
+    )
+
+    result[
+        "pushed_at"
+    ] = clean(
+        row.get(
+            "pushed_at",
+            "",
+        )
+    )
+
+    result[
+        "size_kb"
+    ] = clean(
+        row.get(
+            "size_kb",
+            "",
+        )
+    )
+
+    result[
+        "archived"
+    ] = as_bool(
+        row.get(
+            "archived",
+            False,
+        )
+    )
+
+    result[
+        "fork"
+    ] = as_bool(
+        row.get(
+            "fork",
+            False,
+        )
+    )
+
+    result[
+        "disabled"
+    ] = as_bool(
+        row.get(
+            "disabled",
+            False,
+        )
     )
 
     # --------------------------------------------------------
-    # Eligible only
+    # Existing Laravel verification
     # --------------------------------------------------------
 
-    eligible = result_df[
-        result_df[
-            "eligibility_status"
-        ] == "Eligible"
-    ].copy()
+    result[
+        "laravel_classification"
+    ] = clean(
+        row.get(
+            "laravel_classification",
+            "",
+        )
+    )
+
+    result[
+        "artisan"
+    ] = as_bool(
+        row.get(
+            "artisan",
+            False,
+        )
+    )
+
+    result[
+        "app_dir"
+    ] = as_bool(
+        row.get(
+            "app_dir",
+            False,
+        )
+    )
+
+    result[
+        "bootstrap_dir"
+    ] = as_bool(
+        row.get(
+            "bootstrap_dir",
+            False,
+        )
+    )
+
+    result[
+        "config_dir"
+    ] = as_bool(
+        row.get(
+            "config_dir",
+            False,
+        )
+    )
+
+    result[
+        "routes_dir"
+    ] = as_bool(
+        row.get(
+            "routes_dir",
+            False,
+        )
+    )
+
+    result[
+        "tests_dir_initial"
+    ] = as_bool(
+        row.get(
+            "tests_dir",
+            False,
+        )
+    )
 
     # --------------------------------------------------------
-    # Excluded only
+    # Activity
     # --------------------------------------------------------
 
-    excluded = result_df[
-        result_df[
-            "eligibility_status"
-        ] == "Not Eligible"
-    ].copy()
+    (
+        recent,
+        parsed_push,
+    ) = activity_check(
+        row.get(
+            "pushed_at",
+            "",
+        )
+    )
+
+    result[
+        "recent_activity"
+    ] = recent
+
+    result[
+        "parsed_pushed_at"
+    ] = parsed_push
 
     # --------------------------------------------------------
-    # Save Excel
+    # Testing
     # --------------------------------------------------------
+
+    testing = testing_analysis(
+        repo,
+        ref,
+        result[
+            "tests_dir_initial"
+        ],
+    )
+
+    result.update(
+        testing
+    )
+
+    # --------------------------------------------------------
+    # Composer
+    # --------------------------------------------------------
+
+    composer = composer_analysis(
+        repo,
+        ref,
+    )
+
+    result.update(
+        composer
+    )
+
+    # --------------------------------------------------------
+    # Docker
+    # --------------------------------------------------------
+
+    docker = docker_analysis(
+        repo,
+        ref,
+    )
+
+    result.update(
+        docker
+    )
+
+    # --------------------------------------------------------
+    # Eligibility
+    # --------------------------------------------------------
+
+    reasons = []
+
+    if result[
+        "laravel_classification"
+    ] != "Confirmed Laravel Application":
+
+        reasons.append(
+            "Not confirmed Laravel application"
+        )
+
+    if not result[
+        "recent_activity"
+    ]:
+
+        reasons.append(
+            "Not recently active"
+        )
+
+    if (
+        REQUIRE_TESTS_DIRECTORY
+        and
+        not result[
+            "tests_directory_present"
+        ]
+    ):
+
+        reasons.append(
+            "No tests directory"
+        )
+
+    if REQUIRE_PHPUNIT_OR_COMPOSER_TEST:
+
+        has_testing_config = (
+            result[
+                "phpunit_config_present"
+            ]
+            or
+            result[
+                "composer_test_script_present"
+            ]
+        )
+
+        if not has_testing_config:
+
+            reasons.append(
+                "No PHPUnit configuration "
+                "or Composer test script"
+            )
+
+    if not result[
+        "composer_json_present"
+    ]:
+
+        reasons.append(
+            "No composer.json"
+        )
+
+    if (
+        EXCLUDE_DOCKER
+        and
+        result[
+            "docker_present"
+        ]
+    ):
+
+        reasons.append(
+            "Docker/Compose present"
+        )
+
+    result[
+        "eligible"
+    ] = not bool(
+        reasons
+    )
+
+    result[
+        "exclusion_reason"
+    ] = (
+        "Eligible"
+        if result["eligible"]
+        else "; ".join(
+            reasons
+        )
+    )
+
+    result[
+        "screening_timestamp"
+    ] = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    return result
+
+
+# ============================================================
+# EXCEL
+# ============================================================
+
+def save_excel(
+    results,
+    output_path,
+    configuration,
+):
+
+    from openpyxl import load_workbook
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
 
     with pd.ExcelWriter(
-        OUTPUT_EXCEL,
-        engine="openpyxl"
+        output_path,
+        engine="openpyxl",
     ) as writer:
 
-        result_df.to_excel(
+        results.to_excel(
             writer,
-            sheet_name="Eligibility Results",
-            index=False
+            sheet_name="All Results",
+            index=False,
+        )
+
+        results[
+            results["eligible"]
+        ].to_excel(
+            writer,
+            sheet_name="Eligible",
+            index=False,
+        )
+
+        results[
+            ~results["eligible"]
+        ].to_excel(
+            writer,
+            sheet_name="Excluded",
+            index=False,
+        )
+
+        (
+            results[
+                "exclusion_reason"
+            ]
+            .value_counts()
+            .rename_axis(
+                "exclusion_reason"
+            )
+            .reset_index(
+                name="count"
+            )
+            .to_excel(
+                writer,
+                sheet_name="Exclusion Reasons",
+                index=False,
+            )
+        )
+
+        summary = pd.DataFrame(
+            [
+                {
+                    "metric":
+                        "Total screened",
+                    "value":
+                        len(results),
+                },
+                {
+                    "metric":
+                        "Eligible",
+                    "value":
+                        int(
+                            results[
+                                "eligible"
+                            ].sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "Excluded",
+                    "value":
+                        int(
+                            (
+                                ~results[
+                                    "eligible"
+                                ]
+                            ).sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "Docker detected",
+                    "value":
+                        int(
+                            results[
+                                "docker_present"
+                            ].sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "Recently active",
+                    "value":
+                        int(
+                            results[
+                                "recent_activity"
+                            ].sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "Tests directory",
+                    "value":
+                        int(
+                            results[
+                                "tests_directory_present"
+                            ].sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "PHPUnit config",
+                    "value":
+                        int(
+                            results[
+                                "phpunit_config_present"
+                            ].sum()
+                        ),
+                },
+                {
+                    "metric":
+                        "Composer test script",
+                    "value":
+                        int(
+                            results[
+                                "composer_test_script_present"
+                            ].sum()
+                        ),
+                },
+            ]
         )
 
         summary.to_excel(
             writer,
             sheet_name="Summary",
-            index=False
+            index=False,
         )
 
-        filter_summary.to_excel(
+        pd.DataFrame(
+            [
+                {
+                    "parameter": key,
+                    "value": value,
+                }
+                for key, value
+                in configuration.items()
+            ]
+        ).to_excel(
             writer,
-            sheet_name="Filter Summary",
-            index=False
+            sheet_name="Configuration",
+            index=False,
         )
 
-        exclusion_summary.to_excel(
-            writer,
-            sheet_name="Exclusion Reasons",
-            index=False
+    # Formatting
+    wb = load_workbook(
+        output_path
+    )
+
+    for ws in wb.worksheets:
+
+        ws.freeze_panes = "A2"
+
+        ws.auto_filter.ref = (
+            ws.dimensions
         )
 
-        eligible.to_excel(
-            writer,
-            sheet_name="Eligible Projects",
-            index=False
-        )
+        for cell in ws[1]:
 
-        excluded.to_excel(
-            writer,
-            sheet_name="Excluded Projects",
-            index=False
-        )
+            cell.font = Font(
+                bold=True
+            )
 
-    print(
-        "Excel saved:",
-        OUTPUT_EXCEL
+        for column_cells in ws.columns:
+
+            max_len = 0
+
+            col = get_column_letter(
+                column_cells[0].column
+            )
+
+            for cell in column_cells:
+
+                if cell.value is not None:
+
+                    max_len = max(
+                        max_len,
+                        len(
+                            str(
+                                cell.value
+                            )
+                        ),
+                    )
+
+            ws.column_dimensions[
+                col
+            ].width = min(
+                max(
+                    max_len + 2,
+                    12,
+                ),
+                60,
+            )
+
+    wb.save(
+        output_path
     )
 
 
@@ -583,271 +1355,230 @@ def save_excel(result_df):
 
 def main():
 
-    print("=" * 60)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+    )
+
+    args = parser.parse_args()
+
+    print("=" * 70)
     print(
-        "LARAVEL ELIGIBILITY SCREENING"
+        "FINAL LARAVEL ELIGIBILITY SCREENING"
     )
-    print("=" * 60)
-
-    df = pd.read_csv(
-        INPUT_FILE
-    )
-
-    print(
-        "Input rows:",
-        len(df)
-    )
-
-    # --------------------------------------------------------
-    # Only confirmed Laravel applications
-    # --------------------------------------------------------
-
-    if "laravel_classification" in df.columns:
-
-        df = df[
-            df[
-                "laravel_classification"
-            ]
-            == "Confirmed Laravel Application"
-        ].copy()
+    print("=" * 70)
 
     print(
-        "Confirmed Laravel applications:",
-        len(df)
+        "GitHub metadata:",
+        GITHUB_FILE,
     )
 
-    # --------------------------------------------------------
-    # Load GitHub metadata
-    # --------------------------------------------------------
-
-    enriched = pd.read_csv(
-        ENRICHED_FILE
+    print(
+        "Laravel verification:",
+        LARAVEL_FILE,
     )
 
-    metadata_columns = [
-        "repo_full_name",
-        "pushed_at",
-        "stars_github",
-        "latest_sha",
-        "url",
-    ]
+    print()
 
-    metadata_columns = [
-        c
-        for c in metadata_columns
-        if c in enriched.columns
-    ]
-
-    enriched = enriched[
-        metadata_columns
-    ].drop_duplicates(
-        subset=[
-            "repo_full_name"
-        ]
+    github, laravel = (
+        load_input_data()
     )
 
-    # --------------------------------------------------------
-    # Merge
-    # --------------------------------------------------------
-
-    df = df.merge(
-        enriched,
-        on="repo_full_name",
-        how="left",
-        suffixes=(
-            "",
-            "_enriched"
-        )
+    merged = prepare_confirmed_laravel(
+        github,
+        laravel,
     )
 
-    # --------------------------------------------------------
-    # Checkpoint
-    # --------------------------------------------------------
+    if args.limit:
 
-    if CHECKPOINT_FILE.exists():
-
-        checkpoint = pd.read_csv(
-            CHECKPOINT_FILE
-        )
-
-        processed = set(
-            checkpoint[
-                "repo_full_name"
-            ]
-        )
-
-        results = checkpoint.to_dict(
-            orient="records"
-        )
+        merged = merged.head(
+            args.limit
+        ).copy()
 
         print(
-            "Checkpoint found:",
-            len(processed)
+            "PILOT LIMIT:",
+            len(merged),
         )
 
-    else:
+    results = []
 
-        processed = set()
-
-        results = []
-
-        print(
-            "No checkpoint found."
-        )
-
-    # --------------------------------------------------------
-    # Processing
-    # --------------------------------------------------------
-
-    total = len(df)
+    total = len(
+        merged
+    )
 
     for i, (_, row) in enumerate(
-        df.iterrows(),
-        start=1
+        merged.iterrows(),
+        start=1,
     ):
 
-        repo = row[
-            "repo_full_name"
-        ]
+        try:
 
-        if repo in processed:
+            result = screen_repository(
+                row,
+                i,
+                total,
+            )
 
-            continue
+            results.append(
+                result
+            )
 
-        print(
-            f"[{i}/{total}] {repo}",
-            flush=True
-        )
+        except Exception as e:
 
-        result = evaluate_repository(
-            row
-        )
-
-        results.append(
-            result
-        )
-
-        processed.add(
-            repo
-        )
-
-        # ----------------------------------------------------
-        # Checkpoint every 25
-        # ----------------------------------------------------
-
-        if len(results) % 25 == 0:
-
-            checkpoint_df = (
-                pd.DataFrame(
-                    results
+            repo = clean(
+                row.get(
+                    "repo_full_name",
+                    "",
                 )
             )
 
-            checkpoint_df.to_csv(
-                CHECKPOINT_FILE,
-                index=False
-            )
-
             print(
-                f"Checkpoint saved: "
-                f"{len(results)}"
+                "ERROR:",
+                repo,
+                repr(e),
             )
 
-        time.sleep(
-            0.2
-        )
+            results.append(
+                {
+                    "repo_full_name":
+                        repo,
 
-    # --------------------------------------------------------
-    # Final dataframe
-    # --------------------------------------------------------
+                    "eligible":
+                        False,
 
-    result_df = pd.DataFrame(
+                    "exclusion_reason":
+                        "Screening error: "
+                        + repr(e),
+                }
+            )
+
+    results = pd.DataFrame(
         results
     )
 
     # --------------------------------------------------------
-    # CSV
+    # Save CSV
     # --------------------------------------------------------
 
-    result_df.to_csv(
+    os.makedirs(
+        os.path.dirname(
+            OUTPUT_CSV
+        ),
+        exist_ok=True,
+    )
+
+    results.to_csv(
         OUTPUT_CSV,
-        index=False
-    )
-
-    # Final checkpoint
-    result_df.to_csv(
-        CHECKPOINT_FILE,
-        index=False
+        index=False,
     )
 
     # --------------------------------------------------------
-    # Excel
+    # Save Excel
     # --------------------------------------------------------
+
+    configuration = {
+        "recent_activity_months":
+            RECENT_MONTHS,
+
+        "require_tests_directory":
+            REQUIRE_TESTS_DIRECTORY,
+
+        "require_phpunit_or_composer_test":
+            REQUIRE_PHPUNIT_OR_COMPOSER_TEST,
+
+        "exclude_docker":
+            EXCLUDE_DOCKER,
+
+        "docker_files":
+            "; ".join(
+                DOCKER_FILES
+            ),
+
+        "phpunit_files":
+            "; ".join(
+                PHPUNIT_FILES
+            ),
+
+        "screening_timestamp":
+            datetime.now(
+                timezone.utc
+            ).isoformat(),
+    }
 
     save_excel(
-        result_df
+        results,
+        OUTPUT_XLSX,
+        configuration,
     )
 
     # --------------------------------------------------------
-    # Terminal summary
+    # Summary
     # --------------------------------------------------------
 
     print()
-    print("=" * 60)
+    print("=" * 70)
     print(
-        "ELIGIBILITY SCREENING SUMMARY"
+        "ELIGIBILITY SUMMARY"
     )
-    print("=" * 60)
+    print("=" * 70)
 
     print(
-        result_df[
-            "eligibility_status"
-        ].value_counts()
+        "Total screened:",
+        len(results),
+    )
+
+    print(
+        "Eligible:",
+        int(
+            results[
+                "eligible"
+            ].sum()
+        ),
+    )
+
+    print(
+        "Not eligible:",
+        int(
+            (
+                ~results[
+                    "eligible"
+                ]
+            ).sum()
+        ),
     )
 
     print()
-    print(
-        "=" * 60
-    )
-
     print(
         "EXCLUSION REASONS"
     )
 
     print(
-        "=" * 60
-    )
-
-    print(
-        result_df[
+        results[
             "exclusion_reason"
         ]
-        .replace(
-            "",
-            "Eligible"
-        )
         .value_counts()
+        .to_string()
     )
 
     print()
     print(
-        "Eligible projects:",
-        (
-            result_df[
-                "eligibility_status"
-            ] == "Eligible"
-        ).sum()
+        "OUTPUTS"
     )
 
     print(
         "CSV:",
-        OUTPUT_CSV
+        OUTPUT_CSV,
     )
 
     print(
         "Excel:",
-        OUTPUT_EXCEL
+        OUTPUT_XLSX,
     )
+
+    print("=" * 70)
 
 
 if __name__ == "__main__":
