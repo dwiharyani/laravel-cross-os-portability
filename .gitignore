@@ -34,3 +34,10 @@ data/interim/verified_laravel_apps.csv
 
 # Raw source datasets
 data/source/raw/*.csv
+
+# Additional intermediate experiment files
+data/interim/environment_inventory.csv
+data/interim/positive_control.csv
+data/interim/positive_control_result.csv
+data/interim/screened_projects.csv
+data/interim/verified_laravel.csv
