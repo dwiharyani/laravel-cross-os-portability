@@ -1,0 +1,36 @@
+k# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# Temporary / working files
+work/
+backup_seart_php/
+
+# Logs
+logs/
+*.log
+
+# HPC checkpoints
+data/interim/*checkpoint*.csv
+
+# Pilot files
+data/interim/*pilot*.csv
+data/interim/pilot_input.manifest.json
+
+# Verification parts
+data/interim/verification_parts/
+
+# Raw / intermediate datasets
+data/interim/github_enriched.csv
+data/interim/laravel_candidates.csv
+data/interim/verified_laravel_apps.csv
+
+# Raw source datasets
+data/source/raw/*.csv
