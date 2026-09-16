@@ -1,0 +1,21 @@
+repo_full_name,latest_sha,php_version_constraint,laravel_version_constraint,selected_php_runtime,runtime_selection_rationale,runtime_selection_status
+Abdallah01win/StarterApi,4a62ed3e1b2d2ba2daf027c0a95306366e4b699d,^8.2,^12.0,8.2,PHP 8.2 representative runtime,MAPPED
+404NotFoundIndonesia/raktrek,e00aa117fe3f702e443c396fb2174395e9e23961,^8.1,^10.10,8.1,PHP 8.1 representative runtime,MAPPED
+Devsome/silkpanel-cms,b96680a6710cf63c5c7be953b70db2d848284caf,^8.3,^13.0,8.3,PHP 8.3 representative runtime,MAPPED
+1nFrastr/likeadmin_laravel,5d71e27c3868b598648d7653657737b92f58988a,^8.2,^11.9,8.2,PHP 8.2 representative runtime,MAPPED
+0xd011f4ce/OurSpace,c7b7ae5bacdde439bc8308ac1113dfcd566e4275,^8.2,^11.31,8.2,PHP 8.2 representative runtime,MAPPED
+BaseMax/LaravelTaskDDD,0aa34df6c65445b515577bc5425338c9afc05644,^8.1,^10.0,8.1,PHP 8.1 representative runtime,MAPPED
+AhmadIkbalDjaya/momentum,6a539c4111180074be11baaeb3fad93229b37286,^8.2,^11.0,8.2,PHP 8.2 representative runtime,MAPPED
+2KAbhishek/lacrud,906dba0d2edfd1119c218867877a4dad20b4ff76,^8.0.2,^9.19,8.0,PHP 8.0 representative runtime,MAPPED
+Dziennik-Azayaka/azayaka,7969910e52bd6cfa87fc4d45c1e8315d5e9c367f,^8.3,^12.0,8.3,PHP 8.3 representative runtime,MAPPED
+Cut0x/forum-php,cd4df2352fe9537d3a898ba89d76d0387b263161,^8.3,^13.8,8.3,PHP 8.3 representative runtime,MAPPED
+HolgerHatGarKeineNode/einundzwanzig-portal,31702cfc14169ea26ecd1e2432ba32208215a39f,^8.4,^13.0,8.4,PHP 8.4 representative runtime,MAPPED
+CholitaApp/cholita,8e88ebc6f80504a1c0c43772383dbdb8fbb3208a,^8.4,^12.0,8.4,PHP 8.4 representative runtime,MAPPED
+Helg18/megadownloaderrobot,e18a2174f777bfbc75c2971d8ca853dcd7cf88d1,^7.2.5,^7.0,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
+BaseMax/FirstLaravelAPI,13cb2b0cf0720114577ddc1839b931306156a084,^7.3|^8.0,^8.12,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
+AkibaAT/fvn.li,afc2ea11b6edbf5203543275164a8767b88aad93,^8.5,^13.0,8.5,PHP 8.5 representative runtime,MAPPED
+AKAME007/laravel-vue-cli-3,f3a4e5d75cd97ea98008affb14db65446f4fed6b,^7.1.3,5.6.*,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
+MateusHuebra/Termogram-bot,ff7ae90ba59ab68dc34b9ff8cee8b9d618f4bd81,^7.3|^8.0,^8.75,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
+MelonSmasher/Chocolatier,61c71f1fa2c98397cbe897637d48562175406cd7,^7.1.3,5.8.*,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
+HugoJF/csgo-servers-admin-panel,ee32ca5a13cdcdd169c59ae8d17dc74a9577b137,>=5.6.4,5.4.*,5.6,PHP 5.6 constraint,MAPPED
+AKAME007/dashboard,4752d9c57818e96bc75b83ca3b8cd90b2701f388,^7.3|^8.0,^8.40,7.4,Representative PHP 7.x runtime within the declared major-version range,MAPPED
