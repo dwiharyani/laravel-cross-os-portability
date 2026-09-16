@@ -1,0 +1,12 @@
+{
+  "created_at_utc": "2026-09-16T06:01:23.993965+00:00",
+  "input_file": "/home/g202527350/laravel-cross-os-portability/data/interim/cross_os_candidates.csv",
+  "output_csv": "/home/g202527350/laravel-cross-os-portability/data/interim/cross_os_environment_inventory.csv",
+  "output_excel": "/home/g202527350/laravel-cross-os-portability/data/interim/cross_os_environment_inventory.xlsx",
+  "input_rows": 555,
+  "duplicates_removed": 0,
+  "final_rows": 555,
+  "unique_repositories": 555,
+  "purpose": "Environment inventory for the frozen Cross-OS Laravel candidate dataset.",
+  "interpretation_note": "Parsed version values are descriptive summaries of explicit versions in the repository constraints. They do not prove complete dependency compatibility."
+}

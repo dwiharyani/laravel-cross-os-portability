@@ -1,0 +1,9 @@
+{
+  "dataset": "Cross-OS Laravel Experiment Candidates",
+  "source_file": "data/interim/eligible_laravel_apps.csv",
+  "created_at_utc": "2026-09-16T05:55:57.203449+00:00",
+  "source_rows": 1094,
+  "final_candidates": 555,
+  "unique_repositories": 555,
+  "selection_rule": "eligible == True"
+}

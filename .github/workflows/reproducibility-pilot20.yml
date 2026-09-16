@@ -1,0 +1,458 @@
+name: Reproducibility Pilot 20
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  prepare:
+    name: Prepare Pilot 20
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout research repository
+        uses: actions/checkout@v4
+
+      - name: Generate matrix from pilot CSV
+        id: matrix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import json
+          import os
+
+          input_file = "data/interim/reproducibility_pilot20.csv"
+
+          rows = []
+
+          with open(input_file, newline="", encoding="utf-8") as f:
+              reader = csv.DictReader(f)
+
+              for row in reader:
+                  rows.append({
+                      "repo_full_name": row["repo_full_name"],
+                      "latest_sha": row["latest_sha"],
+                      "php_constraint": row["php_version_constraint"],
+                      "laravel_constraint": row["laravel_version_constraint"],
+                      "url": row["url"],
+                  })
+
+          if len(rows) != 20:
+              raise SystemExit(
+                  f"Expected 20 pilot repositories, found {len(rows)}"
+              )
+
+          if len({
+              r["repo_full_name"]
+              for r in rows
+          }) != 20:
+              raise SystemExit(
+                  "Pilot contains duplicate repositories."
+              )
+
+          matrix = {
+              "include": rows
+          }
+
+          encoded = json.dumps(matrix, separators=(",", ":"))
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8"
+          ) as f:
+              f.write(f"matrix={encoded}\n")
+
+          print("Pilot repositories:", len(rows))
+
+          for row in rows:
+              print(
+                  row["repo_full_name"],
+                  row["latest_sha"],
+                  row["php_constraint"],
+                  row["laravel_constraint"],
+              )
+          PY
+
+
+  reproduce:
+    name: ${{ matrix.repo_full_name }}
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    timeout-minutes: 30
+
+    steps:
+
+      # --------------------------------------------------
+      # 1. Clone exact repository
+      # --------------------------------------------------
+
+      - name: Clone target repository
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir target
+
+          git clone \
+            "https://github.com/${{ matrix.repo_full_name }}.git" \
+            target
+
+          cd target
+
+          git checkout "${{ matrix.latest_sha }}"
+
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+
+          echo "Expected SHA:"
+          echo "${{ matrix.latest_sha }}"
+
+          echo "Actual SHA:"
+          echo "$ACTUAL_SHA"
+
+          if [ "$ACTUAL_SHA" != "${{ matrix.latest_sha }}" ]; then
+            echo "::error::SHA verification failed"
+            exit 1
+          fi
+
+
+      # --------------------------------------------------
+      # 2. Inspect repository metadata
+      # --------------------------------------------------
+
+      - name: Inspect repository
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd target
+
+          test -f composer.json
+
+          echo "Repository:"
+          echo "${{ matrix.repo_full_name }}"
+
+          echo "Commit:"
+          git rev-parse HEAD
+
+          echo
+          echo "Composer requirements:"
+          grep -n '"php"\|"laravel/framework"' composer.json || true
+
+          echo
+          echo "PHP constraint from screening:"
+          echo "${{ matrix.php_constraint }}"
+
+          echo "Laravel constraint from screening:"
+          echo "${{ matrix.laravel_constraint }}"
+
+
+      # --------------------------------------------------
+      # 3. Determine a concrete PHP version
+      # --------------------------------------------------
+
+      - name: Determine PHP version
+        id: php
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd target
+
+          PHP_CONSTRAINT="$(python3 - <<'PY'
+          import json
+
+          with open("composer.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          print(
+              data.get("require", {}).get("php", "")
+          )
+          PY
+          )"
+
+          echo "composer.json PHP constraint:"
+          echo "$PHP_CONSTRAINT"
+
+          PHP_VERSION=""
+
+          case "$PHP_CONSTRAINT" in
+
+            ">=5.6.4"*)
+              PHP_VERSION="5.6"
+              ;;
+
+            "5.4."*|"5.4.*")
+              PHP_VERSION="5.6"
+              ;;
+
+            "5.6."*|"5.6.*")
+              PHP_VERSION="5.6"
+              ;;
+
+            "^7.1"*)
+              PHP_VERSION="7.1"
+              ;;
+
+            "^7.2"*)
+              PHP_VERSION="7.2"
+              ;;
+
+            "^7.3"*)
+              PHP_VERSION="7.3"
+              ;;
+
+            "^7.4"*)
+              PHP_VERSION="7.4"
+              ;;
+
+            "^8.0"*)
+              PHP_VERSION="8.0"
+              ;;
+
+            "^8.1"*)
+              PHP_VERSION="8.1"
+              ;;
+
+            "^8.2"*)
+              PHP_VERSION="8.2"
+              ;;
+
+            "^8.3"*)
+              PHP_VERSION="8.3"
+              ;;
+
+            "^8.4"*)
+              PHP_VERSION="8.4"
+              ;;
+
+            "^8.5"*)
+              PHP_VERSION="8.5"
+              ;;
+
+            *)
+              echo "::error::Unsupported or ambiguous PHP constraint: $PHP_CONSTRAINT"
+              exit 1
+              ;;
+          esac
+
+          echo "Selected PHP version:"
+          echo "$PHP_VERSION"
+
+          echo "php_version=$PHP_VERSION" >> "$GITHUB_OUTPUT"
+
+
+      # --------------------------------------------------
+      # 4. Setup matching PHP + required common extensions
+      # --------------------------------------------------
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.php.outputs.php_version }}
+          extensions: bcmath, mbstring, curl, dom, fileinfo, openssl, pdo, pdo_sqlite, tokenizer, xml, zip
+          tools: composer:v2
+          coverage: none
+        env:
+          update: true
+
+
+      # --------------------------------------------------
+      # 5. Record environment
+      # --------------------------------------------------
+
+      - name: Record PHP and Composer environment
+        shell: bash
+        run: |
+          php --version
+          echo
+          composer --version
+          echo
+          php -m
+
+
+      # --------------------------------------------------
+      # 6. Check lock-file platform compatibility
+      # --------------------------------------------------
+
+      - name: Check Composer platform requirements
+        id: platform
+        shell: bash
+        run: |
+          set -o pipefail
+
+          cd target
+
+          composer check-platform-reqs --lock \
+            2>&1 | tee ../platform_requirements.txt
+
+
+      # --------------------------------------------------
+      # 7. Install dependencies WITHOUT changing lock file
+      # --------------------------------------------------
+
+      - name: Install dependencies
+        id: composer_install
+        shell: bash
+        run: |
+          set -o pipefail
+
+          cd target
+
+          composer install \
+            --no-interaction \
+            --no-progress \
+            --prefer-dist \
+            2>&1 | tee ../composer_install.log
+
+
+      # --------------------------------------------------
+      # 8. Detect test mechanism
+      # --------------------------------------------------
+
+      - name: Detect PHPUnit
+        id: tests
+        shell: bash
+        run: |
+          cd target
+
+          if [ -x "vendor/bin/phpunit" ]; then
+            echo "mechanism=phpunit" >> "$GITHUB_OUTPUT"
+            echo "PHPUnit detected."
+            exit 0
+          fi
+
+          if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
+            if [ -x "vendor/bin/phpunit" ]; then
+              echo "mechanism=phpunit" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          if python3 - <<'PY'
+          import json
+
+          with open("composer.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          scripts = data.get("scripts", {})
+
+          if "test" in scripts:
+              raise SystemExit(0)
+
+          raise SystemExit(1)
+          PY
+          then
+            echo "mechanism=composer-test" >> "$GITHUB_OUTPUT"
+            echo "Composer test script detected."
+            exit 0
+          fi
+
+          echo "mechanism=none" >> "$GITHUB_OUTPUT"
+          echo "No supported test mechanism detected."
+
+
+      # --------------------------------------------------
+      # 9. Run original project tests
+      # --------------------------------------------------
+
+      - name: Run PHPUnit
+        if: steps.tests.outputs.mechanism == 'phpunit'
+        shell: bash
+        run: |
+          set -o pipefail
+
+          cd target
+
+          ./vendor/bin/phpunit \
+            2>&1 | tee ../test_output.txt
+
+
+      - name: Run Composer test script
+        if: steps.tests.outputs.mechanism == 'composer-test'
+        shell: bash
+        run: |
+          set -o pipefail
+
+          cd target
+
+          composer test \
+            2>&1 | tee ../test_output.txt
+
+
+      # --------------------------------------------------
+      # 10. Produce structured result
+      # --------------------------------------------------
+
+      - name: Generate reproducibility result
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          result = {
+              "repo_full_name": "${{ matrix.repo_full_name }}",
+              "expected_sha": "${{ matrix.latest_sha }}",
+              "php_constraint": "${{ matrix.php_constraint }}",
+              "laravel_constraint": "${{ matrix.laravel_constraint }}",
+              "selected_php": "${{ steps.php.outputs.php_version }}",
+              "test_mechanism": "${{ steps.tests.outputs.mechanism }}",
+              "workflow_run_id": "${{ github.run_id }}",
+              "workflow_attempt": "${{ github.run_attempt }}",
+              "timestamp_utc": datetime.now(
+                  timezone.utc
+              ).isoformat(),
+          }
+
+          os.makedirs(
+              "results",
+              exist_ok=True
+          )
+
+          with open(
+              "results/result.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(
+                  result,
+                  f,
+                  indent=2
+              )
+          PY
+
+
+      # --------------------------------------------------
+      # 11. Save evidence
+      # --------------------------------------------------
+
+      - name: Upload reproducibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-${{ matrix.repo_full_name }}
+          path: |
+            results/
+            platform_requirements.txt
+            composer_install.log
+            test_output.txt
+          if-no-files-found: ignore
+          retention-days: 7
