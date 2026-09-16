@@ -1,0 +1,402 @@
+name: Runtime Availability Pilot 20 x 3 OS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  prepare:
+
+    name: Prepare runtime matrix
+
+    runs-on: ubuntu-22.04
+
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Build runtime matrix
+        id: matrix
+        shell: bash
+
+        run: |
+
+          python3 - <<'PY'
+
+          import csv
+          import json
+          import os
+
+          input_file = (
+              "data/interim/php_runtime_matrix.csv"
+          )
+
+          operating_systems = [
+              "ubuntu-22.04",
+              "windows-2022",
+              "macos-13"
+          ]
+
+          rows = []
+
+          with open(
+              input_file,
+              newline="",
+              encoding="utf-8"
+          ) as f:
+
+              rows = list(
+                  csv.DictReader(f)
+              )
+
+          if len(rows) != 20:
+              raise SystemExit(
+                  f"Expected 20 repositories, found {len(rows)}"
+              )
+
+          include = []
+
+          for row in rows:
+
+              repo = row[
+                  "repo_full_name"
+              ].strip()
+
+              sha = row[
+                  "latest_sha"
+              ].strip()
+
+              php = row[
+                  "selected_php_runtime"
+              ].strip()
+
+              if not repo:
+                  raise SystemExit(
+                      "Missing repository"
+                  )
+
+              if not sha:
+                  raise SystemExit(
+                      f"Missing SHA: {repo}"
+                  )
+
+              if not php:
+                  raise SystemExit(
+                      f"Missing PHP runtime: {repo}"
+                  )
+
+              for os_name in operating_systems:
+
+                  include.append(
+                      {
+                          "repo": repo,
+                          "sha": sha,
+                          "php": php,
+                          "os": os_name
+                      }
+                  )
+
+          if len(include) != 60:
+
+              raise SystemExit(
+                  f"Expected 60 jobs, found {len(include)}"
+              )
+
+          matrix = {
+              "include": include
+          }
+
+          encoded = json.dumps(
+              matrix,
+              separators=(",", ":")
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8"
+          ) as f:
+
+              f.write(
+                  "matrix=" + encoded + "\n"
+              )
+
+          print(
+              "Repositories:",
+              len(rows)
+          )
+
+          print(
+              "Operating systems:",
+              len(operating_systems)
+          )
+
+          print(
+              "Runtime checks:",
+              len(include)
+          )
+
+          PY
+
+
+  runtime_check:
+
+    name: ${{ matrix.repo }} / ${{ matrix.os }} / PHP ${{ matrix.php }}
+
+    needs: prepare
+
+    strategy:
+
+      fail-fast: false
+
+      max-parallel: 6
+
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.matrix).include }}
+
+    runs-on: ${{ matrix.os }}
+
+    continue-on-error: true
+
+    steps:
+
+      - name: Checkout exact repository
+        uses: actions/checkout@v4
+
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.sha }}
+          fetch-depth: 1
+
+
+      - name: Record requested environment
+        shell: bash
+
+        run: |
+
+          mkdir -p runtime-result
+
+          cat > runtime-result/requested.txt <<EOF
+
+          repository=${{ matrix.repo }}
+
+          sha=${{ matrix.sha }}
+
+          operating_system=${{ matrix.os }}
+
+          requested_php=${{ matrix.php }}
+
+          EOF
+
+
+      - name: Setup requested PHP
+        id: setup_php
+
+        uses: shivammathur/setup-php@v2
+
+        with:
+
+          php-version: ${{ matrix.php }}
+
+          extensions: mbstring,dom,fileinfo,curl,zip,pdo,sqlite3
+
+          coverage: none
+
+          tools: composer
+
+
+      - name: Verify actual PHP runtime
+        id: verify
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          PHP_OUTPUT="runtime-result/php.txt"
+
+          php --version \
+            > "$PHP_OUTPUT" \
+            2>&1
+
+          PHP_EXIT=$?
+
+          {
+            echo
+            echo "=== PHP MODULES ==="
+            php -m
+
+            echo
+            echo "=== PHP INI ==="
+            php --ini
+
+            echo
+            echo "=== COMPOSER ==="
+            composer --version
+
+          } >> "$PHP_OUTPUT" 2>&1
+
+          echo "php_exit_code=$PHP_EXIT" \
+            >> "$GITHUB_OUTPUT"
+
+          exit "$PHP_EXIT"
+
+
+      - name: Generate runtime result
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          python3 - <<'PY'
+
+          import json
+          import os
+          import platform
+          import subprocess
+          from pathlib import Path
+
+          result_dir = Path(
+              "runtime-result"
+          )
+
+          result_dir.mkdir(
+              exist_ok=True
+          )
+
+          def command_output(command):
+
+              try:
+
+                  p = subprocess.run(
+                      command,
+                      capture_output=True,
+                      text=True,
+                      timeout=30
+                  )
+
+                  return {
+                      "returncode": p.returncode,
+                      "stdout": p.stdout.strip(),
+                      "stderr": p.stderr.strip()
+                  }
+
+              except Exception as exc:
+
+                  return {
+                      "returncode": None,
+                      "stdout": "",
+                      "stderr": str(exc)
+                  }
+
+
+          result = {
+
+              "repository":
+                  "${{ matrix.repo }}",
+
+              "commit_sha":
+                  "${{ matrix.sha }}",
+
+              "operating_system":
+                  "${{ matrix.os }}",
+
+              "requested_php":
+                  "${{ matrix.php }}",
+
+              "runner_os":
+                  os.environ.get(
+                      "RUNNER_OS"
+                  ),
+
+              "runner_arch":
+                  os.environ.get(
+                      "RUNNER_ARCH"
+                  ),
+
+              "actual_php":
+                  command_output(
+                      ["php", "--version"]
+                  ),
+
+              "composer":
+                  command_output(
+                      ["composer", "--version"]
+                  ),
+
+              "php_modules":
+                  command_output(
+                      ["php", "-m"]
+                  ),
+
+              "platform":
+                  platform.platform()
+
+          }
+
+
+          php_result = result[
+              "actual_php"
+          ]
+
+          if php_result[
+              "returncode"
+          ] == 0:
+
+              result[
+                  "runtime_status"
+              ] = "AVAILABLE"
+
+          else:
+
+              result[
+                  "runtime_status"
+              ] = "UNAVAILABLE"
+
+
+          with open(
+              result_dir / "result.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+
+              json.dump(
+                  result,
+                  f,
+                  indent=2
+              )
+
+          print(
+              json.dumps(
+                  result,
+                  indent=2
+              )
+          )
+
+          PY
+
+
+      - name: Upload runtime evidence
+
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: runtime-check-${{ strategy.job-index }}
+
+          path: runtime-result/
+
+          if-no-files-found: warn
+
+          retention-days: 30
