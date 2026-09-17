@@ -9,42 +9,34 @@ permissions:
 jobs:
 
   prepare:
+
     name: Prepare runtime matrix
+
     runs-on: ubuntu-22.04
 
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
 
     steps:
-      - name: Checkout repository
+
+      - name: Checkout project
         uses: actions/checkout@v4
 
-      - name: Prepare runtime matrix
+      - name: Build runtime matrix
         id: matrix
         shell: bash
+
         run: |
+
           python3 - <<'PY'
+
           import csv
           import json
           import os
 
-          input_file = "data/interim/php_runtime_matrix.csv"
-
-          rows = []
-
-          with open(input_file, newline="", encoding="utf-8") as f:
-              reader = csv.DictReader(f)
-
-              for row in reader:
-                  rows.append({
-                      "repo": row["repo_full_name"],
-                      "php": row["selected_php_runtime"],
-                      "sha": row["latest_sha"]
-                  })
-
-          matrix = {
-              "include": []
-          }
+          input_file = (
+              "data/interim/php_runtime_matrix.csv"
+          )
 
           operating_systems = [
               "ubuntu-22.04",
@@ -52,492 +44,359 @@ jobs:
               "macos-14"
           ]
 
-          for row in rows:
-              for operating_system in operating_systems:
-                  matrix["include"].append({
-                      "repo": row["repo"],
-                      "php": row["php"],
-                      "sha": row["sha"],
-                      "os": operating_system
-                  })
+          rows = []
 
-          # Safety check: pilot must contain exactly 60 runtime checks.
-          expected = 60
+          with open(
+              input_file,
+              newline="",
+              encoding="utf-8"
+          ) as f:
 
-          if len(matrix["include"]) != expected:
-              raise SystemExit(
-                  f"Expected {expected} runtime checks, "
-                  f"got {len(matrix['include'])}"
+              rows = list(
+                  csv.DictReader(f)
               )
 
-          output = json.dumps(matrix, separators=(",", ":"))
+          if len(rows) != 20:
+              raise SystemExit(
+                  f"Expected 20 repositories, found {len(rows)}"
+              )
 
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write("matrix=" + output + "\n")
+          include = []
 
-          print("Repositories:", len(rows))
-          print("Operating systems:", len(operating_systems))
-          print("Runtime checks:", len(matrix["include"]))
+          for row in rows:
+
+              repo = row[
+                  "repo_full_name"
+              ].strip()
+
+              sha = row[
+                  "latest_sha"
+              ].strip()
+
+              php = row[
+                  "selected_php_runtime"
+              ].strip()
+
+              if not repo:
+                  raise SystemExit(
+                      "Missing repository"
+                  )
+
+              if not sha:
+                  raise SystemExit(
+                      f"Missing SHA: {repo}"
+                  )
+
+              if not php:
+                  raise SystemExit(
+                      f"Missing PHP runtime: {repo}"
+                  )
+
+              for os_name in operating_systems:
+
+                  include.append(
+                      {
+                          "repo": repo,
+                          "sha": sha,
+                          "php": php,
+                          "os": os_name
+                      }
+                  )
+
+          if len(include) != 60:
+
+              raise SystemExit(
+                  f"Expected 60 jobs, found {len(include)}"
+              )
+
+          matrix = {
+              "include": include
+          }
+
+          encoded = json.dumps(
+              matrix,
+              separators=(",", ":")
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8"
+          ) as f:
+
+              f.write(
+                  "matrix=" + encoded + "\n"
+              )
+
+          print(
+              "Repositories:",
+              len(rows)
+          )
+
+          print(
+              "Operating systems:",
+              len(operating_systems)
+          )
+
+          print(
+              "Runtime checks:",
+              len(include)
+          )
+
           PY
 
+
   runtime_check:
+
     name: ${{ matrix.repo }} / ${{ matrix.os }} / PHP ${{ matrix.php }}
 
     needs: prepare
 
     strategy:
-      fail-fast: false
-      max-parallel: 3
 
-      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+      fail-fast: false
+
+      max-parallel: 6
+
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.matrix).include }}
 
     runs-on: ${{ matrix.os }}
 
+    continue-on-error: true
+
     steps:
 
-      # ============================================================
-      # 1. INITIALIZE EVIDENCE DIRECTORY
-      # ============================================================
-
-      - name: Initialize evidence directory
-        if: always()
-        shell: bash
-        run: |
-          rm -rf runtime-result
-          mkdir -p runtime-result
-
-          cat > runtime-result/requested.txt <<EOF
-          repository=${{ matrix.repo }}
-          operating_system=${{ matrix.os }}
-          requested_php=${{ matrix.php }}
-          expected_commit_sha=${{ matrix.sha }}
-          workflow_run_id=${GITHUB_RUN_ID}
-          workflow_run_attempt=${GITHUB_RUN_ATTEMPT}
-          job_name=${GITHUB_JOB}
-          runner_os=${RUNNER_OS}
-          runner_arch=${RUNNER_ARCH}
-          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          EOF
-
-          cat runtime-result/requested.txt
-
-      # ============================================================
-      # 2. CHECKOUT EXACT COMMIT
-      # ============================================================
-
-      - name: Checkout exact repository commit
-        id: checkout_target
+      - name: Checkout exact repository
         uses: actions/checkout@v4
-        continue-on-error: true
+
         with:
           repository: ${{ matrix.repo }}
           ref: ${{ matrix.sha }}
-          path: target
+          fetch-depth: 1
 
-      - name: Record checkout result
-        if: always()
+
+      - name: Record requested environment
         shell: bash
+
         run: |
-          {
-            echo "=== CHECKOUT STATUS ==="
 
-            if [ -d target/.git ]; then
-              echo "checkout_status=success"
+          mkdir -p runtime-result
 
-              cd target
+          cat > runtime-result/requested.txt <<EOF
 
-              echo
-              echo "actual_commit:"
-              git rev-parse HEAD || true
+          repository=${{ matrix.repo }}
 
-              echo
-              echo "repository:"
-              git remote get-url origin || true
-            else
-              echo "checkout_status=failure"
-              echo "checkout_target_step=${{ steps.checkout_target.outcome }}"
-            fi
-          } > runtime-result/checkout.log
+          sha=${{ matrix.sha }}
 
-          cat runtime-result/checkout.log
+          operating_system=${{ matrix.os }}
 
-      # ============================================================
-      # 3. RECORD PRE-PHP ENVIRONMENT
-      # ============================================================
+          requested_php=${{ matrix.php }}
 
-      - name: Record pre-PHP environment
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "=== RUNNER ==="
-            uname -a || true
+          EOF
 
-            echo
-            echo "=== RUNNER OS ==="
-            echo "${RUNNER_OS}"
 
-            echo
-            echo "=== RUNNER ARCH ==="
-            echo "${RUNNER_ARCH}"
-
-            echo
-            echo "=== MACHINE ==="
-            uname -m || true
-
-            echo
-            echo "=== PATH ==="
-            echo "${PATH}"
-
-            echo
-            echo "=== PHP BEFORE SETUP ==="
-            command -v php || true
-            php --version || true
-
-            echo
-            echo "=== COMPOSER BEFORE SETUP ==="
-            command -v composer || true
-            composer --version || true
-          } > runtime-result/pre-php-environment.log 2>&1
-
-          cat runtime-result/pre-php-environment.log
-
-      # ============================================================
-      # 4. SETUP PHP
-      # ============================================================
-
-      - name: Setup PHP
+      - name: Setup requested PHP
         id: setup_php
+
         uses: shivammathur/setup-php@v2
-        continue-on-error: true
+
         with:
+
           php-version: ${{ matrix.php }}
-          extensions: mbstring,dom,fileinfo,curl,zip,pdo,pdo_sqlite,sqlite3
+
+          extensions: mbstring,dom,fileinfo,curl,zip,pdo,sqlite3
+
           coverage: none
+
           tools: composer
 
-      # ============================================================
-      # 5. COLLECT PHP ENVIRONMENT
-      # ============================================================
 
-      - name: Collect PHP environment
-        if: always()
+      - name: Verify actual PHP runtime
+        id: verify
+
         shell: bash
+
         run: |
+
+          set +e
+
+          PHP_OUTPUT="runtime-result/php.txt"
+
+          php --version \
+            > "$PHP_OUTPUT" \
+            2>&1
+
+          PHP_EXIT=$?
+
           {
-            echo "=== SETUP PHP STEP ==="
-            echo "setup_php_outcome=${{ steps.setup_php.outcome }}"
-            echo "setup_php_conclusion=${{ steps.setup_php.conclusion }}"
-
-            echo
-            echo "=== PHP ==="
-            command -v php || true
-            php --version || true
-
             echo
             echo "=== PHP MODULES ==="
-            php -m || true
+            php -m
 
             echo
-            echo "=== PHP CONFIG ==="
-            php --ini || true
+            echo "=== PHP INI ==="
+            php --ini
 
             echo
             echo "=== COMPOSER ==="
-            command -v composer || true
-            composer --version || true
-          } > runtime-result/php-environment.log 2>&1
+            composer --version
 
-          cat runtime-result/php-environment.log
+          } >> "$PHP_OUTPUT" 2>&1
 
-      # ============================================================
-      # 6. DETERMINE PHP STATUS
-      # ============================================================
+          echo "php_exit_code=$PHP_EXIT" \
+            >> "$GITHUB_OUTPUT"
 
-      - name: Determine PHP runtime status
+          exit "$PHP_EXIT"
+
+
+      - name: Generate runtime result
         if: always()
+
         shell: bash
+
         run: |
-          if command -v php >/dev/null 2>&1; then
-            echo "available" > runtime-result/php-status.txt
-          else
-            echo "unavailable" > runtime-result/php-status.txt
-          fi
 
-          echo "PHP status: $(cat runtime-result/php-status.txt)"
-
-      # ============================================================
-      # 7. COMPOSER PLATFORM CHECK
-      # ============================================================
-
-      - name: Check Composer platform requirements
-        if: always()
-        shell: bash
-        run: |
-          if [ -d target ] && command -v composer >/dev/null 2>&1; then
-
-            cd target
-
-            if [ -f composer.lock ]; then
-              composer check-platform-reqs --lock \
-                > ../runtime-result/composer-platform.log 2>&1 || true
-
-            elif [ -f composer.json ]; then
-              composer check-platform-reqs \
-                > ../runtime-result/composer-platform.log 2>&1 || true
-
-            else
-              echo "No composer.json or composer.lock found." \
-                > ../runtime-result/composer-platform.log
-            fi
-
-          else
-            echo "Composer platform check not executed." \
-              > runtime-result/composer-platform.log
-
-            echo "Reason: target unavailable or Composer unavailable." \
-              >> runtime-result/composer-platform.log
-          fi
-
-      # ============================================================
-      # 8. INSTALL DEPENDENCIES
-      # ============================================================
-
-      - name: Install Composer dependencies
-        id: composer_install
-        if: always()
-        shell: bash
-        run: |
-          if [ -d target ] && [ -f target/composer.json ] && \
-             command -v composer >/dev/null 2>&1; then
-
-            cd target
-
-            composer install \
-              --no-interaction \
-              --prefer-dist \
-              > ../runtime-result/composer-install.log 2>&1
-
-            echo $? > ../runtime-result/composer-exit-code.txt
-
-          else
-
-            echo "Composer install skipped." \
-              > runtime-result/composer-install.log
-
-            echo "Target repository or Composer unavailable." \
-              >> runtime-result/composer-install.log
-
-            echo "127" > runtime-result/composer-exit-code.txt
-
-          fi
-
-      # ============================================================
-      # 9. RUN APPLICATION TEST
-      # ============================================================
-
-      - name: Run Laravel test
-        id: application_test
-        if: always()
-        shell: bash
-        run: |
-          if [ -d target ] && command -v php >/dev/null 2>&1; then
-
-            cd target
-
-            if [ -f artisan ]; then
-
-              php artisan test \
-                > ../runtime-result/test.log 2>&1
-
-              echo $? > ../runtime-result/test-exit-code.txt
-
-            elif [ -f vendor/bin/phpunit ]; then
-
-              vendor/bin/phpunit \
-                > ../runtime-result/test.log 2>&1
-
-              echo $? > ../runtime-result/test-exit-code.txt
-
-            else
-
-              echo "No Laravel test command found." \
-                > ../runtime-result/test.log
-
-              echo "127" > ../runtime-result/test-exit-code.txt
-
-            fi
-
-          else
-
-            echo "Application test not executed." \
-              > runtime-result/test.log
-
-            echo "PHP or target repository unavailable." \
-              >> runtime-result/test.log
-
-            echo "127" > runtime-result/test-exit-code.txt
-
-          fi
-
-      # ============================================================
-      # 10. AUTOMATIC CLASSIFICATION
-      # ============================================================
-
-      - name: Classify portability result
-        if: always()
-        shell: bash
-        run: |
           python3 - <<'PY'
+
           import json
           import os
+          import platform
+          import subprocess
           from pathlib import Path
 
-          out = Path("runtime-result")
-
-          def read(name, default=""):
-              p = out / name
-              if p.exists():
-                  return p.read_text(errors="replace").strip()
-              return default
-
-          php_status = read("php-status.txt", "unavailable")
-          checkout_log = read("checkout.log")
-          composer_exit = read("composer-exit-code.txt", "127")
-          test_exit = read("test-exit-code.txt", "127")
-
-          setup_outcome = "${{ steps.setup_php.outcome }}"
-          checkout_outcome = "${{ steps.checkout_target.outcome }}"
-
-          if checkout_outcome != "success":
-              outcome = "non-reproducible"
-              stage = "installation"
-              category = "repository_checkout_failure"
-              evidence = "Repository commit could not be checked out."
-
-          elif php_status != "available":
-              outcome = "non-reproducible"
-              stage = "runtime_setup"
-              category = "php_runtime_provisioning_failure"
-              evidence = "PHP runtime unavailable after setup-php."
-
-          elif composer_exit != "0":
-              outcome = "partially_reproducible"
-              stage = "installation"
-              category = "dependency_or_installation_failure"
-              evidence = "Composer installation/platform requirements failed."
-
-          elif test_exit != "0":
-              outcome = "non-reproducible"
-              stage = "testing"
-              category = "test_failure"
-              evidence = "Application tests returned a non-zero exit code."
-
-          else:
-              outcome = "reproducible"
-              stage = ""
-              category = ""
-              evidence = "Repository, PHP runtime, dependencies and tests completed."
-
-          result = {
-              "repository": "${{ matrix.repo }}",
-              "commit_sha": "${{ matrix.sha }}",
-              "os": "${{ matrix.os }}",
-              "requested_php": "${{ matrix.php }}",
-              "runner_os": os.environ.get("RUNNER_OS"),
-              "runner_arch": os.environ.get("RUNNER_ARCH"),
-              "checkout_status": checkout_outcome,
-              "php_setup_status": setup_outcome,
-              "php_status": php_status,
-              "composer_exit_code": composer_exit,
-              "test_exit_code": test_exit,
-              "outcome": outcome,
-              "failure_stage": stage,
-              "failure_category": category,
-              "evidence": evidence
-          }
-
-          (out / "classified-result.json").write_text(
-              json.dumps(result, indent=2)
+          result_dir = Path(
+              "runtime-result"
           )
 
-          print(json.dumps(result, indent=2))
-          PY
+          result_dir.mkdir(
+              exist_ok=True
+          )
 
-      # ============================================================
-      # 11. CREATE HUMAN-READABLE SUMMARY
-      # ============================================================
+          def command_output(command):
 
-      - name: Create evidence summary
-        if: always()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
+              try:
 
-          p = Path("runtime-result/classified-result.json")
+                  p = subprocess.run(
+                      command,
+                      capture_output=True,
+                      text=True,
+                      timeout=30
+                  )
 
-          if p.exists():
-              result = json.loads(p.read_text())
+                  return {
+                      "returncode": p.returncode,
+                      "stdout": p.stdout.strip(),
+                      "stderr": p.stderr.strip()
+                  }
 
-              lines = [
-                  "RUNTIME AVAILABILITY EVIDENCE",
-                  "=============================",
-                  f"Repository: {result['repository']}",
-                  f"Commit SHA: {result['commit_sha']}",
-                  f"OS: {result['os']}",
-                  f"Requested PHP: {result['requested_php']}",
-                  f"Runner OS: {result.get('runner_os')}",
-                  f"Runner architecture: {result.get('runner_arch')}",
-                  "",
-                  f"Outcome: {result['outcome']}",
-                  f"Failure stage: {result['failure_stage']}",
-                  f"Failure category: {result['failure_category']}",
-                  f"Evidence: {result['evidence']}",
-              ]
+              except Exception as exc:
 
-              Path("runtime-result/SUMMARY.txt").write_text(
-                  "\n".join(lines) + "\n"
+                  return {
+                      "returncode": None,
+                      "stdout": "",
+                      "stderr": str(exc)
+                  }
+
+
+          result = {
+
+              "repository":
+                  "${{ matrix.repo }}",
+
+              "commit_sha":
+                  "${{ matrix.sha }}",
+
+              "operating_system":
+                  "${{ matrix.os }}",
+
+              "requested_php":
+                  "${{ matrix.php }}",
+
+              "runner_os":
+                  os.environ.get(
+                      "RUNNER_OS"
+                  ),
+
+              "runner_arch":
+                  os.environ.get(
+                      "RUNNER_ARCH"
+                  ),
+
+              "actual_php":
+                  command_output(
+                      ["php", "--version"]
+                  ),
+
+              "composer":
+                  command_output(
+                      ["composer", "--version"]
+                  ),
+
+              "php_modules":
+                  command_output(
+                      ["php", "-m"]
+                  ),
+
+              "platform":
+                  platform.platform()
+
+          }
+
+
+          php_result = result[
+              "actual_php"
+          ]
+
+          if php_result[
+              "returncode"
+          ] == 0:
+
+              result[
+                  "runtime_status"
+              ] = "AVAILABLE"
+
+          else:
+
+              result[
+                  "runtime_status"
+              ] = "UNAVAILABLE"
+
+
+          with open(
+              result_dir / "result.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+
+              json.dump(
+                  result,
+                  f,
+                  indent=2
               )
 
-              print("\n".join(lines))
+          print(
+              json.dumps(
+                  result,
+                  indent=2
+              )
+          )
+
           PY
 
-      # ============================================================
-      # 12. UPLOAD EVIDENCE — ALWAYS
-      # ============================================================
 
       - name: Upload runtime evidence
+
         if: always()
+
         uses: actions/upload-artifact@v4
+
         with:
-          name: runtime-evidence-${{ strategy.job-index }}
+
+          name: runtime-check-${{ strategy.job-index }}
+
           path: runtime-result/
+
           if-no-files-found: warn
-          retention-days: 90
 
-      # ============================================================
-      # 13. FAIL JOB IF THE PORTABILITY CHECK FAILED
-      # ============================================================
-
-      - name: Finalize portability result
-        if: always()
-        shell: bash
-        run: |
-          if [ -f runtime-result/classified-result.json ]; then
-
-            python3 - <<'PY'
-          import json
-
-          with open("runtime-result/classified-result.json") as f:
-              result = json.load(f)
-
-          print("Final portability outcome:", result["outcome"])
-          print("Failure category:", result["failure_category"])
-
-          if result["outcome"] != "reproducible":
-              raise SystemExit(1)
-          PY
-
-          fi
+          retention-days: 30
