@@ -1,0 +1,4 @@
+repository=Devsome/silkpanel-cms
+commit_sha=b96680a6710cf63c5c7be953b70db2d848284caf
+requested_php=8.3
+operating_system=ubuntu-22.04

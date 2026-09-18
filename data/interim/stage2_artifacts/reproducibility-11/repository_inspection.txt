@@ -1,0 +1,135 @@
+=== REPOSITORY ===
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability
+
+=== FILES ===
+total 1576
+drwxr-xr-x 14 runner runner   4096 Sep 18 12:51 .
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 ..
+-rw-r--r--  1 runner runner    258 Sep 18 12:51 .editorconfig
+-rw-r--r--  1 runner runner   1146 Sep 18 12:51 .env.example
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:51 .git
+-rw-r--r--  1 runner runner    186 Sep 18 12:51 .gitattributes
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 .github
+-rw-r--r--  1 runner runner    479 Sep 18 12:51 .gitignore
+-rw-r--r--  1 runner runner   1120 Sep 18 12:51 .php-cs-fixer.dist.php
+-rw-r--r--  1 runner runner   4931 Sep 18 12:51 README.md
+-rw-r--r--  1 runner runner 890015 Sep 18 12:51 _ide_helper.php
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:51 app
+-rwxr-xr-x  1 runner runner    425 Sep 18 12:51 artisan
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 bootstrap
+-rw-r--r--  1 runner runner   3326 Sep 18 12:51 composer.json
+-rw-r--r--  1 runner runner 432703 Sep 18 12:51 composer.lock
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 config
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 database
+-rw-r--r--  1 runner runner 152929 Sep 18 12:51 package-lock.json
+-rw-r--r--  1 runner runner    489 Sep 18 12:51 package.json
+-rw-r--r--  1 runner runner   4087 Sep 18 12:51 phpstan.neon
+-rw-r--r--  1 runner runner   1321 Sep 18 12:51 phpunit.coverage.xml
+-rw-r--r--  1 runner runner   1204 Sep 18 12:51 phpunit.coverage.xml.bak
+-rw-r--r--  1 runner runner    957 Sep 18 12:51 phpunit.xml
+-rw-r--r--  1 runner runner    679 Sep 18 12:51 playwright.config.ts
+-rw-r--r--  1 runner runner     93 Sep 18 12:51 postcss.config.js
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 public
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 resources
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 routes
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 runtime-result
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 storage
+-rw-r--r--  1 runner runner    541 Sep 18 12:51 tailwind.config.js
+drwxr-xr-x  4 runner runner   4096 Sep 18 12:51 tests
+-rw-r--r--  1 runner runner    263 Sep 18 12:51 vite.config.js
+
+=== COMPOSER.JSON ===
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "laravel/framework": "^12.0",
+        "laravel/tinker": "^2.10.1",
+        "sendgrid/sendgrid": "^8.1",
+        "symfony/http-client": "^7.2",
+        "symfony/mailer": "^7.2",
+        "symfony/sendgrid-mailer": "^7.2"
+    },
+    "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.5",
+        "fakerphp/faker": "^1.23",
+        "laravel/breeze": "^2.3",
+        "laravel/pail": "^1.2.2",
+        "brianium/paratest": "^7.1",
+        "friendsofphp/php-cs-fixer": "^3.15",
+        "goetas-webservices/xsd2php": "^0.4.7",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.0",
+        "laravel/sail": "^1.18",
+        "league/tactician": "^1.1",
+        "mockery/mockery": "^1.4.4",
+        "nunomaduro/collision": "^8.1",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0",
+        "spatie/laravel-ignition": "^2.0",
+        "spatie/phpunit-snapshot-assertions": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ],
+        "migrate": [
+            "php artisan migrate"
+        ],
+        "phpunit": "./vendor/bin/paratest -c phpunit.xml",
+        "phpunit-coverage": [
+            "php vendor/bin/phpunit -c phpunit.coverage.xml --coverage-text --colors=never"
+        ],
+        "phpstan": "./vendor/bin/phpstan analyse --memory-limit=2G",
+        "php-cs": "./vendor/bin/php-cs-fixer",
+        "php-cs-fixer": "PHP_CS_FIXER_IGNORE_ENV=1 vendor/bin/php-cs-fixer fix --config .php-cs-fixer.dist.php --allow-risky=yes",
+        "check-php-cs-fixer": "vendor/bin/php-cs-fixer fix --config .php-cs-fixer.dist.php --allow-risky=yes --dry-run",
+        "format": "./vendor/bin/php-cs-fixer fix --allow-risky=yes",
+        "api-doc": "php artisan l5-swagger:generate",
+        "modelsp": "php artisan ide-helper:models --dir='app' -W",
+        "coverage-report": "php vendor/bin/phpunit --coverage-clover=coverage.xml"
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

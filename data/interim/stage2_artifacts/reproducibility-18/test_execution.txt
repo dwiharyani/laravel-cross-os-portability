@@ -1,0 +1,38 @@
+=== TEST EXECUTION ===
+Command: vendor/bin/phpunit
+Timeout: 30 minutes
+
+PHPUnit 5.7.19 by Sebastian Bergmann and contributors.
+
+E.                                                                  2 / 2 (100%)
+
+Time: 102 ms, Memory: 14.00MB
+
+There was 1 error:
+
+1) Tests\Feature\ExampleTest::testBasicTest
+RuntimeException: The only supported ciphers are AES-128-CBC and AES-256-CBC with the correct key lengths.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/Encrypter.php:43
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php:27
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:718
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:600
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:567
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:708
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:854
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:782
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:750
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:600
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:567
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:708
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:213
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:187
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php:237
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php:57
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/ExampleTest.php:19
+phpvfscomposer:///home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/phpunit/phpunit/phpunit:51
+
+ERRORS!
+Tests: 2, Assertions: 1, Errors: 1.
+
+EXIT_CODE=2

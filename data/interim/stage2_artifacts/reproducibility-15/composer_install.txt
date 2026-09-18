@@ -1,0 +1,144 @@
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 70 installs, 0 updates, 0 removals
+  - Downloading doctrine/inflector (v1.3.0)
+  - Downloading doctrine/lexer (v1.0.1)
+  - Downloading dragonmantank/cron-expression (v2.2.0)
+  - Downloading erusev/parsedown (1.7.1)
+  - Downloading vlucas/phpdotenv (v2.5.0)
+  - Downloading symfony/css-selector (v4.1.2)
+  - Downloading tijsverkoyen/css-to-inline-styles (2.2.1)
+  - Downloading symfony/polyfill-php72 (v1.8.0)
+  - Downloading symfony/polyfill-mbstring (v1.8.0)
+  - Downloading symfony/var-dumper (v4.1.2)
+  - Downloading symfony/routing (v4.1.2)
+  - Downloading symfony/process (v4.1.2)
+  - Downloading symfony/polyfill-ctype (v1.8.0)
+  - Downloading symfony/http-foundation (v4.1.2)
+  - Downloading symfony/event-dispatcher (v4.1.2)
+  - Downloading psr/log (1.0.2)
+  - Downloading symfony/debug (v4.1.2)
+  - Downloading symfony/http-kernel (v4.1.2)
+  - Downloading symfony/finder (v4.1.2)
+  - Downloading symfony/console (v4.1.2)
+  - Downloading egulias/email-validator (2.1.4)
+  - Downloading swiftmailer/swiftmailer (v6.1.2)
+  - Downloading paragonie/random_compat (v9.99.99)
+  - Downloading ramsey/uuid (3.8.0)
+  - Downloading psr/simple-cache (1.0.1)
+  - Downloading psr/container (1.0.0)
+  - Downloading symfony/translation (v4.1.2)
+  - Downloading nesbot/carbon (1.25.0)
+  - Downloading monolog/monolog (1.23.0)
+  - Downloading league/flysystem (1.0.45)
+  - Downloading laravel/framework (v5.6.28)
+  - Downloading fideloper/proxy (4.0.0)
+  - Downloading fzaninotto/faker (v1.8.0)
+  - Downloading jakub-onderka/php-console-color (0.1)
+  - Downloading nikic/php-parser (v4.0.3)
+  - Downloading jakub-onderka/php-console-highlighter (v0.3.2)
+  - Downloading dnoegel/php-xdg-base-dir (0.1)
+  - Downloading psy/psysh (v0.9.6)
+  - Downloading laravel/tinker (v1.0.7)
+  - Downloading hamcrest/hamcrest-php (v2.0.0)
+  - Downloading mockery/mockery (1.1.0)
+  - Downloading filp/whoops (2.2.0)
+  - Downloading nunomaduro/collision (v2.0.3)
+  - Downloading webmozart/assert (1.3.0)
+  - Downloading phpdocumentor/reflection-common (1.0.1)
+  - Downloading phpdocumentor/type-resolver (0.4.0)
+  - Downloading phpdocumentor/reflection-docblock (4.3.0)
+  - Downloading phpunit/php-token-stream (3.0.0)
+  - Downloading sebastian/version (2.0.1)
+  - Downloading sebastian/resource-operations (1.0.0)
+  - Downloading sebastian/recursion-context (3.0.0)
+  - Downloading sebastian/object-reflector (1.1.1)
+  - Downloading sebastian/object-enumerator (3.0.3)
+  - Downloading sebastian/global-state (2.0.0)
+  - Downloading sebastian/exporter (3.1.0)
+  - Downloading sebastian/environment (3.1.0)
+  - Downloading sebastian/diff (3.0.1)
+  - Downloading sebastian/comparator (3.0.2)
+  - Downloading phpunit/php-timer (2.0.0)
+  - Downloading phpunit/php-text-template (1.2.1)
+  - Downloading phpunit/php-file-iterator (2.0.1)
+  - Downloading theseer/tokenizer (1.1.0)
+  - Downloading sebastian/code-unit-reverse-lookup (1.0.1)
+  - Downloading phpunit/php-code-coverage (6.0.7)
+  - Downloading doctrine/instantiator (1.1.0)
+  - Downloading phpspec/prophecy (1.7.6)
+  - Downloading phar-io/version (2.0.1)
+  - Downloading phar-io/manifest (1.0.3)
+  - Downloading myclabs/deep-copy (1.8.1)
+  - Downloading phpunit/phpunit (7.2.7)
+  - Installing doctrine/inflector (v1.3.0): Extracting archive
+  - Installing doctrine/lexer (v1.0.1): Extracting archive
+  - Installing dragonmantank/cron-expression (v2.2.0): Extracting archive
+  - Installing erusev/parsedown (1.7.1): Extracting archive
+  - Installing vlucas/phpdotenv (v2.5.0): Extracting archive
+  - Installing symfony/css-selector (v4.1.2): Extracting archive
+  - Installing tijsverkoyen/css-to-inline-styles (2.2.1): Extracting archive
+  - Installing symfony/polyfill-php72 (v1.8.0): Extracting archive
+  - Installing symfony/polyfill-mbstring (v1.8.0): Extracting archive
+  - Installing symfony/var-dumper (v4.1.2): Extracting archive
+  - Installing symfony/routing (v4.1.2): Extracting archive
+  - Installing symfony/process (v4.1.2): Extracting archive
+  - Installing symfony/polyfill-ctype (v1.8.0): Extracting archive
+  - Installing symfony/http-foundation (v4.1.2): Extracting archive
+  - Installing symfony/event-dispatcher (v4.1.2): Extracting archive
+  - Installing psr/log (1.0.2): Extracting archive
+  - Installing symfony/debug (v4.1.2): Extracting archive
+  - Installing symfony/http-kernel (v4.1.2): Extracting archive
+  - Installing symfony/finder (v4.1.2): Extracting archive
+  - Installing symfony/console (v4.1.2): Extracting archive
+  - Installing egulias/email-validator (2.1.4): Extracting archive
+  - Installing swiftmailer/swiftmailer (v6.1.2): Extracting archive
+  - Installing paragonie/random_compat (v9.99.99): Extracting archive
+  - Installing ramsey/uuid (3.8.0): Extracting archive
+  - Installing psr/simple-cache (1.0.1): Extracting archive
+  - Installing psr/container (1.0.0): Extracting archive
+  - Installing symfony/translation (v4.1.2): Extracting archive
+  - Installing nesbot/carbon (1.25.0): Extracting archive
+  - Installing monolog/monolog (1.23.0): Extracting archive
+  - Installing league/flysystem (1.0.45): Extracting archive
+  - Installing laravel/framework (v5.6.28): Extracting archive
+  - Installing fideloper/proxy (4.0.0): Extracting archive
+  - Installing fzaninotto/faker (v1.8.0): Extracting archive
+  - Installing jakub-onderka/php-console-color (0.1): Extracting archive
+  - Installing nikic/php-parser (v4.0.3): Extracting archive
+  - Installing jakub-onderka/php-console-highlighter (v0.3.2): Extracting archive
+  - Installing dnoegel/php-xdg-base-dir (0.1): Extracting archive
+  - Installing psy/psysh (v0.9.6): Extracting archive
+  - Installing laravel/tinker (v1.0.7): Extracting archive
+  - Installing hamcrest/hamcrest-php (v2.0.0): Extracting archive
+  - Installing mockery/mockery (1.1.0): Extracting archive
+  - Installing filp/whoops (2.2.0): Extracting archive
+  - Installing nunomaduro/collision (v2.0.3): Extracting archive
+  - Installing webmozart/assert (1.3.0): Extracting archive
+  - Installing phpdocumentor/reflection-common (1.0.1): Extracting archive
+  - Installing phpdocumentor/type-resolver (0.4.0): Extracting archive
+  - Installing phpdocumentor/reflection-docblock (4.3.0): Extracting archive
+  - Installing phpunit/php-token-stream (3.0.0): Extracting archive
+  - Installing sebastian/version (2.0.1): Extracting archive
+  - Installing sebastian/resource-operations (1.0.0): Extracting archive
+  - Installing sebastian/recursion-context (3.0.0): Extracting archive
+  - Installing sebastian/object-reflector (1.1.1): Extracting archive
+  - Installing sebastian/object-enumerator (3.0.3): Extracting archive
+  - Installing sebastian/global-state (2.0.0): Extracting archive
+  - Installing sebastian/exporter (3.1.0): Extracting archive
+  - Installing sebastian/environment (3.1.0): Extracting archive
+  - Installing sebastian/diff (3.0.1): Extracting archive
+  - Installing sebastian/comparator (3.0.2): Extracting archive
+  - Installing phpunit/php-timer (2.0.0): Extracting archive
+  - Installing phpunit/php-text-template (1.2.1): Extracting archive
+  - Installing phpunit/php-file-iterator (2.0.1): Extracting archive
+  - Installing theseer/tokenizer (1.1.0): Extracting archive
+  - Installing sebastian/code-unit-reverse-lookup (1.0.1): Extracting archive
+  - Installing phpunit/php-code-coverage (6.0.7): Extracting archive
+  - Installing doctrine/instantiator (1.1.0): Extracting archive
+  - Installing phpspec/prophecy (1.7.6): Extracting archive
+  - Installing phar-io/version (2.0.1): Extracting archive
+  - Installing phar-io/manifest (1.0.3): Extracting archive
+  - Installing myclabs/deep-copy (1.8.1): Extracting archive
+  - Installing phpunit/phpunit (7.2.7): Extracting archive
+Generating optimized autoload files

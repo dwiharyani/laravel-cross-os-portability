@@ -1,0 +1,127 @@
+=== REPOSITORY ===
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability
+
+=== FILES ===
+total 636
+drwxr-xr-x 14 runner runner   4096 Sep 18 12:51 .
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 ..
+-rw-r--r--  1 runner runner    474 Sep 18 12:51 .editorconfig
+-rw-r--r--  1 runner runner   1151 Sep 18 12:51 .env.example
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:51 .git
+-rw-r--r--  1 runner runner    186 Sep 18 12:51 .gitattributes
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 .github
+-rw-r--r--  1 runner runner    342 Sep 18 12:51 .gitignore
+-rw-r--r--  1 runner runner    217 Sep 18 12:51 .oxlintrc.json
+-rw-r--r--  1 runner runner    175 Sep 18 12:51 .prettierrc.json
+-rw-r--r--  1 runner runner  34534 Sep 18 12:51 LICENCE
+-rw-r--r--  1 runner runner   2269 Sep 18 12:51 README.md
+drwxr-xr-x 11 runner runner   4096 Sep 18 12:51 app
+-rwxr-xr-x  1 runner runner    425 Sep 18 12:51 artisan
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 bootstrap
+-rw-r--r--  1 runner runner    457 Sep 18 12:51 components.json
+-rw-r--r--  1 runner runner   2672 Sep 18 12:51 composer.json
+-rw-r--r--  1 runner runner 331107 Sep 18 12:51 composer.lock
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 config
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 database
+-rw-r--r--  1 runner runner    197 Sep 18 12:51 env.d.ts
+-rw-r--r--  1 runner runner   1032 Sep 18 12:51 eslint.config.ts
+-rw-r--r--  1 runner runner   1723 Sep 18 12:51 package.json
+-rw-r--r--  1 runner runner   1181 Sep 18 12:51 phpunit.xml
+-rw-r--r--  1 runner runner 145770 Sep 18 12:51 pnpm-lock.yaml
+-rw-r--r--  1 runner runner     46 Sep 18 12:51 pnpm-workspace.yaml
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 public
+drwxr-xr-x  6 runner runner   4096 Sep 18 12:51 resources
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 routes
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 runtime-result
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:51 storage
+drwxr-xr-x  4 runner runner   4096 Sep 18 12:51 tests
+-rw-r--r--  1 runner runner    597 Sep 18 12:51 tsconfig.app.json
+-rw-r--r--  1 runner runner    197 Sep 18 12:51 tsconfig.json
+-rw-r--r--  1 runner runner    964 Sep 18 12:51 tsconfig.node.json
+-rw-r--r--  1 runner runner   1002 Sep 18 12:51 vite.config.ts
+
+=== COMPOSER.JSON ===
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "dziennik-azayaka/azayaka",
+    "type": "project",
+    "description": "Wolny i otwartoźrodłowy dziennik dla szkół podstawowych i ponadpodstawowych. ",
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
+    "license": "AGPL-3.0-only",
+    "require": {
+        "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "itsgoingd/clockwork": "^5.3",
+        "laravel/framework": "^12.0",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.10.1",
+	    "ext-dom": "*",
+	    "ext-xsl": "*"
+	},
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.13",
+        "laravel/sail": "^1.41",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^12.0",
+	    "ext-libxml": "*"
+	},
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"pnpm run dev\" --names=server,queue,logs,vite"
+        ],
+        "test": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

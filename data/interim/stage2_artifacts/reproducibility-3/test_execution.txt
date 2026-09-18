@@ -1,0 +1,11 @@
+=== TEST EXECUTION ===
+Command: vendor/bin/phpunit
+Timeout: 30 minutes
+
+
+   Pest\Exceptions\InvalidPestCommand 
+
+  Please run [./vendor/bin/pest] instead.
+
+
+EXIT_CODE=1

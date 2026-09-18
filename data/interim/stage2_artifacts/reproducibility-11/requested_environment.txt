@@ -1,0 +1,4 @@
+repository=CholitaApp/cholita
+commit_sha=8e88ebc6f80504a1c0c43772383dbdb8fbb3208a
+requested_php=8.4
+operating_system=ubuntu-22.04

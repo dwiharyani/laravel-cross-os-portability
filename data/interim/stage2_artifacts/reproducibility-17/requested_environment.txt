@@ -1,0 +1,4 @@
+repository=MelonSmasher/Chocolatier
+commit_sha=61c71f1fa2c98397cbe897637d48562175406cd7
+requested_php=7.4
+operating_system=ubuntu-22.04

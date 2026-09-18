@@ -1,0 +1,937 @@
+name: Reproducibility Pilot 20
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  prepare:
+
+    name: Prepare reproducibility matrix
+
+    runs-on: ubuntu-22.04
+
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Build reproducibility matrix
+        id: matrix
+        shell: bash
+
+        run: |
+
+          python3 - <<'PY'
+
+          import csv
+          import json
+          import os
+
+          input_file = (
+              "data/interim/php_runtime_matrix.csv"
+          )
+
+          include = []
+
+          with open(
+              input_file,
+              newline="",
+              encoding="utf-8"
+          ) as f:
+
+              reader = csv.DictReader(f)
+
+              for row in reader:
+
+                  include.append(
+                      {
+                          "repo": row["repo_full_name"],
+                          "sha": row["latest_sha"],
+                          "php": str(
+                              row["selected_php_runtime"]
+                          )
+                      }
+                  )
+
+          if len(include) != 20:
+
+              raise SystemExit(
+                  f"Expected 20 repositories, "
+                  f"found {len(include)}"
+              )
+
+          matrix = {
+              "include": include
+          }
+
+          encoded = json.dumps(
+              matrix,
+              separators=(",", ":")
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8"
+          ) as f:
+
+              f.write(
+                  "matrix=" + encoded + "\n"
+              )
+
+          print(
+              "Repositories:",
+              len(include)
+          )
+
+          for item in include:
+
+              print(
+                  item["repo"],
+                  "| PHP",
+                  item["php"],
+                  "|",
+                  item["sha"]
+              )
+
+          PY
+
+
+  reproducibility_check:
+
+    name: ${{ matrix.repo }} / PHP ${{ matrix.php }}
+
+    needs: prepare
+
+    strategy:
+
+      fail-fast: false
+
+      max-parallel: 6
+
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.matrix).include }}
+
+    runs-on: ubuntu-22.04
+
+    continue-on-error: true
+
+    steps:
+
+      # ========================================================
+      # CHECKOUT EXACT REPOSITORY
+      # ========================================================
+
+      - name: Checkout exact repository
+
+        uses: actions/checkout@v4
+
+        with:
+
+          repository: ${{ matrix.repo }}
+
+          ref: ${{ matrix.sha }}
+
+          fetch-depth: 1
+
+
+      # ========================================================
+      # INITIALIZE EVIDENCE
+      # ========================================================
+
+      - name: Initialize evidence directory
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          mkdir -p runtime-result
+
+          cat > runtime-result/requested_environment.txt <<EOF
+
+          repository=${{ matrix.repo }}
+
+          commit_sha=${{ matrix.sha }}
+
+          requested_php=${{ matrix.php }}
+
+          operating_system=ubuntu-22.04
+
+          EOF
+
+
+      # ========================================================
+      # SETUP PHP
+      # ========================================================
+
+      - name: Setup PHP
+
+        id: setup_php
+
+        uses: shivammathur/setup-php@v2
+
+        with:
+
+          php-version: ${{ matrix.php }}
+
+          extensions: mbstring,dom,fileinfo,curl,zip,pdo,sqlite3
+
+          coverage: none
+
+          tools: composer
+
+
+      # ========================================================
+      # VERIFY ENVIRONMENT
+      # ========================================================
+
+      - name: Verify PHP and Composer
+
+        id: verify_environment
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          {
+
+            echo "=== PHP VERSION ==="
+
+            php --version
+
+            PHP_EXIT=$?
+
+            echo
+
+            echo "=== PHP INI ==="
+
+            php --ini
+
+            echo
+
+            echo "=== PHP MODULES ==="
+
+            php -m
+
+            echo
+
+            echo "=== COMPOSER ==="
+
+            composer --version
+
+            COMPOSER_EXIT=$?
+
+            echo
+
+            echo "PHP_EXIT=$PHP_EXIT"
+
+            echo "COMPOSER_EXIT=$COMPOSER_EXIT"
+
+          } > runtime-result/environment.txt 2>&1
+
+          cat runtime-result/environment.txt
+
+
+      # ========================================================
+      # INSPECT COMPOSER
+      # ========================================================
+
+      - name: Inspect repository
+
+        id: inspect
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          {
+
+            echo "=== REPOSITORY ==="
+
+            pwd
+
+            echo
+
+            echo "=== COMPOSER.JSON ==="
+
+            if [ -f composer.json ]; then
+
+              cat composer.json
+
+              COMPOSER_JSON=1
+
+            else
+
+              echo "composer.json NOT FOUND"
+
+              COMPOSER_JSON=0
+
+            fi
+
+            echo
+
+            echo "=== PHP VERSION REQUIREMENT ==="
+
+            if [ -f composer.json ]; then
+
+              python3 - <<'PY'
+
+          import json
+
+          try:
+
+              with open(
+                  "composer.json",
+                  encoding="utf-8"
+              ) as f:
+
+                  data = json.load(f)
+
+              print(
+                  data.get(
+                      "require",
+                      {}
+                  ).get(
+                      "php",
+                      ""
+                  )
+              )
+
+          except Exception as exc:
+
+              print(
+                  "ERROR:",
+                  exc
+              )
+
+          PY
+
+            fi
+
+            echo
+
+            echo "=== PHP EXTENSIONS ==="
+
+            if [ -f composer.json ]; then
+
+              python3 - <<'PY'
+
+          import json
+
+          try:
+
+              with open(
+                  "composer.json",
+                  encoding="utf-8"
+              ) as f:
+
+                  data = json.load(f)
+
+              for package in data.get(
+                  "require",
+                  {}
+              ):
+
+                  if str(package).lower().startswith(
+                      "ext-"
+                  ):
+
+                      print(package)
+
+          except Exception as exc:
+
+              print(
+                  "ERROR:",
+                  exc
+              )
+
+          PY
+
+            fi
+
+          } > runtime-result/repository_inspection.txt 2>&1
+
+          cat runtime-result/repository_inspection.txt
+
+
+      # ========================================================
+      # COMPOSER INSTALL
+      # ========================================================
+
+      - name: Composer install
+
+        id: composer_install
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          if [ ! -f composer.json ]; then
+
+            echo "composer.json not found"
+
+            exit 20
+
+          fi
+
+          composer install \
+            --no-interaction \
+            --prefer-dist \
+            --no-progress \
+            --no-scripts \
+            > runtime-result/composer_install.txt \
+            2>&1
+
+          EXIT_CODE=$?
+
+          echo
+          echo "composer_exit_code=$EXIT_CODE"
+
+          exit $EXIT_CODE
+
+
+      # ========================================================
+      # DETECT TEST COMMAND
+      # ========================================================
+
+      - name: Detect test command
+
+        id: detect_test
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          python3 - <<'PY' \
+            > runtime-result/test_detection.txt 2>&1
+
+          import json
+          from pathlib import Path
+
+          composer = Path(
+              "composer.json"
+          )
+
+          if not composer.exists():
+
+              print(
+                  "TEST_COMMAND="
+              )
+
+              print(
+                  "SOURCE=composer.json missing"
+              )
+
+              raise SystemExit(0)
+
+          with composer.open(
+              encoding="utf-8"
+          ) as f:
+
+              data = json.load(f)
+
+          scripts = data.get(
+              "scripts",
+              {}
+          )
+
+          preferred = [
+              "test",
+              "tests",
+              "test:unit",
+              "test:feature",
+          ]
+
+          for name in preferred:
+
+              if name in scripts:
+
+                  value = scripts[name]
+
+                  if isinstance(
+                      value,
+                      list
+                  ):
+
+                      value = " && ".join(
+                          str(x)
+                          for x in value
+                      )
+
+                  print(
+                      "TEST_COMMAND="
+                      f"composer run {name}"
+                  )
+
+                  print(
+                      "SOURCE="
+                      f"composer.json:{name}"
+                  )
+
+                  raise SystemExit(0)
+
+          for name, value in scripts.items():
+
+              if "test" in str(
+                  name
+              ).lower():
+
+                  if isinstance(
+                      value,
+                      list
+                  ):
+
+                      value = " && ".join(
+                          str(x)
+                          for x in value
+                      )
+
+                  print(
+                      "TEST_COMMAND="
+                      f"composer run {name}"
+                  )
+
+                  print(
+                      "SOURCE="
+                      f"composer.json:{name}"
+                  )
+
+                  raise SystemExit(0)
+
+          if Path(
+              "vendor/bin/phpunit"
+          ).exists():
+
+              print(
+                  "TEST_COMMAND="
+                  "vendor/bin/phpunit"
+              )
+
+              print(
+                  "SOURCE=vendor/bin/phpunit"
+              )
+
+              raise SystemExit(0)
+
+          if (
+              Path("phpunit.xml").exists()
+              or
+              Path("phpunit.xml.dist").exists()
+          ):
+
+              print(
+                  "TEST_COMMAND="
+                  "vendor/bin/phpunit"
+              )
+
+              print(
+                  "SOURCE=phpunit configuration"
+              )
+
+              raise SystemExit(0)
+
+          print(
+              "TEST_COMMAND="
+          )
+
+          print(
+              "SOURCE=No test command detected"
+          )
+
+          PY
+
+          cat runtime-result/test_detection.txt
+
+
+      # ========================================================
+      # RUN TESTS
+      # ========================================================
+
+      - name: Run tests
+
+        id: tests
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          set +e
+
+          if [ ! -d vendor ]; then
+
+            echo "vendor directory does not exist"
+
+            echo "TEST_EXIT_CODE=30" \
+              > runtime-result/test_result.txt
+
+            exit 30
+
+          fi
+
+          TEST_COMMAND=$(
+            grep "^TEST_COMMAND=" \
+            runtime-result/test_detection.txt \
+            | cut -d= -f2-
+          )
+
+          echo "Detected test command:"
+          echo "$TEST_COMMAND"
+
+          if [ -z "$TEST_COMMAND" ]; then
+
+            echo "No test command detected"
+
+            echo "TEST_EXIT_CODE=31" \
+              > runtime-result/test_result.txt
+
+            exit 31
+
+          fi
+
+          echo "=== TEST EXECUTION ===" \
+            > runtime-result/test_execution.txt
+
+          echo "Command: $TEST_COMMAND" \
+            >> runtime-result/test_execution.txt
+
+          echo \
+            >> runtime-result/test_execution.txt
+
+          bash -lc "$TEST_COMMAND" \
+            >> runtime-result/test_execution.txt \
+            2>&1
+
+          EXIT_CODE=$?
+
+          echo \
+            >> runtime-result/test_execution.txt
+
+          echo "EXIT_CODE=$EXIT_CODE" \
+            >> runtime-result/test_execution.txt
+
+          echo "TEST_EXIT_CODE=$EXIT_CODE" \
+            > runtime-result/test_result.txt
+
+          cat runtime-result/test_execution.txt
+
+          exit $EXIT_CODE
+
+
+      # ========================================================
+      # GENERATE FINAL RESULT
+      # ========================================================
+
+      - name: Generate reproducibility result
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          python3 - <<'PY'
+
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          result_dir = Path(
+              "runtime-result"
+          )
+
+          def read_file(name):
+
+              path = result_dir / name
+
+              if not path.exists():
+
+                  return ""
+
+              return path.read_text(
+                  encoding="utf-8",
+                  errors="replace"
+              )
+
+          environment = read_file(
+              "environment.txt"
+          )
+
+          composer_install = read_file(
+              "composer_install.txt"
+          )
+
+          test_detection = read_file(
+              "test_detection.txt"
+          )
+
+          test_execution = read_file(
+              "test_execution.txt"
+          )
+
+          repository_inspection = read_file(
+              "repository_inspection.txt"
+          )
+
+          combined = (
+              environment
+              + "\n"
+              + composer_install
+              + "\n"
+              + test_execution
+          ).lower()
+
+          # ----------------------------------------------------
+          # Determine failure stage
+          # ----------------------------------------------------
+
+          failure_stage = ""
+
+          failure_category = ""
+
+          runtime_available = (
+              "PHP_EXIT=0" in environment
+              and
+              "COMPOSER_EXIT=0" in environment
+          )
+
+          composer_success = (
+              "composer_exit_code=0"
+              in composer_install
+          )
+
+          test_success = (
+              "EXIT_CODE=0"
+              in test_execution
+          )
+
+          if not runtime_available:
+
+              failure_stage = (
+                  "runtime_provisioning"
+              )
+
+              failure_category = (
+                  "INFRASTRUCTURE"
+              )
+
+          elif not Path(
+              "composer.json"
+          ).exists():
+
+              failure_stage = (
+                  "repository_inspection"
+              )
+
+              failure_category = (
+                  "REPOSITORY"
+              )
+
+          elif not composer_success:
+
+              failure_stage = (
+                  "dependency_installation"
+              )
+
+              if (
+                  "requires php" in combined
+                  or
+                  "your php version" in combined
+              ):
+
+                  failure_category = (
+                      "PHP VERSION"
+                  )
+
+              elif "ext-" in combined:
+
+                  failure_category = (
+                      "PHP EXTENSION"
+                  )
+
+              elif "dependency" in combined:
+
+                  failure_category = (
+                      "DEPENDENCY"
+                  )
+
+              else:
+
+                  failure_category = (
+                      "COMPOSER"
+                  )
+
+          elif not test_detection.strip():
+
+              failure_stage = (
+                  "test_detection"
+              )
+
+              failure_category = (
+                  "TEST"
+              )
+
+          elif not test_success:
+
+              failure_stage = (
+                  "test_execution"
+              )
+
+              failure_category = (
+                  "TEST FAILURE"
+              )
+
+          else:
+
+              failure_stage = ""
+
+              failure_category = ""
+
+          # ----------------------------------------------------
+          # Final status
+          # ----------------------------------------------------
+
+          if (
+              runtime_available
+              and
+              composer_success
+              and
+              test_success
+          ):
+
+              reproducibility_status = (
+                  "REPRODUCIBLE"
+              )
+
+          else:
+
+              reproducibility_status = (
+                  "NON_REPRODUCIBLE"
+              )
+
+          result = {
+
+              "repo_full_name":
+                  "${{ matrix.repo }}",
+
+              "commit_sha":
+                  "${{ matrix.sha }}",
+
+              "operating_system":
+                  "ubuntu-22.04",
+
+              "requested_php":
+                  "${{ matrix.php }}",
+
+              "runner_os":
+                  os.environ.get(
+                      "RUNNER_OS"
+                  ),
+
+              "runner_arch":
+                  os.environ.get(
+                      "RUNNER_ARCH"
+                  ),
+
+              "runtime_available":
+                  runtime_available,
+
+              "composer_install":
+                  (
+                      "PASS"
+                      if composer_success
+                      else "FAIL"
+                  ),
+
+              "test_execution":
+                  (
+                      "PASS"
+                      if test_success
+                      else "FAIL"
+                  ),
+
+              "failure_stage":
+                  failure_stage,
+
+              "failure_category":
+                  failure_category,
+
+              "reproducibility_status":
+                  reproducibility_status,
+
+              "tested_at":
+                  os.environ.get(
+                      "GITHUB_RUN_STARTED_AT",
+                      ""
+                  ),
+
+          }
+
+          with open(
+              result_dir / "result.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+
+              json.dump(
+                  result,
+                  f,
+                  indent=2
+              )
+
+          print(
+              json.dumps(
+                  result,
+                  indent=2
+              )
+          )
+
+          PY
+
+
+      # ========================================================
+      # UPLOAD EVIDENCE
+      # ========================================================
+
+      - name: Upload reproducibility evidence
+
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: reproducibility-${{ strategy.job-index }}
+
+          path: runtime-result/
+
+          if-no-files-found: warn
+
+          retention-days: 30

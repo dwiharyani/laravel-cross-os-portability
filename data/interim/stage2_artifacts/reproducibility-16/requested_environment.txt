@@ -1,0 +1,4 @@
+repository=MateusHuebra/Termogram-bot
+commit_sha=ff7ae90ba59ab68dc34b9ff8cee8b9d618f4bd81
+requested_php=7.4
+operating_system=ubuntu-22.04

@@ -1,0 +1,153 @@
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Package operations: 73 installs, 0 updates, 0 removals
+  - Downloading symfony/finder (v3.2.8)
+  - Downloading symfony/polyfill-mbstring (v1.3.0)
+  - Downloading symfony/var-dumper (v3.2.8)
+  - Downloading psr/log (1.0.2)
+  - Downloading maximebf/debugbar (1.13.1)
+  - Downloading vlucas/phpdotenv (v2.4.0)
+  - Downloading symfony/css-selector (v3.2.8)
+  - Downloading tijsverkoyen/css-to-inline-styles (2.2.0)
+  - Downloading symfony/routing (v3.2.8)
+  - Downloading symfony/process (v3.2.8)
+  - Downloading symfony/http-foundation (v3.2.8)
+  - Downloading symfony/event-dispatcher (v3.2.8)
+  - Downloading symfony/debug (v3.2.8)
+  - Downloading symfony/http-kernel (v3.2.8)
+  - Downloading symfony/console (v3.2.8)
+  - Downloading swiftmailer/swiftmailer (v5.4.8)
+  - Downloading paragonie/random_compat (v2.0.10)
+  - Downloading ramsey/uuid (3.6.1)
+  - Downloading symfony/translation (v3.2.8)
+  - Downloading nesbot/carbon (1.22.1)
+  - Downloading mtdowling/cron-expression (v1.2.0)
+  - Downloading monolog/monolog (1.22.1)
+  - Downloading league/flysystem (1.0.40)
+  - Downloading erusev/parsedown (1.6.2)
+  - Downloading doctrine/inflector (v1.1.0)
+  - Downloading laravel/framework (v5.4.23)
+  - Downloading barryvdh/laravel-debugbar (v2.3.2)
+  - Downloading symfony/class-loader (v3.2.8)
+  - Downloading barryvdh/reflection-docblock (v2.0.4)
+  - Downloading barryvdh/laravel-ide-helper (v2.3.2)
+  - Downloading fzaninotto/faker (v1.6.0)
+  - Downloading gbrock/laravel-table (0.3.4)
+  - Downloading guzzlehttp/promises (v1.3.1)
+  - Downloading psr/http-message (1.0.1)
+  - Downloading guzzlehttp/psr7 (1.4.2)
+  - Downloading guzzlehttp/guzzle (6.2.3)
+  - Downloading invisnik/laravel-steam-auth (v2.3.4)
+  - Downloading jakub-onderka/php-console-color (0.1)
+  - Downloading khill/lavacharts (3.0.8)
+  - Downloading laravel/homestead (v4.0.5)
+  - Downloading nikic/php-parser (v3.0.5)
+  - Downloading jakub-onderka/php-console-highlighter (v0.3.2)
+  - Downloading dnoegel/php-xdg-base-dir (0.1)
+  - Downloading psy/psysh (v0.8.4)
+  - Downloading laravel/tinker (v1.0.0)
+  - Downloading laravelcollective/html (v5.4.1)
+  - Downloading hamcrest/hamcrest-php (v1.2.2)
+  - Downloading mockery/mockery (0.9.9)
+  - Downloading webmozart/assert (1.2.0)
+  - Downloading phpdocumentor/reflection-common (1.0)
+  - Downloading phpdocumentor/type-resolver (0.2.1)
+  - Downloading phpdocumentor/reflection-docblock (3.1.1)
+  - Downloading phpunit/php-token-stream (1.4.11)
+  - Downloading symfony/yaml (v3.2.8)
+  - Downloading sebastian/version (2.0.1)
+  - Downloading sebastian/resource-operations (1.0.0)
+  - Downloading sebastian/recursion-context (2.0.0)
+  - Downloading sebastian/object-enumerator (2.0.1)
+  - Downloading sebastian/global-state (1.1.1)
+  - Downloading sebastian/exporter (2.0.0)
+  - Downloading sebastian/environment (2.0.0)
+  - Downloading sebastian/diff (1.4.1)
+  - Downloading sebastian/comparator (1.2.4)
+  - Downloading phpunit/php-text-template (1.2.1)
+  - Downloading doctrine/instantiator (1.0.5)
+  - Downloading phpunit/phpunit-mock-objects (3.4.3)
+  - Downloading phpunit/php-timer (1.0.9)
+  - Downloading phpunit/php-file-iterator (1.4.2)
+  - Downloading sebastian/code-unit-reverse-lookup (1.0.1)
+  - Downloading phpunit/php-code-coverage (4.0.8)
+  - Downloading phpspec/prophecy (v1.7.0)
+  - Downloading myclabs/deep-copy (1.6.1)
+  - Downloading phpunit/phpunit (5.7.19)
+  - Installing symfony/finder (v3.2.8): Extracting archive
+  - Installing symfony/polyfill-mbstring (v1.3.0): Extracting archive
+  - Installing symfony/var-dumper (v3.2.8): Extracting archive
+  - Installing psr/log (1.0.2): Extracting archive
+  - Installing maximebf/debugbar (1.13.1): Extracting archive
+  - Installing vlucas/phpdotenv (v2.4.0): Extracting archive
+  - Installing symfony/css-selector (v3.2.8): Extracting archive
+  - Installing tijsverkoyen/css-to-inline-styles (2.2.0): Extracting archive
+  - Installing symfony/routing (v3.2.8): Extracting archive
+  - Installing symfony/process (v3.2.8): Extracting archive
+  - Installing symfony/http-foundation (v3.2.8): Extracting archive
+  - Installing symfony/event-dispatcher (v3.2.8): Extracting archive
+  - Installing symfony/debug (v3.2.8): Extracting archive
+  - Installing symfony/http-kernel (v3.2.8): Extracting archive
+  - Installing symfony/console (v3.2.8): Extracting archive
+  - Installing swiftmailer/swiftmailer (v5.4.8): Extracting archive
+  - Installing paragonie/random_compat (v2.0.10): Extracting archive
+  - Installing ramsey/uuid (3.6.1): Extracting archive
+  - Installing symfony/translation (v3.2.8): Extracting archive
+  - Installing nesbot/carbon (1.22.1): Extracting archive
+  - Installing mtdowling/cron-expression (v1.2.0): Extracting archive
+  - Installing monolog/monolog (1.22.1): Extracting archive
+  - Installing league/flysystem (1.0.40): Extracting archive
+  - Installing erusev/parsedown (1.6.2): Extracting archive
+  - Installing doctrine/inflector (v1.1.0): Extracting archive
+  - Installing laravel/framework (v5.4.23): Extracting archive
+  - Installing barryvdh/laravel-debugbar (v2.3.2): Extracting archive
+  - Installing symfony/class-loader (v3.2.8): Extracting archive
+  - Installing barryvdh/reflection-docblock (v2.0.4): Extracting archive
+  - Installing barryvdh/laravel-ide-helper (v2.3.2): Extracting archive
+  - Installing fzaninotto/faker (v1.6.0): Extracting archive
+  - Installing gbrock/laravel-table (0.3.4): Extracting archive
+  - Installing guzzlehttp/promises (v1.3.1): Extracting archive
+  - Installing psr/http-message (1.0.1): Extracting archive
+  - Installing guzzlehttp/psr7 (1.4.2): Extracting archive
+  - Installing guzzlehttp/guzzle (6.2.3): Extracting archive
+  - Installing invisnik/laravel-steam-auth (v2.3.4): Extracting archive
+  - Installing jakub-onderka/php-console-color (0.1): Extracting archive
+  - Installing khill/lavacharts (3.0.8): Extracting archive
+  - Installing laravel/homestead (v4.0.5): Extracting archive
+  - Installing nikic/php-parser (v3.0.5): Extracting archive
+  - Installing jakub-onderka/php-console-highlighter (v0.3.2): Extracting archive
+  - Installing dnoegel/php-xdg-base-dir (0.1): Extracting archive
+  - Installing psy/psysh (v0.8.4): Extracting archive
+  - Installing laravel/tinker (v1.0.0): Extracting archive
+  - Installing laravelcollective/html (v5.4.1): Extracting archive
+  - Installing hamcrest/hamcrest-php (v1.2.2): Extracting archive
+  - Installing mockery/mockery (0.9.9): Extracting archive
+  - Installing webmozart/assert (1.2.0): Extracting archive
+  - Installing phpdocumentor/reflection-common (1.0): Extracting archive
+  - Installing phpdocumentor/type-resolver (0.2.1): Extracting archive
+  - Installing phpdocumentor/reflection-docblock (3.1.1): Extracting archive
+  - Installing phpunit/php-token-stream (1.4.11): Extracting archive
+  - Installing symfony/yaml (v3.2.8): Extracting archive
+  - Installing sebastian/version (2.0.1): Extracting archive
+  - Installing sebastian/resource-operations (1.0.0): Extracting archive
+  - Installing sebastian/recursion-context (2.0.0): Extracting archive
+  - Installing sebastian/object-enumerator (2.0.1): Extracting archive
+  - Installing sebastian/global-state (1.1.1): Extracting archive
+  - Installing sebastian/exporter (2.0.0): Extracting archive
+  - Installing sebastian/environment (2.0.0): Extracting archive
+  - Installing sebastian/diff (1.4.1): Extracting archive
+  - Installing sebastian/comparator (1.2.4): Extracting archive
+  - Installing phpunit/php-text-template (1.2.1): Extracting archive
+  - Installing doctrine/instantiator (1.0.5): Extracting archive
+  - Installing phpunit/phpunit-mock-objects (3.4.3): Extracting archive
+  - Installing phpunit/php-timer (1.0.9): Extracting archive
+  - Installing phpunit/php-file-iterator (1.4.2): Extracting archive
+  - Installing sebastian/code-unit-reverse-lookup (1.0.1): Extracting archive
+  - Installing phpunit/php-code-coverage (4.0.8): Extracting archive
+  - Installing phpspec/prophecy (v1.7.0): Extracting archive
+  - Installing myclabs/deep-copy (1.6.1): Extracting archive
+  - Installing phpunit/phpunit (5.7.19): Extracting archive
+Generating optimized autoload files
+Class phpDocumentor\Reflection\ExampleFinder located in ./vendor/phpdocumentor/reflection-docblock/src/DocBlock/ExampleFinder.php does not comply with psr-4 autoloading standard. Skipping.
+Class ParsedownTest located in ./vendor/erusev/parsedown/test/ParsedownTest.php does not comply with psr-0 autoloading standard. Skipping.
+Class App\Http\Traits\SinceTime located in ./app/Http/Traits/SinceTimeTrait.php does not comply with psr-4 autoloading standard. Skipping.

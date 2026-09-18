@@ -1,0 +1,4 @@
+repository=0xd011f4ce/OurSpace
+commit_sha=c7b7ae5bacdde439bc8308ac1113dfcd566e4275
+requested_php=8.2
+operating_system=ubuntu-22.04

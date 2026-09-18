@@ -1,0 +1,13 @@
+Installing dependencies from lock file (including require-dev)
+Verifying lock file contents can be installed on current platform.
+Your lock file does not contain a compatible set of packages. Please run composer update.
+
+  Problem 1
+    - openspout/openspout is locked to version v4.32.0 and an update of this package was not requested.
+    - openspout/openspout v4.32.0 requires php ~8.3.0 || ~8.4.0 || ~8.5.0 -> your php version (8.2.33) does not satisfy that requirement.
+  Problem 2
+    - filament/actions is locked to version v4.0.0 and an update of this package was not requested.
+    - filament/actions v4.0.0 requires openspout/openspout ^4.23 -> satisfiable by openspout/openspout[v4.32.0].
+    - openspout/openspout v4.32.0 requires php ~8.3.0 || ~8.4.0 || ~8.5.0 -> your php version (8.2.33) does not satisfy that requirement.
+
+::error ::Your lock file does not contain a compatible set of packages. Please run composer update.%0A%0A  Problem 1%0A    - openspout/openspout is locked to version v4.32.0 and an update of this package was not requested.%0A    - openspout/openspout v4.32.0 requires php ~8.3.0 || ~8.4.0 || ~8.5.0 -> your php version (8.2.33) does not satisfy that requirement.%0A  Problem 2%0A    - filament/actions is locked to version v4.0.0 and an update of this package was not requested.%0A    - filament/actions v4.0.0 requires openspout/openspout ^4.23 -> satisfiable by openspout/openspout[v4.32.0].%0A    - openspout/openspout v4.32.0 requires php ~8.3.0 || ~8.4.0 || ~8.5.0 -> your php version (8.2.33) does not satisfy that requirement.%0A

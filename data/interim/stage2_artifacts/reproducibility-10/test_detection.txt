@@ -1,0 +1,2 @@
+TEST_COMMAND=composer run test
+SOURCE=composer.json:test

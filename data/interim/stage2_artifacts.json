@@ -1,0 +1,405 @@
+{
+  "total_count": 20,
+  "artifacts": [
+    {
+      "id": 10548711212,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0ODcxMTIxMg==",
+      "name": "reproducibility-2",
+      "size_in_bytes": 9289,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10548711212",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10548711212/zip",
+      "expired": false,
+      "digest": "sha256:96734046f43d09ffa6e78b4ac0ee5ba6e1b56f823442fde37dfe76ccb38932a3",
+      "created_at": "2026-09-18T13:14:42Z",
+      "updated_at": "2026-09-18T13:14:42Z",
+      "expires_at": "2026-10-18T13:14:42Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547921428,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzkyMTQyOA==",
+      "name": "reproducibility-18",
+      "size_in_bytes": 6040,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547921428",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547921428/zip",
+      "expired": false,
+      "digest": "sha256:64c6e845d100926b9dce7605a8a82dac2456090a008ac69947380b6ce8716717",
+      "created_at": "2026-09-18T12:52:46Z",
+      "updated_at": "2026-09-18T12:52:46Z",
+      "expires_at": "2026-10-18T12:52:45Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547900832,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzkwMDgzMg==",
+      "name": "reproducibility-16",
+      "size_in_bytes": 6711,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547900832",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547900832/zip",
+      "expired": false,
+      "digest": "sha256:2ed37b10bccc66e8273bbaf93140caee62a1b2e38d92c94dfd5582a48475d6dc",
+      "created_at": "2026-09-18T12:52:49Z",
+      "updated_at": "2026-09-18T12:52:49Z",
+      "expires_at": "2026-10-18T12:52:48Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547900792,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzkwMDc5Mg==",
+      "name": "reproducibility-17",
+      "size_in_bytes": 4372,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547900792",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547900792/zip",
+      "expired": false,
+      "digest": "sha256:b503a8aadf81676b89111768ded070f3f5e962ac545379852f43d715b1de0867",
+      "created_at": "2026-09-18T12:52:32Z",
+      "updated_at": "2026-09-18T12:52:32Z",
+      "expires_at": "2026-10-18T12:52:31Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547796766,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Nzc5Njc2Ng==",
+      "name": "reproducibility-13",
+      "size_in_bytes": 5956,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547796766",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547796766/zip",
+      "expired": false,
+      "digest": "sha256:76160ac8125651b6b12529b8141dfa811a7d1c9429e835ac1d34174778597c10",
+      "created_at": "2026-09-18T12:52:26Z",
+      "updated_at": "2026-09-18T12:52:26Z",
+      "expires_at": "2026-10-18T12:52:25Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547796635,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Nzc5NjYzNQ==",
+      "name": "reproducibility-1",
+      "size_in_bytes": 6447,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547796635",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547796635/zip",
+      "expired": false,
+      "digest": "sha256:30861ac6a826c5e7264c46a62172fcc2d99454e8e695ed0938ae96f5dc5f89fa",
+      "created_at": "2026-09-18T12:51:36Z",
+      "updated_at": "2026-09-18T12:51:36Z",
+      "expires_at": "2026-10-18T12:51:36Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547781667,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Nzc4MTY2Nw==",
+      "name": "reproducibility-7",
+      "size_in_bytes": 6526,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547781667",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547781667/zip",
+      "expired": false,
+      "digest": "sha256:03027c2a1d38501a8e25d2bf8aa2299605ab4713d6938a2b3105c48a56e80cb7",
+      "created_at": "2026-09-18T12:51:56Z",
+      "updated_at": "2026-09-18T12:51:56Z",
+      "expires_at": "2026-10-18T12:51:55Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547771714,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Nzc3MTcxNA==",
+      "name": "reproducibility-10",
+      "size_in_bytes": 9433,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547771714",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547771714/zip",
+      "expired": false,
+      "digest": "sha256:47e39d79a21ba638e970272abb2ad4968122255bdcc60bdc04d330e7ee8f3392",
+      "created_at": "2026-09-18T12:52:03Z",
+      "updated_at": "2026-09-18T12:52:03Z",
+      "expires_at": "2026-10-18T12:52:02Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547576996,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzU3Njk5Ng==",
+      "name": "reproducibility-19",
+      "size_in_bytes": 9394,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547576996",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547576996/zip",
+      "expired": false,
+      "digest": "sha256:40d4ec28afaf95b7cdc6e475465501899148b33585fefd6a8c9dae0a976f3a15",
+      "created_at": "2026-09-18T12:52:46Z",
+      "updated_at": "2026-09-18T12:52:46Z",
+      "expires_at": "2026-10-18T12:52:45Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547476268,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzQ3NjI2OA==",
+      "name": "reproducibility-15",
+      "size_in_bytes": 5695,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547476268",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547476268/zip",
+      "expired": false,
+      "digest": "sha256:ddf8fb0e47eadb03df8cb233f9e1c8cc808784a77097f780bf12b2c690da1060",
+      "created_at": "2026-09-18T12:52:24Z",
+      "updated_at": "2026-09-18T12:52:24Z",
+      "expires_at": "2026-10-18T12:52:23Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547471240,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzQ3MTI0MA==",
+      "name": "reproducibility-8",
+      "size_in_bytes": 4781,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547471240",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547471240/zip",
+      "expired": false,
+      "digest": "sha256:346f3254c676c5120a91d611cee70761b8f10679c88595dcb9f00c9b5a08f14d",
+      "created_at": "2026-09-18T12:51:54Z",
+      "updated_at": "2026-09-18T12:51:54Z",
+      "expires_at": "2026-10-18T12:51:53Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547462011,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzQ2MjAxMQ==",
+      "name": "reproducibility-0",
+      "size_in_bytes": 7242,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547462011",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547462011/zip",
+      "expired": false,
+      "digest": "sha256:94606a62b1d3468969ad9f3c93ef1f4066eb01835b053f66e13c9242e74f2d3a",
+      "created_at": "2026-09-18T12:51:32Z",
+      "updated_at": "2026-09-18T12:51:32Z",
+      "expires_at": "2026-10-18T12:51:31Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547412163,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzQxMjE2Mw==",
+      "name": "reproducibility-6",
+      "size_in_bytes": 4242,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547412163",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547412163/zip",
+      "expired": false,
+      "digest": "sha256:a6ad6f8c0bb9b184d63a1e7b15e02e16c65089b71fbe4246f3f62cb8a3917d65",
+      "created_at": "2026-09-18T12:51:45Z",
+      "updated_at": "2026-09-18T12:51:45Z",
+      "expires_at": "2026-10-18T12:51:44Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547382326,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzM4MjMyNg==",
+      "name": "reproducibility-11",
+      "size_in_bytes": 8757,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547382326",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547382326/zip",
+      "expired": false,
+      "digest": "sha256:e75bed8f260a42301441638f80d3df68b8e550640da3fbb49e60a4991ca3a5f2",
+      "created_at": "2026-09-18T12:52:17Z",
+      "updated_at": "2026-09-18T12:52:17Z",
+      "expires_at": "2026-10-18T12:52:16Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547137947,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzEzNzk0Nw==",
+      "name": "reproducibility-14",
+      "size_in_bytes": 61102,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547137947",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547137947/zip",
+      "expired": false,
+      "digest": "sha256:684f5ad898c1e03fd03707cdf795b44029386a455f51c9a64d891d25f90886a4",
+      "created_at": "2026-09-18T12:54:42Z",
+      "updated_at": "2026-09-18T12:54:42Z",
+      "expires_at": "2026-10-18T12:54:41Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10547032649,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NzAzMjY0OQ==",
+      "name": "reproducibility-4",
+      "size_in_bytes": 7233,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547032649",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10547032649/zip",
+      "expired": false,
+      "digest": "sha256:69334aff2bb9b2cb18517099ebce8aeda0be118e87fd41cbbd5feb23511a033d",
+      "created_at": "2026-09-18T12:51:24Z",
+      "updated_at": "2026-09-18T12:51:24Z",
+      "expires_at": "2026-10-18T12:51:24Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10546967897,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Njk2Nzg5Nw==",
+      "name": "reproducibility-12",
+      "size_in_bytes": 6431,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546967897",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546967897/zip",
+      "expired": false,
+      "digest": "sha256:0bf85656f3e79a02c28e6a7f793c4fc17e633d073932ae55f89a94a68059508b",
+      "created_at": "2026-09-18T12:52:15Z",
+      "updated_at": "2026-09-18T12:52:15Z",
+      "expires_at": "2026-10-18T12:52:15Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10546948000,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Njk0ODAwMA==",
+      "name": "reproducibility-9",
+      "size_in_bytes": 8621,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546948000",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546948000/zip",
+      "expired": false,
+      "digest": "sha256:d20e2ce18a23ceedf08ad5ac74ce6bb273d389f657c16401763182a9dad1f1b4",
+      "created_at": "2026-09-18T12:51:58Z",
+      "updated_at": "2026-09-18T12:51:58Z",
+      "expires_at": "2026-10-18T12:51:57Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10546843184,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0Njg0MzE4NA==",
+      "name": "reproducibility-3",
+      "size_in_bytes": 7608,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546843184",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546843184/zip",
+      "expired": false,
+      "digest": "sha256:2a504219f9c857754d699803a1cac264643e21aeef4f0ccfaabf849b8489e596",
+      "created_at": "2026-09-18T12:51:31Z",
+      "updated_at": "2026-09-18T12:51:31Z",
+      "expires_at": "2026-10-18T12:51:30Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    },
+    {
+      "id": 10546823280,
+      "node_id": "MDg6QXJ0aWZhY3QxMDU0NjgyMzI4MA==",
+      "name": "reproducibility-5",
+      "size_in_bytes": 6679,
+      "url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546823280",
+      "archive_download_url": "https://api.github.com/repos/dwiharyani/laravel-cross-os-portability/actions/artifacts/10546823280/zip",
+      "expired": false,
+      "digest": "sha256:3ba0c76d8a27430287c93ab904365dd5102393b7d0464b11d9ba2f2e54a0ea3e",
+      "created_at": "2026-09-18T12:51:26Z",
+      "updated_at": "2026-09-18T12:51:26Z",
+      "expires_at": "2026-10-18T12:51:26Z",
+      "workflow_run": {
+        "id": 35346855591,
+        "repository_id": 1359445203,
+        "head_repository_id": 1359445203,
+        "head_branch": "main",
+        "head_sha": "beb1a1c00225f3ffa0c5dbba9a6785a25ddbc449"
+      }
+    }
+  ]
+}

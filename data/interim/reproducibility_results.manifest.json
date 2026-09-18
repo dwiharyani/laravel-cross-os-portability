@@ -1,0 +1,14 @@
+{
+  "created_at_utc": "2026-09-16T07:55:59.294521+00:00",
+  "input": "data/interim/cross_os_candidates.csv",
+  "pilot": "data/interim/reproducibility_pilot20.csv",
+  "frozen_candidate_count": 555,
+  "pilot_count": 20,
+  "php_available": false,
+  "composer_available": false,
+  "git_available": true,
+  "output_csv": "/home/g202527350/laravel-cross-os-portability/data/interim/reproducibility_results.csv",
+  "output_excel": "/home/g202527350/laravel-cross-os-portability/data/interim/reproducibility_results.xlsx",
+  "workspace": "data/work/reproducibility",
+  "important_note": "Infrastructure limitations must not be interpreted as repository portability failures."
+}

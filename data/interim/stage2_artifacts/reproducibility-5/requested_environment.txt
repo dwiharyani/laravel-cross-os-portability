@@ -1,0 +1,4 @@
+repository=BaseMax/LaravelTaskDDD
+commit_sha=0aa34df6c65445b515577bc5425338c9afc05644
+requested_php=8.1
+operating_system=ubuntu-22.04

@@ -1,0 +1,48 @@
+=== TEST EXECUTION ===
+Command: vendor/bin/phpunit
+Timeout: 30 minutes
+
+PHPUnit 7.2.7 by Sebastian Bergmann and contributors.
+
+EE                                                                  2 / 2 (100%)
+
+Time: 20 ms, Memory: 8.00MB
+
+There were 2 errors:
+
+1) Tests\Unit\ExampleTest::testBasicTest
+ErrorException: Undefined index: name
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:120
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Support/Collection.php:1009
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:121
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:97
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:80
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/RegisterFacades.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:206
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:297
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/CreatesApplication.php:18
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:91
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:68
+phpvfscomposer:///home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/phpunit/phpunit/phpunit:52
+
+2) Tests\Feature\ExampleTest::testBasicTest
+ErrorException: Undefined index: name
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:120
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Support/Collection.php:1009
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:121
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:97
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/PackageManifest.php:80
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/RegisterFacades.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:206
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:297
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/CreatesApplication.php:18
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:91
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:68
+phpvfscomposer:///home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/phpunit/phpunit/phpunit:52
+
+ERRORS!
+Tests: 2, Assertions: 0, Errors: 2.
+
+EXIT_CODE=2

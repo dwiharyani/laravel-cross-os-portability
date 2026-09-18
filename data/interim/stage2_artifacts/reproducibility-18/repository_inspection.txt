@@ -1,0 +1,93 @@
+=== REPOSITORY ===
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability
+
+=== FILES ===
+total 680
+drwxr-xr-x 14 runner runner   4096 Sep 18 12:52 .
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 ..
+-rw-r--r--  1 runner runner    521 Sep 18 12:52 .env.example
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:52 .git
+-rw-r--r--  1 runner runner    111 Sep 18 12:52 .gitattributes
+-rw-r--r--  1 runner runner    200 Sep 18 12:52 .gitignore
+-rw-r--r--  1 runner runner  35149 Sep 18 12:52 LICENSE
+-rw-r--r--  1 runner runner    900 Sep 18 12:52 Vagrantfile
+-rw-r--r--  1 runner runner 405193 Sep 18 12:52 _ide_helper.php
+drwxr-xr-x  6 runner runner   4096 Sep 18 12:52 app
+-rw-r--r--  1 runner runner   1646 Sep 18 12:52 artisan
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 bootstrap
+-rw-r--r--  1 runner runner   1596 Sep 18 12:52 composer.json
+-rw-r--r--  1 runner runner 149260 Sep 18 12:52 composer.lock
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 config
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:52 database
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 nodejs
+-rw-r--r--  1 runner runner   1062 Sep 18 12:52 package.json
+-rw-r--r--  1 runner runner   1055 Sep 18 12:52 phpunit.xml
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:52 public
+-rw-r--r--  1 runner runner    718 Sep 18 12:52 readme.md
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:52 resources
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 routes
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 runtime-result
+-rw-r--r--  1 runner runner    563 Sep 18 12:52 server.php
+drwxr-xr-x  6 runner runner   4096 Sep 18 12:52 storage
+drwxr-xr-x  4 runner runner   4096 Sep 18 12:52 tests
+-rw-r--r--  1 runner runner    555 Sep 18 12:52 webpack.mix.js
+
+=== COMPOSER.JSON ===
+{
+    "name": "laravel/laravel",
+    "description": "The Laravel Framework.",
+    "keywords": ["framework", "laravel"],
+    "license": "MIT",
+    "type": "project",
+    "require": {
+        "php": ">=5.6.4",
+        "gbrock/laravel-table": "^0.3.4",
+        "invisnik/laravel-steam-auth": "^2.3",
+        "khill/lavacharts": "3.0.*",
+        "laravel/framework": "5.4.*",
+        "laravel/tinker": "~1.0",
+        "laravelcollective/html": "5.*"
+    },
+    "require-dev": {
+        "fzaninotto/faker": "~1.4",
+        "mockery/mockery": "0.9.*",
+        "phpunit/phpunit": "~5.7",
+        "barryvdh/laravel-ide-helper": "^2.1",
+        "barryvdh/laravel-debugbar": "^2.1",
+        "laravel/homestead": "^4.0"
+    },
+    "autoload": {
+        "classmap": [
+            "database"
+        ],
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-root-package-install": [
+            "php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "php artisan key:generate"
+        ],
+        "post-install-cmd": [
+            "Illuminate\\Foundation\\ComposerScripts::postInstall",
+            "php artisan optimize"
+        ],
+        "post-update-cmd": [
+            "Illuminate\\Foundation\\ComposerScripts::postUpdate",
+            "php artisan optimize"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
+    }
+}

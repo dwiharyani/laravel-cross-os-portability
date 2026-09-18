@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "AkibaAT/fvn.li",
+  "commit_sha": "afc2ea11b6edbf5203543275164a8767b88aad93",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "8.5",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 0,
+  "vendor_exists": true,
+  "test_command": "composer run test",
+  "test_exit_code": 2,
+  "test_timeout": false,
+  "failure_stage": "test_execution",
+  "failure_category": "TEST_FAILURE",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}

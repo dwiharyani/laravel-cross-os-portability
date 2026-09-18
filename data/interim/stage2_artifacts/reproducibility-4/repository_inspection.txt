@@ -1,0 +1,118 @@
+=== REPOSITORY ===
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability
+
+=== FILES ===
+total 608
+drwxr-xr-x 14 runner runner   4096 Sep 18 12:51 .
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 ..
+-rw-r--r--  1 runner runner    258 Sep 18 12:51 .editorconfig
+-rw-r--r--  1 runner runner   1443 Sep 18 12:51 .env.example
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:51 .git
+-rw-r--r--  1 runner runner    186 Sep 18 12:51 .gitattributes
+-rw-r--r--  1 runner runner    285 Sep 18 12:51 .gitignore
+-rw-r--r--  1 runner runner  35148 Sep 18 12:51 LICENSE
+-rw-r--r--  1 runner runner   7772 Sep 18 12:51 README.md
+-rw-r--r--  1 runner runner   2251 Sep 18 12:51 TODO.md
+drwxr-xr-x 12 runner runner   4096 Sep 18 12:51 app
+-rwxr-xr-x  1 runner runner    350 Sep 18 12:51 artisan
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 bootstrap
+-rw-r--r--  1 runner runner   2602 Sep 18 12:51 composer.json
+-rw-r--r--  1 runner runner 351258 Sep 18 12:51 composer.lock
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 config
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 database
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 img
+-rw-r--r--  1 runner runner 112092 Sep 18 12:51 package-lock.json
+-rw-r--r--  1 runner runner    448 Sep 18 12:51 package.json
+-rw-r--r--  1 runner runner   1191 Sep 18 12:51 phpunit.xml
+-rw-r--r--  1 runner runner     93 Sep 18 12:51 postcss.config.js
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:51 public
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 resources
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 routes
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:51 runtime-result
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:51 storage
+-rw-r--r--  1 runner runner    551 Sep 18 12:51 tailwind.config.js
+-rw-r--r--  1 runner runner    163 Sep 18 12:51 test.php
+drwxr-xr-x  4 runner runner   4096 Sep 18 12:51 tests
+-rw-r--r--  1 runner runner    263 Sep 18 12:51 vite.config.js
+
+=== COMPOSER.JSON ===
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "doctrine/dbal": "^4.2",
+        "guzzlehttp/guzzle": "^7.9",
+        "intervention/image": "^3.10",
+        "laravel/framework": "^11.31",
+        "laravel/reverb": "^1.0",
+        "laravel/tinker": "^2.9",
+        "league/html-to-markdown": "^5.1",
+        "predis/predis": "^2.3"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "laravel/pail": "^1.1",
+        "laravel/pint": "^1.13",
+        "laravel/sail": "^1.26",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.1",
+        "phpunit/phpunit": "^11.0.1"
+    },
+    "autoload": {
+        "files": [
+            "app/Helpers/PaginationHelper.php"
+        ],
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

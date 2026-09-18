@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "BaseMax/FirstLaravelAPI",
+  "commit_sha": "13cb2b0cf0720114577ddc1839b931306156a084",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "7.4",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 0,
+  "vendor_exists": true,
+  "test_command": "vendor/bin/phpunit",
+  "test_exit_code": 0,
+  "test_timeout": false,
+  "failure_stage": "",
+  "failure_category": "",
+  "reproducibility_status": "REPRODUCIBLE"
+}

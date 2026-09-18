@@ -1,0 +1,14 @@
+=== TEST EXECUTION ===
+Command: composer run test
+Timeout: 30 minutes
+
+> Composer\Config::disableProcessTimeout
+> @php artisan config:clear --ansi
+PHP Warning:  require(/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/autoload.php): Failed to open stream: No such file or directory in /home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/artisan on line 10
+PHP Fatal error:  Uncaught Error: Failed opening required '/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/autoload.php' (include_path='.:/usr/share/php') in /home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/artisan:10
+Stack trace:
+#0 {main}
+  thrown in /home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/artisan on line 10
+Script @php artisan config:clear --ansi handling the test event returned with error code 255
+
+EXIT_CODE=255

@@ -1,0 +1,10 @@
+metric,value
+total_repositories,20
+reproducible,2
+non_reproducible,18
+partially_reproducible,0
+unique_failure_categories,2
+failure_category__TEST_FAILURE,14
+failure_category__COMPOSER,4
+failure_stage__test_execution,14
+failure_stage__dependency_installation,4

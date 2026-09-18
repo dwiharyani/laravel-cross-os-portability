@@ -1,0 +1,2 @@
+TEST_COMMAND=
+SOURCE=No test command detected

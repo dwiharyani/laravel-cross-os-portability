@@ -1,0 +1,45 @@
+=== TEST EXECUTION ===
+Command: vendor/bin/phpunit
+Timeout: 30 minutes
+
+PHPUnit 11.5.2 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.33
+Configuration: /home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/phpunit.xml
+
+.E                                                                  2 / 2 (100%)
+
+Time: 00:00.108, Memory: 28.00 MB
+
+There was 1 error:
+
+1) Tests\Feature\ExampleTest::test_the_application_returns_a_successful_response
+Illuminate\Encryption\MissingAppKeyException: No application encryption key has been specified.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php:83
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Support/helpers.php:399
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php:81
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php:64
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php:32
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:937
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:819
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1048
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:755
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1030
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:1118
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:1028
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:979
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:819
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1048
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Container/Container.php:755
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Application.php:1030
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:258
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php:216
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php:610
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php:367
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/ExampleTest.php:15
+
+ERRORS!
+Tests: 2, Assertions: 1, Errors: 1.
+
+EXIT_CODE=2

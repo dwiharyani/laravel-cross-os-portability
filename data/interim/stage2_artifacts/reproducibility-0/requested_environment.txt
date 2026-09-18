@@ -1,0 +1,4 @@
+repository=Abdallah01win/StarterApi
+commit_sha=4a62ed3e1b2d2ba2daf027c0a95306366e4b699d
+requested_php=8.2
+operating_system=ubuntu-22.04

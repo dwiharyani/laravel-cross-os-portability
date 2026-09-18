@@ -1,0 +1,700 @@
+=== TEST EXECUTION ===
+Command: composer run test
+Timeout: 30 minutes
+
+> @php artisan config:clear --ansi
+
+  [37;44m INFO [39;49m Configuration cache cleared successfully.  
+
+> @php artisan test
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Unit\ExampleTest[39m
+  [32;1m✓[39;22m[90m [39m[90mthat true is true[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\AuthenticationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mlogin screen can be rendered[39m[90m                                        [39m [90m0.20s[39m  
+  [31;1m⨯[39;22m[90m [39m[90musers can authenticate using the login screen[39m[90m                       [39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[90musers can not authenticate with invalid password[39m[90m                    [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90musers can logout[39m[90m                                                    [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordConfirmationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mconfirm password screen can be rendered[39m[90m                             [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be confirmed[39m[90m                                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mpassword is not confirmed with invalid password[39m[90m                     [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordResetTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mreset password link screen can be rendered[39m[90m                          [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mreset password link can be requested[39m[90m                                [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mreset password screen can be rendered[39m[90m                               [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be reset with valid token[39m[90m                              [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordUpdateTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be updated[39m[90m                                             [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mcorrect password must be provided to update password[39m[90m                [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\RegistrationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mregistration screen can be rendered[39m[90m                                 [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mnew users can register[39m[90m                                              [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ExampleTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mthe application returns a successful response[39m[90m                       [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ForumTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mguest can view categories and topics[39m[90m                                [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember can create a topic[39m[90m                                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember cannot post in a readonly category[39m[90m                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember can vote on a post[39m[90m                                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember can reply to a specific post and the parent author is mentio[39m[90m…[39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90majax reply to a post renders the fragment without error[39m[90m             [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mreply cannot be attached to a post from another topic[39m[90m               [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember can vote on a topic[39m[90m                                          [39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember can report a topic[39m[90m                                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmember cannot access admin or moderation[39m[90m                            [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmoderator can lock a topic but not access admin[39m[90m                     [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90madmin can update site settings[39m[90m                                      [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mbadge awarder grants a posts count badge automatically[39m[90m              [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mmanual badge is never awarded automatically[39m[90m                         [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90msuspended user cannot reply[39m[90m                                         [39m [90m0.01s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ProfileTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mpublic profile page is displayed[39m[90m                                    [39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mprofile page does not crash when a posted topic has been deleted[39m[90m    [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90medit profile page requires authentication[39m[90m                           [39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[90mprofile information can be updated[39m[90m                                  [39m [90m0.01s[39m  
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m l… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/AuthenticationTest.php[39;22m:[39;1m15[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m u… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/AuthenticationTest.php[39;22m:[39;1m24[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m u… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/AuthenticationTest.php[39;22m:[39;1m37[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m u… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/AuthenticationTest.php[39;22m:[39;1m49[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTe[22m… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordConfirmationTest.php[39;22m:[39;1m17[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTe[22m… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordConfirmationTest.php[39;22m:[39;1m26[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTe[22m… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordConfirmationTest.php[39;22m:[39;1m38[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m re… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordResetTest.php[39;22m:[39;1m17[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m re… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordResetTest.php[39;22m:[39;1m28[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m re… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordResetTest.php[39;22m:[39;1m39[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m pa… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordResetTest.php[39;22m:[39;1m56[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordUpdateTest[22m [90m>[39m p… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordUpdateTest.php[39;22m:[39;1m21[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordUpdateTest[22m [90m>[39m c… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/PasswordUpdateTest.php[39;22m:[39;1m41[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\RegistrationTest[22m [90m>[39m reg… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/RegistrationTest.php[39;22m:[39;1m14[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\RegistrationTest[22m [90m>[39m new… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/Auth/RegistrationTest.php[39;22m:[39;1m21[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ExampleTest[22m [90m>[39m the applicati… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ExampleTest.php[39;22m:[39;1m17[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m guest can view…  [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m23[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member can crea… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m32[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member cannot p… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m47[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member can vote… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m61[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member can repl… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m75[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m ajax reply to a… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m97[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m reply cannot be… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m112[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member can vote… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m124[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member can repo… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m134[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m member cannot a… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m145[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m moderator can l… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m154[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m admin can updat… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m164[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m badge awarder g… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m190[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m manual badge is… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m211[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ForumTest[22m [90m>[39m suspended user…  [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ForumTest.php[39;22m:[39;1m223[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m public profil… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ProfileTest.php[39;22m:[39;1m20[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m profile page…  [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ProfileTest.php[39;22m:[39;1m33[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m edit profile…  [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ProfileTest.php[39;22m:[39;1m40[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m profile infor… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ProfileTest.php[39;22m:[39;1m51[39;22m
+
+
+  [90mTests:[39m    [31;1m35 failed[39;22m[90m,[39m[39m [39m[32;1m1 passed[39;22m[90m (1 assertions)[39m
+  [90mDuration:[39m [39m0.71s[39m
+
+Script @php artisan test handling the test event returned with error code 2
+
+EXIT_CODE=2

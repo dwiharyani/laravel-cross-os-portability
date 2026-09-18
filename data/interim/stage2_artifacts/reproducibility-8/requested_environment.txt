@@ -1,0 +1,4 @@
+repository=Dziennik-Azayaka/azayaka
+commit_sha=7969910e52bd6cfa87fc4d45c1e8315d5e9c367f
+requested_php=8.3
+operating_system=ubuntu-22.04

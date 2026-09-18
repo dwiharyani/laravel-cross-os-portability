@@ -1,0 +1,4 @@
+repository=404NotFoundIndonesia/raktrek
+commit_sha=e00aa117fe3f702e443c396fb2174395e9e23961
+requested_php=8.1
+operating_system=ubuntu-22.04

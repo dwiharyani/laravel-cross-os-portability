@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "1nFrastr/likeadmin_laravel",
+  "commit_sha": "5d71e27c3868b598648d7653657737b92f58988a",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "8.2",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 0,
+  "vendor_exists": true,
+  "test_command": "vendor/bin/phpunit",
+  "test_exit_code": 1,
+  "test_timeout": false,
+  "failure_stage": "test_execution",
+  "failure_category": "TEST_FAILURE",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}

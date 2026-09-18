@@ -1,0 +1,4 @@
+repository=Cut0x/forum-php
+commit_sha=cd4df2352fe9537d3a898ba89d76d0387b263161
+requested_php=8.3
+operating_system=ubuntu-22.04

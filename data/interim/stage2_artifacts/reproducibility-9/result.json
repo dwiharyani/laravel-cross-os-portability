@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "Cut0x/forum-php",
+  "commit_sha": "cd4df2352fe9537d3a898ba89d76d0387b263161",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "8.3",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 0,
+  "vendor_exists": true,
+  "test_command": "composer run test",
+  "test_exit_code": 2,
+  "test_timeout": false,
+  "failure_stage": "test_execution",
+  "failure_category": "TEST_FAILURE",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}

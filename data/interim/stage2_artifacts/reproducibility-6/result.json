@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "AhmadIkbalDjaya/momentum",
+  "commit_sha": "6a539c4111180074be11baaeb3fad93229b37286",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "8.2",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 2,
+  "vendor_exists": false,
+  "test_command": "",
+  "test_exit_code": 30,
+  "test_timeout": false,
+  "failure_stage": "dependency_installation",
+  "failure_category": "COMPOSER",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}

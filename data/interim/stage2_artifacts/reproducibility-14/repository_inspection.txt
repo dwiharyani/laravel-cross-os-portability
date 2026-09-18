@@ -1,0 +1,180 @@
+=== REPOSITORY ===
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability
+
+=== FILES ===
+total 920
+drwxr-xr-x 17 runner runner   4096 Sep 18 12:52 .
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 ..
+drwxr-xr-x 12 runner runner   4096 Sep 18 12:52 .ddev
+-rw-r--r--  1 runner runner    631 Sep 18 12:52 .dockerignore
+-rw-r--r--  1 runner runner    220 Sep 18 12:52 .editorconfig
+-rw-r--r--  1 runner runner   3259 Sep 18 12:52 .env.example
+-rw-r--r--  1 runner runner    547 Sep 18 12:52 .env.testing
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:52 .git
+-rw-r--r--  1 runner runner    186 Sep 18 12:52 .gitattributes
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 .github
+-rw-r--r--  1 runner runner    760 Sep 18 12:52 .gitignore
+-rw-r--r--  1 runner runner     74 Sep 18 12:52 .prettierignore
+-rw-r--r--  1 runner runner    610 Sep 18 12:52 .prettierrc
+-rw-r--r--  1 runner runner   1071 Sep 18 12:52 LICENSE
+-rw-r--r--  1 runner runner   7220 Sep 18 12:52 README.md
+drwxr-xr-x 16 runner runner   4096 Sep 18 12:52 app
+-rwxr-xr-x  1 runner runner   1686 Sep 18 12:52 artisan
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 bootstrap
+-rw-r--r--  1 runner runner 110208 Sep 18 12:52 bun.lock
+-rw-r--r--  1 runner runner    119 Sep 18 12:52 bunfig.toml
+-rw-r--r--  1 runner runner   4600 Sep 18 12:52 composer.json
+-rw-r--r--  1 runner runner 638149 Sep 18 12:52 composer.lock
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 config
+drwxr-xr-x  6 runner runner   4096 Sep 18 12:52 database
+drwxr-xr-x  5 runner runner   4096 Sep 18 12:52 docker
+-rw-r--r--  1 runner runner   2419 Sep 18 12:52 eslint.config.js
+-rw-r--r--  1 runner runner    364 Sep 18 12:52 knip.json
+-rw-r--r--  1 runner runner   3498 Sep 18 12:52 package.json
+-rw-r--r--  1 runner runner   3165 Sep 18 12:52 phpunit.xml
+-rw-r--r--  1 runner runner   1899 Sep 18 12:52 playwright.config.ts
+drwxr-xr-x  3 runner runner   4096 Sep 18 12:52 public
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:52 resources
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 routes
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 runtime-result
+drwxr-xr-x  2 runner runner   4096 Sep 18 12:52 scripts
+-rw-r--r--  1 runner runner  21637 Sep 18 12:52 seccomp_profile.json
+drwxr-xr-x  7 runner runner   4096 Sep 18 12:52 storage
+-rw-r--r--  1 runner runner    582 Sep 18 12:52 svelte.config.js
+drwxr-xr-x  8 runner runner   4096 Sep 18 12:52 tests
+-rw-r--r--  1 runner runner    715 Sep 18 12:52 tsconfig.json
+-rw-r--r--  1 runner runner   1443 Sep 18 12:52 vite.config.ts
+-rw-r--r--  1 runner runner   1638 Sep 18 12:52 vitest.config.ts
+
+=== COMPOSER.JSON ===
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "ext-dom": "*",
+        "ext-gd": "*",
+        "ext-intl": "*",
+        "ext-libxml": "*",
+        "ext-zip": "*",
+        "blade-ui-kit/blade-heroicons": "^2.7",
+        "filament/filament": "^5.6",
+        "guzzlehttp/guzzle": "^7.10",
+        "http-interop/http-factory-guzzle": "^1.2",
+        "inertiajs/inertia-laravel": "^3.0",
+        "intervention/image": "^4.0",
+        "itsgoingd/clockwork": "^5.3",
+        "laravel/framework": "^13.0",
+        "laravel/nightwatch": "^1.26",
+        "laravel/octane": "^2.17",
+        "laravel/sanctum": "^4.3",
+        "laravel/scout": "^11.1",
+        "laravel/tinker": "^3.0",
+        "livewire/livewire": "^4.3",
+        "meilisearch/meilisearch-php": "^1.16",
+        "minishlink/web-push": "^11.0",
+        "predis/predis": "^3.4",
+        "sabberworm/php-css-parser": "^9.3",
+        "socialiteproviders/discord": "^4.2",
+        "socialiteproviders/google": "^4.1",
+        "socialiteproviders/steam": "^4.3",
+        "socialiteproviders/telegram": "^4.1",
+        "spatie/laravel-schedule-monitor": "^4.3",
+        "spatie/laravel-sitemap": "^8.1",
+        "tightenco/ziggy": "^2.6",
+        "tpetry/laravel-postgresql-enhanced": "^3.6"
+    },
+    "require-dev": {
+        "fakerphp/faker": "*",
+        "laravel/boost": "*",
+        "laravel/pail": "*",
+        "laravel/pint": "*",
+        "mockery/mockery": "*",
+        "nunomaduro/collision": "*",
+        "pestphp/pest-plugin-browser": "^5.0",
+        "pestphp/pest-plugin-laravel": "^5.0",
+        "spatie/laravel-ignition": "*",
+        "tightenco/duster": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "app/Helpers/canonical.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ],
+        "test": [
+            "@test:all"
+        ],
+        "test:php": "php artisan test --env=testing --testsuite=Unit,Feature",
+        "test:browser": "bun run test:e2e",
+        "test:a11y": "bun run test:a11y",
+        "test:browser:pest": "bash scripts/pest-browser-ddev.sh",
+        "test:frontend": [
+            "bun run test:js:coverage",
+            "@test:browser:pest"
+        ],
+        "test:all": [
+            "@test:php",
+            "@test:frontend",
+            "@test:browser",
+            "@test:a11y"
+        ],
+        "test:coverage": "XDEBUG_MODE=coverage php artisan test --env=testing --testsuite=Unit,Feature --coverage",
+        "test:coverage:clover": "mkdir -p build/logs && XDEBUG_MODE=coverage php artisan test --env=testing --testsuite=Unit,Feature --coverage-clover=build/logs/clover.xml",
+        "test:coverage:audit": "php scripts/audit-php-coverage.php build/logs/clover.xml",
+        "test:parallel": "php artisan test --env=testing --parallel",
+        "test:unit": "php artisan test --env=testing --testsuite=Unit",
+        "test:feature": "php artisan test --env=testing --testsuite=Feature",
+        "migrate:test": "php artisan migrate:fresh --seed --env=testing",
+        "lint": "php vendor/bin/duster lint",
+        "lint:fix": "php vendor/bin/duster fix",
+        "hooks:install": "git config core.hooksPath .githooks"
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

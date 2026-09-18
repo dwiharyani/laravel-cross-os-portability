@@ -1,0 +1,4 @@
+repository=HugoJF/csgo-servers-admin-panel
+commit_sha=ee32ca5a13cdcdd169c59ae8d17dc74a9577b137
+requested_php=5.6
+operating_system=ubuntu-22.04

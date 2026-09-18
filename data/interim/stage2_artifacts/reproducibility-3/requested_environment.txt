@@ -1,0 +1,4 @@
+repository=1nFrastr/likeadmin_laravel
+commit_sha=5d71e27c3868b598648d7653657737b92f58988a
+requested_php=8.2
+operating_system=ubuntu-22.04

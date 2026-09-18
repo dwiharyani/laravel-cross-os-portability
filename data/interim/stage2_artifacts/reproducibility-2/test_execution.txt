@@ -1,0 +1,445 @@
+=== TEST EXECUTION ===
+Command: composer run test
+Timeout: 30 minutes
+
+> @php artisan config:clear --ansi
+
+  [37;44m INFO [39;49m Configuration cache cleared successfully.  
+
+> @php artisan test
+
+  [30;42;1m PASS [39;49;22m[39m Tests\Unit\ExampleTest[39m
+  [32;1m✓[39;22m[90m [39m[90mthat true is true[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\AuthenticationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mlogin screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90musers can authenticate using the login screen[39m
+  [31;1m⨯[39;22m[90m [39m[90musers can not authenticate with invalid password[39m
+  [31;1m⨯[39;22m[90m [39m[90musers can logout[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\EmailVerificationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90memail verification screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90memail can be verified[39m
+  [31;1m⨯[39;22m[90m [39m[90memail is not verified with invalid hash[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordConfirmationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mconfirm password screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be confirmed[39m
+  [31;1m⨯[39;22m[90m [39m[90mpassword is not confirmed with invalid password[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordResetTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mreset password link screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90mreset password link can be requested[39m
+  [31;1m⨯[39;22m[90m [39m[90mreset password screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be reset with valid token[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\PasswordUpdateTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mpassword can be updated[39m
+  [31;1m⨯[39;22m[90m [39m[90mcorrect password must be provided to update password[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\Auth\RegistrationTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mregistration screen can be rendered[39m
+  [31;1m⨯[39;22m[90m [39m[90mnew users can register[39m
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ExampleTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mthe application returns a successful response[39m[90m                       [39m [90m0.05s[39m  
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ProfileTest[39m
+  [31;1m⨯[39;22m[90m [39m[90mprofile page is displayed[39m
+  [31;1m⨯[39;22m[90m [39m[90mprofile information can be updated[39m
+  [31;1m⨯[39;22m[90m [39m[90memail verification status is unchanged when the email address is unchanged[39m
+  [31;1m⨯[39;22m[90m [39m[90muser can delete their account[39m
+  [31;1m⨯[39;22m[90m [39m[90mcorrect password must be provided to delete account[39m
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m login scr… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m users can… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m users can… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\AuthenticationTest[22m [90m>[39m users can… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\EmailVerificationTest[22m [90m>[39m email…  [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\EmailVerificationTest[22m [90m>[39m email…  [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\EmailVerificationTest[22m [90m>[39m email…  [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTest[22m [90m>[39m con… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTest[22m [90m>[39m pas… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordConfirmationTest[22m [90m>[39m pas… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m reset pass… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m reset pass… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m reset pass… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordResetTest[22m [90m>[39m password c… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordUpdateTest[22m [90m>[39m password…  [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\PasswordUpdateTest[22m [90m>[39m correct p… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\RegistrationTest[22m [90m>[39m registratio… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\Auth\RegistrationTest[22m [90m>[39m new users c… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ExampleTest[22m [90m>[39m the applicati… [41;1m MissingAppKeyException [49;22m  
+[39;1m  No application encryption key has been specified.[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Encryption/EncryptionServiceProvider.php[39m:[32m83[39m
+     79▕     protected function key(array $config)
+     80▕     {
+     81▕         return tap($config['key'], function ($key) {
+     82▕             if (empty($key)) {
+  ➜  83▕                 throw new MissingAppKeyException;
+     84▕             }
+     85▕         });
+     86▕     }
+     87▕ }
+
+      [2m+19 vendor frames [22m
+  [33m20  [39m[39;1mtests/Feature/ExampleTest.php[39;22m:[39;1m15[39;22m
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m profile page is displ… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m profile information c… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m email verification st… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m user can delete their… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+  [31m────────────────────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ProfileTest[22m [90m>[39m correct password must… [41;1m QueryException [49;22m  
+[39;1m  SQLSTATE[HYT00]: [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (Connection: sro_custom, Host: localhost, Port: 1433, Database: SRO_VT_CUSTOM, SQL: select (case when object_id(N'sp_fortress_status', 'U') is null then 0 else 1 end) as [exists])[39;22m
+
+  at [32mvendor/laravel/framework/src/Illuminate/Database/Connection.php[39m:[32m857[39m
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+
+
+  [90mTests:[39m    [31;1m24 failed[39;22m[90m,[39m[39m [39m[32;1m1 passed[39;22m[90m (1 assertions)[39m
+  [90mDuration:[39m [39m1381.52s[39m
+
+Script @php artisan test handling the test event returned with error code 2
+
+EXIT_CODE=2

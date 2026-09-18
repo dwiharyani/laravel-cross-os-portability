@@ -1,0 +1,2 @@
+TEST_COMMAND=vendor/bin/phpunit
+SOURCE=vendor/bin/phpunit

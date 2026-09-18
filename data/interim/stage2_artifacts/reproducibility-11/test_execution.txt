@@ -1,0 +1,356 @@
+=== TEST EXECUTION ===
+Command: vendor/bin/phpunit
+Timeout: 30 minutes
+
+PHPUnit 11.5.25 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.25
+Configuration: /home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/phpunit.xml
+
+EEEEEEEEEEEEEEEEEEEEEE.                                           23 / 23 (100%)
+
+Time: 00:03.209, Memory: 12.00 MB
+
+There were 22 errors:
+
+1) Tests\Feature\Auth\AuthenticationTest::test_login_screen_can_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+2) Tests\Feature\Auth\AuthenticationTest::test_users_can_authenticate_using_the_login_screen
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+3) Tests\Feature\Auth\AuthenticationTest::test_users_can_not_authenticate_with_invalid_password
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+4) Tests\Feature\Auth\AuthenticationTest::test_users_can_logout
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+5) Tests\Feature\Auth\EmailVerificationTest::test_email_verification_screen_can_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+6) Tests\Feature\Auth\EmailVerificationTest::test_email_can_be_verified
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+7) Tests\Feature\Auth\EmailVerificationTest::test_email_is_not_verified_with_invalid_hash
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+8) Tests\Feature\Auth\PasswordConfirmationTest::test_confirm_password_screen_can_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordConfirmationTest.php:13
+
+9) Tests\Feature\Auth\PasswordConfirmationTest::test_password_can_be_confirmed
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordConfirmationTest.php:13
+
+10) Tests\Feature\Auth\PasswordConfirmationTest::test_password_is_not_confirmed_with_invalid_password
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordConfirmationTest.php:13
+
+11) Tests\Feature\Auth\PasswordResetTest::test_reset_password_link_screen_can_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordResetTest.php:14
+
+12) Tests\Feature\Auth\PasswordResetTest::test_reset_password_link_can_be_requested
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordResetTest.php:14
+
+13) Tests\Feature\Auth\PasswordResetTest::test_reset_password_screen_can_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordResetTest.php:14
+
+14) Tests\Feature\Auth\PasswordResetTest::test_password_can_be_reset_with_valid_token
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/Feature/Auth/PasswordResetTest.php:14
+
+15) Tests\Feature\Auth\PasswordUpdateTest::test_password_can_be_updated
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+16) Tests\Feature\Auth\PasswordUpdateTest::test_correct_password_must_be_provided_to_update_password
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+17) Tests\Feature\Auth\RegistrationTest::test_registration_screen_cant_be_rendered
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+18) Tests\Feature\Auth\RegistrationTest::test_new_users_cant_register
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+19) Tests\Feature\ProfileTest::test_profile_page_is_displayed
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+20) Tests\Feature\ProfileTest::test_profile_information_can_be_updated
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+21) Tests\Feature\ProfileTest::test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+22) Tests\Feature\ProfileTest::test_user_can_delete_their_account
+Illuminate\Database\SQLiteDatabaseDoesNotExistException: Database file at path [/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/database/database.sqlite] does not exist. Ensure this is an absolute path to the database.
+
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:59
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/SQLiteConnector.php:19
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connectors/ConnectionFactory.php:223
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Connection.php:1228
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:151
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php:127
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/DatabaseTransactions.php:26
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:219
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:96
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:44
+/home/runner/work/laravel-cross-os-portability/laravel-cross-os-portability/tests/TestCase.php:21
+
+ERRORS!
+Tests: 23, Assertions: 1, Errors: 22.
+
+EXIT_CODE=2

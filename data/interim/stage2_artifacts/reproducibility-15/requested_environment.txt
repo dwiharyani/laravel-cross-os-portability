@@ -1,0 +1,4 @@
+repository=AKAME007/laravel-vue-cli-3
+commit_sha=f3a4e5d75cd97ea98008affb14db65446f4fed6b
+requested_php=7.4
+operating_system=ubuntu-22.04

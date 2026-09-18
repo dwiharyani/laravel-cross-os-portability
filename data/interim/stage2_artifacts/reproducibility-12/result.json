@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "Helg18/megadownloaderrobot",
+  "commit_sha": "e18a2174f777bfbc75c2971d8ca853dcd7cf88d1",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "7.4",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 0,
+  "vendor_exists": true,
+  "test_command": "vendor/bin/phpunit",
+  "test_exit_code": 2,
+  "test_timeout": false,
+  "failure_stage": "test_execution",
+  "failure_category": "TEST_FAILURE",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}

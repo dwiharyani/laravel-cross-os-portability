@@ -1,0 +1,17 @@
+{
+  "repo_full_name": "HolgerHatGarKeineNode/einundzwanzig-portal",
+  "commit_sha": "31702cfc14169ea26ecd1e2432ba32208215a39f",
+  "operating_system": "ubuntu-22.04",
+  "requested_php": "8.4",
+  "runner_os": "Linux",
+  "runner_arch": "X64",
+  "runtime_available": true,
+  "composer_exit_code": 100,
+  "vendor_exists": true,
+  "test_command": "composer run test",
+  "test_exit_code": 255,
+  "test_timeout": false,
+  "failure_stage": "dependency_installation",
+  "failure_category": "COMPOSER",
+  "reproducibility_status": "NON_REPRODUCIBLE"
+}
