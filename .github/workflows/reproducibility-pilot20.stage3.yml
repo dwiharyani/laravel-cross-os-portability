@@ -1,0 +1,85 @@
+name: Stage 3 Reproducibility Pilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Number of frozen pilot repositories to run"
+        required: true
+        default: "1"
+      timeout_minutes:
+        description: "Test timeout in minutes"
+        required: true
+        default: "30"
+
+jobs:
+  stage3:
+    runs-on: ubuntu-24.04
+
+    timeout-minutes: 40
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer
+
+      - name: Verify runtime
+        run: |
+          php --version
+          composer --version
+          git --version
+          python --version
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl
+
+      - name: Prepare directories
+        run: |
+          mkdir -p data/interim
+          mkdir -p data/interim/reproducibility_workspace
+
+      - name: Run Stage 3
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGE3_LIMIT: ${{ inputs.limit }}
+          STAGE3_TIMEOUT: ${{ inputs.timeout_minutes }}
+        run: |
+          python scripts/09_reproducibility_check.py \
+            --input data/interim/cross_os_candidates.csv \
+            --pilot data/interim/reproducibility_pilot20.csv \
+            --limit "$STAGE3_LIMIT" \
+            --timeout "$((STAGE3_TIMEOUT * 60))"
+
+      - name: Show results
+        if: always()
+        run: |
+          if [ -f data/interim/reproducibility_results.csv ]; then
+            cat data/interim/reproducibility_results.csv
+          fi
+
+      - name: Upload Stage 3 result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-reproducibility-results
+          path: |
+            data/interim/reproducibility_results.csv
+            data/interim/reproducibility_results.xlsx
+            data/interim/reproducibility_results.manifest.json
+            data/interim/reproducibility_workspace/**
+          if-no-files-found: warn
