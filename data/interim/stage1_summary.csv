@@ -1,0 +1,10 @@
+metric,value
+Total runtime combinations,60
+Primary success,58
+Primary failure,2
+Stable success,58
+Stable failure,1
+Variable,1
+Reproducible,58
+Partially reproducible,1
+Non-reproducible,1
