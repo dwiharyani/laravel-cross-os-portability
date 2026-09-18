@@ -34,9 +34,7 @@ jobs:
           import json
           import os
 
-          input_file = (
-              "data/interim/php_runtime_matrix.csv"
-          )
+          input_file = "data/interim/php_runtime_matrix.csv"
 
           include = []
 
@@ -63,8 +61,7 @@ jobs:
           if len(include) != 20:
 
               raise SystemExit(
-                  f"Expected 20 repositories, "
-                  f"found {len(include)}"
+                  f"Expected 20 repositories, found {len(include)}"
               )
 
           matrix = {
@@ -86,10 +83,7 @@ jobs:
                   "matrix=" + encoded + "\n"
               )
 
-          print(
-              "Repositories:",
-              len(include)
-          )
+          print("Repositories:", len(include))
 
           for item in include:
 
@@ -97,7 +91,7 @@ jobs:
                   item["repo"],
                   "| PHP",
                   item["php"],
-                  "|",
+                  "| SHA",
                   item["sha"]
               )
 
@@ -125,10 +119,6 @@ jobs:
 
     steps:
 
-      # ========================================================
-      # CHECKOUT EXACT REPOSITORY
-      # ========================================================
-
       - name: Checkout exact repository
 
         uses: actions/checkout@v4
@@ -142,11 +132,7 @@ jobs:
           fetch-depth: 1
 
 
-      # ========================================================
-      # INITIALIZE EVIDENCE
-      # ========================================================
-
-      - name: Initialize evidence directory
+      - name: Initialize evidence
 
         if: always()
 
@@ -157,21 +143,12 @@ jobs:
           mkdir -p runtime-result
 
           cat > runtime-result/requested_environment.txt <<EOF
-
           repository=${{ matrix.repo }}
-
           commit_sha=${{ matrix.sha }}
-
           requested_php=${{ matrix.php }}
-
           operating_system=ubuntu-22.04
-
           EOF
 
-
-      # ========================================================
-      # SETUP PHP
-      # ========================================================
 
       - name: Setup PHP
 
@@ -190,13 +167,7 @@ jobs:
           tools: composer
 
 
-      # ========================================================
-      # VERIFY ENVIRONMENT
-      # ========================================================
-
       - name: Verify PHP and Composer
-
-        id: verify_environment
 
         if: always()
 
@@ -209,49 +180,26 @@ jobs:
           {
 
             echo "=== PHP VERSION ==="
-
             php --version
 
-            PHP_EXIT=$?
-
             echo
-
             echo "=== PHP INI ==="
-
             php --ini
 
             echo
-
             echo "=== PHP MODULES ==="
-
             php -m
 
             echo
-
             echo "=== COMPOSER ==="
-
             composer --version
-
-            COMPOSER_EXIT=$?
-
-            echo
-
-            echo "PHP_EXIT=$PHP_EXIT"
-
-            echo "COMPOSER_EXIT=$COMPOSER_EXIT"
 
           } > runtime-result/environment.txt 2>&1
 
           cat runtime-result/environment.txt
 
 
-      # ========================================================
-      # INSPECT COMPOSER
-      # ========================================================
-
       - name: Inspect repository
-
-        id: inspect
 
         if: always()
 
@@ -264,116 +212,25 @@ jobs:
           {
 
             echo "=== REPOSITORY ==="
-
             pwd
 
             echo
+            echo "=== FILES ==="
+            ls -la
 
+            echo
             echo "=== COMPOSER.JSON ==="
 
             if [ -f composer.json ]; then
-
               cat composer.json
-
-              COMPOSER_JSON=1
-
             else
-
               echo "composer.json NOT FOUND"
-
-              COMPOSER_JSON=0
-
-            fi
-
-            echo
-
-            echo "=== PHP VERSION REQUIREMENT ==="
-
-            if [ -f composer.json ]; then
-
-              python3 - <<'PY'
-
-          import json
-
-          try:
-
-              with open(
-                  "composer.json",
-                  encoding="utf-8"
-              ) as f:
-
-                  data = json.load(f)
-
-              print(
-                  data.get(
-                      "require",
-                      {}
-                  ).get(
-                      "php",
-                      ""
-                  )
-              )
-
-          except Exception as exc:
-
-              print(
-                  "ERROR:",
-                  exc
-              )
-
-          PY
-
-            fi
-
-            echo
-
-            echo "=== PHP EXTENSIONS ==="
-
-            if [ -f composer.json ]; then
-
-              python3 - <<'PY'
-
-          import json
-
-          try:
-
-              with open(
-                  "composer.json",
-                  encoding="utf-8"
-              ) as f:
-
-                  data = json.load(f)
-
-              for package in data.get(
-                  "require",
-                  {}
-              ):
-
-                  if str(package).lower().startswith(
-                      "ext-"
-                  ):
-
-                      print(package)
-
-          except Exception as exc:
-
-              print(
-                  "ERROR:",
-                  exc
-              )
-
-          PY
-
             fi
 
           } > runtime-result/repository_inspection.txt 2>&1
 
           cat runtime-result/repository_inspection.txt
 
-
-      # ========================================================
-      # COMPOSER INSTALL
-      # ========================================================
 
       - name: Composer install
 
@@ -389,13 +246,17 @@ jobs:
 
           if [ ! -f composer.json ]; then
 
-            echo "composer.json not found"
+            echo "composer.json not found" \
+              > runtime-result/composer_install.txt
+
+            echo "COMPOSER_EXIT_CODE=20" \
+              > runtime-result/composer_result.txt
 
             exit 20
 
           fi
 
-          composer install \
+          timeout 20m composer install \
             --no-interaction \
             --prefer-dist \
             --no-progress \
@@ -405,19 +266,15 @@ jobs:
 
           EXIT_CODE=$?
 
-          echo
-          echo "composer_exit_code=$EXIT_CODE"
+          echo "COMPOSER_EXIT_CODE=$EXIT_CODE" \
+            > runtime-result/composer_result.txt
+
+          cat runtime-result/composer_install.txt
 
           exit $EXIT_CODE
 
 
-      # ========================================================
-      # DETECT TEST COMMAND
-      # ========================================================
-
       - name: Detect test command
-
-        id: detect_test
 
         if: always()
 
@@ -433,19 +290,12 @@ jobs:
           import json
           from pathlib import Path
 
-          composer = Path(
-              "composer.json"
-          )
+          composer = Path("composer.json")
 
           if not composer.exists():
 
-              print(
-                  "TEST_COMMAND="
-              )
-
-              print(
-                  "SOURCE=composer.json missing"
-              )
+              print("TEST_COMMAND=")
+              print("SOURCE=composer.json missing")
 
               raise SystemExit(0)
 
@@ -471,18 +321,6 @@ jobs:
 
               if name in scripts:
 
-                  value = scripts[name]
-
-                  if isinstance(
-                      value,
-                      list
-                  ):
-
-                      value = " && ".join(
-                          str(x)
-                          for x in value
-                      )
-
                   print(
                       "TEST_COMMAND="
                       f"composer run {name}"
@@ -495,21 +333,9 @@ jobs:
 
                   raise SystemExit(0)
 
-          for name, value in scripts.items():
+          for name in scripts:
 
-              if "test" in str(
-                  name
-              ).lower():
-
-                  if isinstance(
-                      value,
-                      list
-                  ):
-
-                      value = " && ".join(
-                          str(x)
-                          for x in value
-                      )
+              if "test" in str(name).lower():
 
                   print(
                       "TEST_COMMAND="
@@ -538,43 +364,28 @@ jobs:
 
               raise SystemExit(0)
 
-          if (
-              Path("phpunit.xml").exists()
-              or
-              Path("phpunit.xml.dist").exists()
-          ):
-
-              print(
-                  "TEST_COMMAND="
-                  "vendor/bin/phpunit"
-              )
-
-              print(
-                  "SOURCE=phpunit configuration"
-              )
-
-              raise SystemExit(0)
-
-          print(
-              "TEST_COMMAND="
-          )
-
-          print(
-              "SOURCE=No test command detected"
-          )
+          print("TEST_COMMAND=")
+          print("SOURCE=No test command detected")
 
           PY
 
           cat runtime-result/test_detection.txt
 
 
-      # ========================================================
-      # RUN TESTS
-      # ========================================================
+      - name: Verify timeout command
+
+        if: always()
+
+        shell: bash
+
+        run: |
+
+          command -v timeout
+
+          timeout --version | head -1
+
 
       - name: Run tests
-
-        id: tests
 
         if: always()
 
@@ -588,8 +399,11 @@ jobs:
 
             echo "vendor directory does not exist"
 
-            echo "TEST_EXIT_CODE=30" \
-              > runtime-result/test_result.txt
+            {
+              echo "TEST_EXIT_CODE=30"
+              echo "TEST_TIMEOUT=0"
+              echo "TEST_TIMEOUT_MINUTES=30"
+            } > runtime-result/test_result.txt
 
             exit 30
 
@@ -608,8 +422,11 @@ jobs:
 
             echo "No test command detected"
 
-            echo "TEST_EXIT_CODE=31" \
-              > runtime-result/test_result.txt
+            {
+              echo "TEST_EXIT_CODE=31"
+              echo "TEST_TIMEOUT=0"
+              echo "TEST_TIMEOUT_MINUTES=30"
+            } > runtime-result/test_result.txt
 
             exit 31
 
@@ -621,10 +438,13 @@ jobs:
           echo "Command: $TEST_COMMAND" \
             >> runtime-result/test_execution.txt
 
+          echo "Timeout: 30 minutes" \
+            >> runtime-result/test_execution.txt
+
           echo \
             >> runtime-result/test_execution.txt
 
-          bash -lc "$TEST_COMMAND" \
+          timeout 30m bash -lc "$TEST_COMMAND" \
             >> runtime-result/test_execution.txt \
             2>&1
 
@@ -636,17 +456,28 @@ jobs:
           echo "EXIT_CODE=$EXIT_CODE" \
             >> runtime-result/test_execution.txt
 
-          echo "TEST_EXIT_CODE=$EXIT_CODE" \
-            > runtime-result/test_result.txt
+          if [ "$EXIT_CODE" -eq 124 ]; then
+
+            TEST_TIMEOUT=1
+
+          else
+
+            TEST_TIMEOUT=0
+
+          fi
+
+          {
+            echo "TEST_EXIT_CODE=$EXIT_CODE"
+            echo "TEST_TIMEOUT=$TEST_TIMEOUT"
+            echo "TEST_TIMEOUT_MINUTES=30"
+          } > runtime-result/test_result.txt
 
           cat runtime-result/test_execution.txt
 
+          cat runtime-result/test_result.txt
+
           exit $EXIT_CODE
 
-
-      # ========================================================
-      # GENERATE FINAL RESULT
-      # ========================================================
 
       - name: Generate reproducibility result
 
@@ -660,7 +491,6 @@ jobs:
 
           import json
           import os
-          import re
           from pathlib import Path
 
           result_dir = Path(
@@ -672,7 +502,6 @@ jobs:
               path = result_dir / name
 
               if not path.exists():
-
                   return ""
 
               return path.read_text(
@@ -684,6 +513,10 @@ jobs:
               "environment.txt"
           )
 
+          composer_result = read_file(
+              "composer_result.txt"
+          )
+
           composer_install = read_file(
               "composer_install.txt"
           )
@@ -692,45 +525,75 @@ jobs:
               "test_detection.txt"
           )
 
+          test_result = read_file(
+              "test_result.txt"
+          )
+
           test_execution = read_file(
               "test_execution.txt"
           )
 
-          repository_inspection = read_file(
-              "repository_inspection.txt"
-          )
-
-          combined = (
-              environment
-              + "\n"
-              + composer_install
-              + "\n"
-              + test_execution
-          ).lower()
-
-          # ----------------------------------------------------
-          # Determine failure stage
-          # ----------------------------------------------------
-
-          failure_stage = ""
-
-          failure_category = ""
-
           runtime_available = (
-              "PHP_EXIT=0" in environment
+              "PHP VERSION" in environment
               and
-              "COMPOSER_EXIT=0" in environment
+              "PHP" in environment
           )
 
-          composer_success = (
-              "composer_exit_code=0"
-              in composer_install
+          composer_exit = None
+
+          for line in composer_result.splitlines():
+
+              if line.startswith(
+                  "COMPOSER_EXIT_CODE="
+              ):
+
+                  try:
+
+                      composer_exit = int(
+                          line.split("=", 1)[1]
+                      )
+
+                  except ValueError:
+                      pass
+
+          test_exit = None
+
+          for line in test_result.splitlines():
+
+              if line.startswith(
+                  "TEST_EXIT_CODE="
+              ):
+
+                  try:
+
+                      test_exit = int(
+                          line.split("=", 1)[1]
+                      )
+
+                  except ValueError:
+                      pass
+
+          test_timeout = (
+              "TEST_TIMEOUT=1"
+              in test_result
           )
 
-          test_success = (
-              "EXIT_CODE=0"
-              in test_execution
-          )
+          vendor_exists = Path(
+              "vendor"
+          ).exists()
+
+          test_command = ""
+
+          for line in test_detection.splitlines():
+
+              if line.startswith(
+                  "TEST_COMMAND="
+              ):
+
+                  test_command = line.split(
+                      "=",
+                      1
+                  )[1]
 
           if not runtime_available:
 
@@ -739,73 +602,57 @@ jobs:
               )
 
               failure_category = (
-                  "INFRASTRUCTURE"
+                  "PHP_RUNTIME"
               )
 
-          elif not Path(
-              "composer.json"
-          ).exists():
-
-              failure_stage = (
-                  "repository_inspection"
-              )
-
-              failure_category = (
-                  "REPOSITORY"
-              )
-
-          elif not composer_success:
+          elif composer_exit != 0:
 
               failure_stage = (
                   "dependency_installation"
               )
 
-              if (
-                  "requires php" in combined
-                  or
-                  "your php version" in combined
-              ):
+              failure_category = (
+                  "COMPOSER"
+              )
 
-                  failure_category = (
-                      "PHP VERSION"
-                  )
+          elif not vendor_exists:
 
-              elif "ext-" in combined:
+              failure_stage = (
+                  "dependency_installation"
+              )
 
-                  failure_category = (
-                      "PHP EXTENSION"
-                  )
+              failure_category = (
+                  "VENDOR_MISSING"
+              )
 
-              elif "dependency" in combined:
-
-                  failure_category = (
-                      "DEPENDENCY"
-                  )
-
-              else:
-
-                  failure_category = (
-                      "COMPOSER"
-                  )
-
-          elif not test_detection.strip():
+          elif not test_command:
 
               failure_stage = (
                   "test_detection"
               )
 
               failure_category = (
-                  "TEST"
+                  "NO_TEST_COMMAND"
               )
 
-          elif not test_success:
+          elif test_timeout:
 
               failure_stage = (
                   "test_execution"
               )
 
               failure_category = (
-                  "TEST FAILURE"
+                  "TEST_TIMEOUT"
+              )
+
+          elif test_exit != 0:
+
+              failure_stage = (
+                  "test_execution"
+              )
+
+              failure_category = (
+                  "TEST_FAILURE"
               )
 
           else:
@@ -814,16 +661,16 @@ jobs:
 
               failure_category = ""
 
-          # ----------------------------------------------------
-          # Final status
-          # ----------------------------------------------------
-
           if (
               runtime_available
               and
-              composer_success
+              composer_exit == 0
               and
-              test_success
+              vendor_exists
+              and
+              test_command
+              and
+              test_exit == 0
           ):
 
               reproducibility_status = (
@@ -863,19 +710,20 @@ jobs:
               "runtime_available":
                   runtime_available,
 
-              "composer_install":
-                  (
-                      "PASS"
-                      if composer_success
-                      else "FAIL"
-                  ),
+              "composer_exit_code":
+                  composer_exit,
 
-              "test_execution":
-                  (
-                      "PASS"
-                      if test_success
-                      else "FAIL"
-                  ),
+              "vendor_exists":
+                  vendor_exists,
+
+              "test_command":
+                  test_command,
+
+              "test_exit_code":
+                  test_exit,
+
+              "test_timeout":
+                  test_timeout,
 
               "failure_stage":
                   failure_stage,
@@ -885,12 +733,6 @@ jobs:
 
               "reproducibility_status":
                   reproducibility_status,
-
-              "tested_at":
-                  os.environ.get(
-                      "GITHUB_RUN_STARTED_AT",
-                      ""
-                  ),
 
           }
 
@@ -915,10 +757,6 @@ jobs:
 
           PY
 
-
-      # ========================================================
-      # UPLOAD EVIDENCE
-      # ========================================================
 
       - name: Upload reproducibility evidence
 
