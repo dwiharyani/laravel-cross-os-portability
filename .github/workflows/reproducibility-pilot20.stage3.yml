@@ -3,20 +3,22 @@ name: Stage 3 Reproducibility Pilot
 on:
   workflow_dispatch:
     inputs:
-      limit:
-        description: "Number of frozen pilot repositories to run"
-        required: true
-        default: "1"
       timeout_minutes:
-        description: "Test timeout in minutes"
+        description: "Test timeout in minutes per repository"
         required: true
         default: "30"
 
 jobs:
-  stage3:
+
+  # ============================================================
+  # JOB 1 — Build runtime matrix
+  # ============================================================
+
+  prepare-matrix:
     runs-on: ubuntu-24.04
 
-    timeout-minutes: 40
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
 
     steps:
 
@@ -28,58 +30,340 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Build repository/runtime matrix
+        id: matrix
+        run: |
+
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+
+          pilot = Path(
+              "data/interim/reproducibility_pilot20.csv"
+          )
+
+          rows = []
+
+          with pilot.open(
+              encoding="utf-8",
+              newline=""
+          ) as f:
+
+              reader = csv.DictReader(f)
+
+              for row in reader:
+
+                  repo = row["repo_full_name"].strip()
+
+                  php = (
+                      row.get("requested_php")
+                      or row.get("selected_php_runtime")
+                      or ""
+                  ).strip()
+
+                  if not php:
+                      raise RuntimeError(
+                          f"Missing PHP runtime for {repo}"
+                      )
+
+                  # ------------------------------------------------
+                  # Normalize runtime versions.
+                  #
+                  # These are the runtime versions already selected
+                  # during Stage 2.
+                  # ------------------------------------------------
+
+                  runtime_map = {
+                      "5.6": "5.6",
+                      "7.4": "7.4",
+                      "8.0": "8.0",
+                      "8.1": "8.1",
+                      "8.2": "8.2",
+                      "8.3": "8.3",
+                      "8.4": "8.4",
+                      "8.5": "8.5",
+                  }
+
+                  if php not in runtime_map:
+                      raise RuntimeError(
+                          f"Unsupported PHP runtime "
+                          f"{php} for {repo}"
+                      )
+
+                  rows.append(
+                      {
+                          "repo": repo,
+                          "php": runtime_map[php],
+                      }
+                  )
+
+          matrix = {
+              "include": rows
+          }
+
+          print(
+              json.dumps(
+                  matrix,
+                  indent=2
+              )
+          )
+
+          Path(
+              "/tmp/stage3_matrix.json"
+          ).write_text(
+              json.dumps(matrix),
+              encoding="utf-8"
+          )
+
+          PY
+
+          MATRIX_JSON=$(cat /tmp/stage3_matrix.json)
+
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+
+  # ============================================================
+  # JOB 2 — Run one repository with its selected PHP runtime
+  # ============================================================
+
+  stage3:
+
+    needs: prepare-matrix
+
+    strategy:
+
+      fail-fast: false
+
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+
+    runs-on: ubuntu-22.04
+
+    timeout-minutes: 40
+
+    steps:
+
+      # ----------------------------------------------------------
+      # Checkout methodology repository
+      # ----------------------------------------------------------
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------
+      # Python
+      # ----------------------------------------------------------
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ----------------------------------------------------------
+      # PHP runtime selected for THIS repository
+      # ----------------------------------------------------------
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: ${{ matrix.php }}
           extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
           coverage: none
           tools: composer
 
+      # ----------------------------------------------------------
+      # Verify runtime
+      # ----------------------------------------------------------
+
       - name: Verify runtime
         run: |
+
+          echo "============================================"
+          echo "STAGE 3 RUNTIME"
+          echo "============================================"
+
+          echo "Repository:"
+          echo "${{ matrix.repo }}"
+
+          echo
+          echo "Selected PHP:"
+          echo "${{ matrix.php }}"
+
+          echo
           php --version
+
+          echo
           composer --version
+
+          echo
           git --version
+
+          echo
           python --version
+
+      # ----------------------------------------------------------
+      # Python dependencies
+      # ----------------------------------------------------------
 
       - name: Install Python dependencies
         run: |
+
           python -m pip install --upgrade pip
-          pip install pandas openpyxl
+
+          pip install \
+            pandas \
+            openpyxl
+
+      # ----------------------------------------------------------
+      # Prepare directories
+      # ----------------------------------------------------------
 
       - name: Prepare directories
         run: |
+
           mkdir -p data/interim
-          mkdir -p data/interim/reproducibility_workspace
+
+          mkdir -p \
+            data/interim/reproducibility_workspace
+
+      # ----------------------------------------------------------
+      # Create one-repository pilot file
+      # ----------------------------------------------------------
+
+      - name: Create single repository pilot
+        env:
+          TARGET_REPOSITORY: ${{ matrix.repo }}
+
+        run: |
+
+          python - <<'PY'
+
+          import csv
+          import os
+          from pathlib import Path
+
+          source = Path(
+              "data/interim/reproducibility_pilot20.csv"
+          )
+
+          target = Path(
+              "data/interim/reproducibility_pilot_single.csv"
+          )
+
+          repo = os.environ["TARGET_REPOSITORY"]
+
+          with source.open(
+              encoding="utf-8",
+              newline=""
+          ) as f:
+
+              reader = csv.DictReader(f)
+
+              rows = [
+                  row
+                  for row in reader
+                  if row["repo_full_name"].strip()
+                  == repo
+              ]
+
+          if len(rows) != 1:
+
+              raise RuntimeError(
+                  f"Expected exactly one row for "
+                  f"{repo}, found {len(rows)}"
+              )
+
+          with target.open(
+              "w",
+              encoding="utf-8",
+              newline=""
+          ) as f:
+
+              writer = csv.DictWriter(
+                  f,
+                  fieldnames=rows[0].keys()
+              )
+
+              writer.writeheader()
+              writer.writerows(rows)
+
+          print(
+              f"Created single repository pilot: "
+              f"{repo}"
+          )
+
+          PY
+
+          cat \
+            data/interim/reproducibility_pilot_single.csv
+
+      # ----------------------------------------------------------
+      # Run Stage 3
+      # ----------------------------------------------------------
 
       - name: Run Stage 3
         env:
+
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAGE3_LIMIT: ${{ inputs.limit }}
-          STAGE3_TIMEOUT: ${{ inputs.timeout_minutes }}
+
+          STAGE3_TIMEOUT:
+            ${{ inputs.timeout_minutes }}
+
         run: |
+
           python scripts/09_reproducibility_check.py \
             --input data/interim/cross_os_candidates.csv \
-            --pilot data/interim/reproducibility_pilot20.csv \
-            --limit "$STAGE3_LIMIT" \
+            --pilot data/interim/reproducibility_pilot_single.csv \
+            --limit 1 \
             --timeout "$((STAGE3_TIMEOUT * 60))"
+
+      # ----------------------------------------------------------
+      # Show result
+      # ----------------------------------------------------------
 
       - name: Show results
         if: always()
         run: |
-          if [ -f data/interim/reproducibility_results.csv ]; then
-            cat data/interim/reproducibility_results.csv
+
+          echo
+          echo "============================================"
+          echo "RESULT — ${{ matrix.repo }}"
+          echo "PHP      — ${{ matrix.php }}"
+          echo "============================================"
+
+          if [ -f \
+            data/interim/reproducibility_results.csv
+          ]; then
+
+            cat \
+              data/interim/reproducibility_results.csv
+
           fi
+
+      # ----------------------------------------------------------
+      # Upload result
+      # ----------------------------------------------------------
 
       - name: Upload Stage 3 result
         if: always()
         uses: actions/upload-artifact@v4
+
         with:
-          name: stage3-reproducibility-results
+
+          name: >
+            stage3-${{
+              matrix.repo
+              }}-php-${{
+              matrix.php
+              }}
+
           path: |
+
             data/interim/reproducibility_results.csv
+
             data/interim/reproducibility_results.xlsx
+
             data/interim/reproducibility_results.manifest.json
+
             data/interim/reproducibility_workspace/**
+
           if-no-files-found: warn
