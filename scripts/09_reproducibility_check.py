@@ -3,37 +3,42 @@
 """
 09_reproducibility_check.py
 
-Purpose:
-    Check whether frozen Laravel candidates can be reproduced
-    from a clean repository checkout.
+Stage 3 — Laravel reproducibility check.
 
 Workflow:
 
     Frozen candidates
-          ↓
+          |
     Select pilot
-          ↓
+          |
     Clone repository
-          ↓
+          |
     Checkout exact SHA
-          ↓
+          |
     Inspect composer.json
-          ↓
+          |
     Detect PHP extensions
-          ↓
+          |
     Detect test command
-          ↓
+          |
     Composer install
-          ↓
+          |
+    Prepare test environment
+          |
+    Prepare SQLite database
+          |
     Run tests
-          ↓
+          |
     Classify result
+          |
+    Export CSV / Excel / manifest
 
-IMPORTANT:
-    This is NOT the final Cross-OS experiment.
+This script is intended to run both:
 
-    A missing PHP or Composer installation on the HPC is classified
-    as an infrastructure limitation, not as a repository failure.
+1. On HPC for inspection / baseline checks.
+2. On GitHub Actions where PHP + Composer are available.
+
+The script does NOT modify the frozen candidate dataset.
 """
 
 from __future__ import annotations
@@ -78,17 +83,17 @@ DEFAULT_MANIFEST = (
 )
 
 DEFAULT_WORKSPACE = (
-    ROOT / "data/work/reproducibility"
+    ROOT / "data/interim/reproducibility_workspace"
 )
 
 
 # ============================================================
-# COMMAND UTILITIES
+# GENERAL UTILITIES
 # ============================================================
 
 def command_exists(command: str) -> bool:
     """
-    Check whether a command exists in PATH.
+    Return True if command is available in PATH.
     """
     return shutil.which(command) is not None
 
@@ -99,7 +104,7 @@ def run_command(
     timeout=900,
 ):
     """
-    Run a shell command safely.
+    Execute a command safely.
 
     Returns:
         return_code
@@ -120,9 +125,11 @@ def run_command(
             timeout=timeout,
         )
 
+        output = process.stdout or ""
+
         return (
             process.returncode,
-            process.stdout[-12000:],
+            output[-12000:],
             round(time.time() - started, 2),
         )
 
@@ -150,6 +157,52 @@ def run_command(
         )
 
 
+def sanitize_excel_value(value):
+    """
+    Remove XML control characters that openpyxl rejects.
+
+    This prevents errors such as:
+
+        openpyxl.utils.exceptions.IllegalCharacterError
+
+    when PHPUnit/Laravel output contains control characters.
+    """
+
+    if value is None:
+        return value
+
+    if not isinstance(value, str):
+        return value
+
+    return re.sub(
+        r"[\x00-\x08\x0B\x0C\x0E-\x1F]",
+        "",
+        value,
+    )
+
+
+def sanitize_dataframe_for_excel(
+    dataframe: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Remove illegal Excel characters from all object columns.
+    """
+
+    dataframe = dataframe.copy()
+
+    for column in dataframe.select_dtypes(
+        include=["object"]
+    ).columns:
+
+        dataframe[column] = dataframe[
+            column
+        ].map(
+            sanitize_excel_value
+        )
+
+    return dataframe
+
+
 # ============================================================
 # PILOT SELECTION
 # ============================================================
@@ -160,142 +213,127 @@ def select_pilot(
 ) -> pd.DataFrame:
 
     """
-    Select a deterministic pilot.
+    Deterministic pilot selection.
 
     Priority:
-        1. Cover major environment groups.
-        2. Then fill remaining slots using higher-star projects.
+        1. Cover environment groups.
+        2. Fill remaining slots using higher-star repositories.
 
     This is only a reproducibility pilot.
-    It is NOT the final Cross-OS experimental sample.
+    It is not the final Cross-OS sample.
     """
 
     df = dataframe.copy()
-
-    # --------------------------------------------------------
-    # Remove duplicate repositories
-    # --------------------------------------------------------
 
     df = df.drop_duplicates(
         subset=["repo_full_name"]
     ).reset_index(drop=True)
 
-    # --------------------------------------------------------
-    # Create environment_group if necessary
-    # --------------------------------------------------------
-
-    if "environment_group" not in df.columns:
-
-        if (
-            "php_environment_group" in df.columns
-            and
-            "laravel_environment_group" in df.columns
-        ):
-
-            df["environment_group"] = (
-                df["php_environment_group"].astype(str)
-                + "__"
-                + df["laravel_environment_group"].astype(str)
-            )
-
-        else:
-
-            df["environment_group"] = "Unknown"
+    if number <= 0:
+        return df.iloc[0:0].copy()
 
     selected = []
 
-    used_repositories = set()
-
     # --------------------------------------------------------
-    # First pass:
-    # one representative from each major environment group
+    # Environment coverage
     # --------------------------------------------------------
 
-    groups = (
-        df["environment_group"]
-        .value_counts()
-        .index
-        .tolist()
-    )
+    if "environment_group" in df.columns:
 
-    for group in groups:
+        groups = (
+            df[
+                "environment_group"
+            ]
+            .fillna("UNKNOWN")
+            .astype(str)
+        )
 
-        candidates = df[
-            df["environment_group"] == group
+        df = df.assign(
+            _environment_group=groups
+        )
+
+        for _, group in df.groupby(
+            "_environment_group",
+            sort=True,
+        ):
+
+            if len(selected) >= number:
+                break
+
+            selected.append(
+                group.iloc[0]
+            )
+
+        selected_repos = {
+            row["repo_full_name"]
+            for row in selected
+        }
+
+        remaining = df[
+            ~df["repo_full_name"].isin(
+                selected_repos
+            )
         ].copy()
 
-        if candidates.empty:
-            continue
+    else:
 
-        candidates = candidates.sort_values(
-            by=[
-                "stars_github",
+        remaining = df.copy()
+
+    # --------------------------------------------------------
+    # Fill remaining slots
+    # --------------------------------------------------------
+
+    if "stars" in remaining.columns:
+
+        remaining["_stars_numeric"] = pd.to_numeric(
+            remaining["stars"],
+            errors="coerce",
+        ).fillna(0)
+
+        remaining = remaining.sort_values(
+            [
+                "_stars_numeric",
                 "repo_full_name",
             ],
             ascending=[
                 False,
                 True,
             ],
-            na_position="last",
         )
 
-        row = candidates.iloc[0]
+    else:
 
-        repository = row["repo_full_name"]
+        remaining = remaining.sort_values(
+            "repo_full_name"
+        )
 
-        if repository not in used_repositories:
-
-            selected.append(row)
-
-            used_repositories.add(
-                repository
-            )
+    for _, row in remaining.iterrows():
 
         if len(selected) >= number:
             break
 
-    # --------------------------------------------------------
-    # Second pass:
-    # fill remaining slots
-    # --------------------------------------------------------
+        selected.append(row)
 
-    if len(selected) < number:
+    if not selected:
+        return df.iloc[0:0].copy()
 
-        remaining = df[
-            ~df["repo_full_name"].isin(
-                used_repositories
-            )
-        ].copy()
-
-        remaining = remaining.sort_values(
-            by=[
-                "stars_github",
-                "repo_full_name",
-            ],
-            ascending=[
-                False,
-                True,
-            ],
-            na_position="last",
-        )
-
-        remaining_needed = (
-            number - len(selected)
-        )
-
-        for _, row in remaining.head(
-            remaining_needed
-        ).iterrows():
-
-            selected.append(row)
-
-    return pd.DataFrame(
+    result = pd.DataFrame(
         selected
-    ).reset_index(drop=True)
+    ).drop(
+        columns=[
+            "_environment_group",
+            "_stars_numeric",
+        ],
+        errors="ignore",
+    )
+
+    return result.reset_index(
+        drop=True
+    )
 
 
 # ============================================================
-# COMPOSER INSPECTION
+# COMPOSER
 # ============================================================
 
 def load_composer_json(
@@ -308,31 +346,23 @@ def load_composer_json(
     )
 
     if not composer_file.exists():
-
         return None
 
     try:
 
-        with open(
-            composer_file,
-            "r",
-            encoding="utf-8",
-        ) as file:
-
-            return json.load(file)
+        return json.loads(
+            composer_file.read_text(
+                encoding="utf-8"
+            )
+        )
 
     except Exception:
-
         return None
 
 
-# ============================================================
-# PHP EXTENSIONS
-# ============================================================
-
 def detect_php_extensions(
     repository_directory: Path,
-) -> str:
+):
 
     composer_data = load_composer_json(
         repository_directory
@@ -350,9 +380,9 @@ def detect_php_extensions(
 
     for package_name in requirements:
 
-        if str(package_name).lower().startswith(
-            "ext-"
-        ):
+        if str(
+            package_name
+        ).lower().startswith("ext-"):
 
             extensions.append(
                 str(package_name)
@@ -450,10 +480,12 @@ def detect_test_command(
     # PHPUnit binary
     # --------------------------------------------------------
 
-    if (
+    phpunit = (
         repository_directory
         / "vendor/bin/phpunit"
-    ).exists():
+    )
+
+    if phpunit.exists():
 
         return (
             "vendor/bin/phpunit",
@@ -461,24 +493,35 @@ def detect_test_command(
         )
 
     # --------------------------------------------------------
-    # PHPUnit configuration
+    # Pest binary
     # --------------------------------------------------------
 
-    if (
-        (
-            repository_directory
-            / "phpunit.xml"
-        ).exists()
-        or
-        (
-            repository_directory
-            / "phpunit.xml.dist"
-        ).exists()
-    ):
+    pest = (
+        repository_directory
+        / "vendor/bin/pest"
+    )
+
+    if pest.exists():
 
         return (
-            "vendor/bin/phpunit",
-            "PHPUnit configuration detected",
+            "vendor/bin/pest",
+            "vendor/bin/pest detected",
+        )
+
+    # --------------------------------------------------------
+    # Artisan test
+    # --------------------------------------------------------
+
+    artisan = (
+        repository_directory
+        / "artisan"
+    )
+
+    if artisan.exists():
+
+        return (
+            "php artisan test",
+            "artisan detected",
         )
 
     return (
@@ -488,23 +531,688 @@ def detect_test_command(
 
 
 # ============================================================
+# STAGE 3 — TEST ENVIRONMENT PREPARATION
+# ============================================================
+
+def prepare_test_environment(
+    repository_directory: Path,
+):
+
+    """
+    Prepare a Laravel repository for test execution.
+
+    This function intentionally avoids destructive changes.
+
+    It performs common test-environment preparation:
+
+        1. Create .env from .env.example when available.
+        2. Ensure APP_KEY exists.
+        3. Clear Laravel configuration/cache.
+        4. Configure testing environment where possible.
+
+    Returns:
+
+        environment_ok
+        environment_detail
+    """
+
+    details = []
+
+    env_file = (
+        repository_directory
+        / ".env"
+    )
+
+    env_example = (
+        repository_directory
+        / ".env.example"
+    )
+
+    # --------------------------------------------------------
+    # .env
+    # --------------------------------------------------------
+
+    if not env_file.exists():
+
+        if env_example.exists():
+
+            try:
+
+                shutil.copy2(
+                    env_example,
+                    env_file,
+                )
+
+                details.append(
+                    ".env created from .env.example"
+                )
+
+            except Exception as exc:
+
+                return (
+                    False,
+                    "Failed to create .env: "
+                    + repr(exc),
+                )
+
+        else:
+
+            # Some repositories do not require .env.
+            details.append(
+                ".env.example not found"
+            )
+
+    else:
+
+        details.append(
+            ".env already exists"
+        )
+
+    # --------------------------------------------------------
+    # APP_ENV
+    # --------------------------------------------------------
+
+    if env_file.exists():
+
+        try:
+
+            text = env_file.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+
+            if re.search(
+                r"^APP_ENV=",
+                text,
+                flags=re.MULTILINE,
+            ):
+
+                text = re.sub(
+                    r"^APP_ENV=.*$",
+                    "APP_ENV=testing",
+                    text,
+                    flags=re.MULTILINE,
+                )
+
+            else:
+
+                text += (
+                    "\nAPP_ENV=testing\n"
+                )
+
+            env_file.write_text(
+                text,
+                encoding="utf-8",
+            )
+
+            details.append(
+                "APP_ENV=testing"
+            )
+
+        except Exception as exc:
+
+            details.append(
+                "APP_ENV update skipped: "
+                + repr(exc)
+            )
+
+    # --------------------------------------------------------
+    # APP_KEY
+    # --------------------------------------------------------
+
+    if env_file.exists() and command_exists("php"):
+
+        try:
+
+            env_text = env_file.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+
+            app_key_match = re.search(
+                r"^APP_KEY=(.*)$",
+                env_text,
+                flags=re.MULTILINE,
+            )
+
+            app_key = (
+                app_key_match.group(1).strip()
+                if app_key_match
+                else ""
+            )
+
+            if not app_key:
+
+                return_code, output, _ = (
+                    run_command(
+                        [
+                            "php",
+                            "artisan",
+                            "key:generate",
+                            "--force",
+                        ],
+                        cwd=repository_directory,
+                        timeout=120,
+                    )
+                )
+
+                if return_code == 0:
+
+                    details.append(
+                        "APP_KEY generated"
+                    )
+
+                else:
+
+                    details.append(
+                        "APP_KEY generation failed: "
+                        + output
+                    )
+
+            else:
+
+                details.append(
+                    "APP_KEY already present"
+                )
+
+        except Exception as exc:
+
+            details.append(
+                "APP_KEY preparation skipped: "
+                + repr(exc)
+            )
+
+    # --------------------------------------------------------
+    # Laravel config clear
+    # --------------------------------------------------------
+
+    if (
+        command_exists("php")
+        and
+        (
+            repository_directory
+            / "artisan"
+        ).exists()
+    ):
+
+        return_code, output, _ = (
+            run_command(
+                [
+                    "php",
+                    "artisan",
+                    "config:clear",
+                ],
+                cwd=repository_directory,
+                timeout=120,
+            )
+        )
+
+        if return_code == 0:
+
+            details.append(
+                "Laravel config cleared"
+            )
+
+        else:
+
+            details.append(
+                "Laravel config clear returned "
+                f"{return_code}"
+            )
+
+    return (
+        True,
+        "; ".join(details),
+    )
+
+
+# ============================================================
+# STAGE 3 — SQLITE DATABASE PREPARATION
+# ============================================================
+
+def prepare_sqlite_database(
+    repository_directory: Path,
+):
+
+    """
+    Prepare SQLite for Laravel tests when the repository
+    already uses SQLite or can safely use SQLite for testing.
+
+    This function does NOT overwrite an existing database.
+
+    Returns:
+
+        sqlite_ok
+        sqlite_detail
+    """
+
+    database_directory = (
+        repository_directory
+        / "database"
+    )
+
+    database_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    sqlite_candidates = [
+        database_directory
+        / "database.sqlite",
+
+        database_directory
+        / "testing.sqlite",
+    ]
+
+    existing_sqlite = [
+        path
+        for path in sqlite_candidates
+        if path.exists()
+    ]
+
+    details = []
+
+    env_file = (
+        repository_directory
+        / ".env"
+    )
+
+    if env_file.exists():
+
+        try:
+
+            env_text = env_file.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+
+            # ------------------------------------------------
+            # Detect existing SQLite configuration
+            # ------------------------------------------------
+
+            db_connection = re.search(
+                r"^DB_CONNECTION=(.*)$",
+                env_text,
+                flags=re.MULTILINE,
+            )
+
+            connection = (
+                db_connection.group(1).strip()
+                if db_connection
+                else ""
+            )
+
+            connection = connection.strip(
+                "\"'"
+            ).lower()
+
+            # ------------------------------------------------
+            # Existing sqlite database
+            # ------------------------------------------------
+
+            if existing_sqlite:
+
+                details.append(
+                    "SQLite database already exists"
+                )
+
+            elif connection == "sqlite":
+
+                sqlite_file = (
+                    database_directory
+                    / "database.sqlite"
+                )
+
+                sqlite_file.touch(
+                    exist_ok=True
+                )
+
+                details.append(
+                    "SQLite database created"
+                )
+
+            else:
+
+                # Do not force SQLite on repositories
+                # explicitly configured for another database.
+                details.append(
+                    "Repository is not configured "
+                    "for SQLite; existing database "
+                    "configuration preserved"
+                )
+
+        except Exception as exc:
+
+            return (
+                False,
+                "SQLite preparation failed: "
+                + repr(exc),
+            )
+
+    else:
+
+        details.append(
+            ".env unavailable; SQLite not forced"
+        )
+
+    # --------------------------------------------------------
+    # Laravel migrate for SQLite
+    # --------------------------------------------------------
+
+    if env_file.exists():
+
+        try:
+
+            env_text = env_file.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+
+            connection_match = re.search(
+                r"^DB_CONNECTION=(.*)$",
+                env_text,
+                flags=re.MULTILINE,
+            )
+
+            connection = (
+                connection_match.group(1).strip()
+                if connection_match
+                else ""
+            )
+
+            connection = connection.strip(
+                "\"'"
+            ).lower()
+
+        except Exception:
+
+            connection = ""
+
+    else:
+
+        connection = ""
+
+    if (
+        connection == "sqlite"
+        and
+        command_exists("php")
+        and
+        (
+            repository_directory
+            / "artisan"
+        ).exists()
+    ):
+
+        return_code, output, _ = (
+            run_command(
+                [
+                    "php",
+                    "artisan",
+                    "migrate",
+                    "--force",
+                ],
+                cwd=repository_directory,
+                timeout=300,
+            )
+        )
+
+        if return_code == 0:
+
+            details.append(
+                "SQLite migrations completed"
+            )
+
+        else:
+
+            # Migration failures should not immediately
+            # be converted into a repository failure here.
+            # The actual test run is the final evidence.
+            details.append(
+                "SQLite migration returned "
+                f"{return_code}"
+            )
+
+    return (
+        True,
+        "; ".join(details),
+    )
+
+
+# ============================================================
 # FAILURE CLASSIFICATION
 # ============================================================
 
 def classify_failure(
     output: str,
-    stage: str,
-) -> str:
+    stage: str = "test",
+):
 
     text = (
         output or ""
     ).lower()
 
     # --------------------------------------------------------
-    # Infrastructure
+    # Private package authentication
     # --------------------------------------------------------
 
-    if stage == "infrastructure":
+    if any(
+        phrase in text
+        for phrase in [
+            "authentication required",
+            "could not authenticate",
+            "private repository",
+            "github token",
+            "oauth token",
+            "authentication.json",
+        ]
+    ):
+
+        return (
+            "PRIVATE_PACKAGE_AUTHENTICATION"
+        )
+
+    # --------------------------------------------------------
+    # Invalid composer package
+    # --------------------------------------------------------
+
+    if (
+        "invalid package name" in text
+        or
+        "invalid package names" in text
+        or
+        "package name" in text
+        and "invalid" in text
+    ):
+
+        return (
+            "INVALID_COMPOSER_PACKAGE_NAME"
+        )
+
+    # --------------------------------------------------------
+    # Lockfile / PHP version
+    # --------------------------------------------------------
+
+    if (
+        "lock file" in text
+        and
+        (
+            "php version" in text
+            or
+            "requires php" in text
+            or
+            "does not satisfy" in text
+        )
+    ):
+
+        return (
+            "LOCKFILE_PHP_VERSION_MISMATCH"
+        )
+
+    if (
+        "requires php" in text
+        and
+        "your php version" in text
+    ):
+
+        return (
+            "LOCKFILE_PHP_VERSION_MISMATCH"
+        )
+
+    # --------------------------------------------------------
+    # Database
+    # --------------------------------------------------------
+
+    if (
+        "database.sqlite" in text
+        and
+        (
+            "does not exist" in text
+            or
+            "sqlite" in text
+        )
+    ):
+
+        return (
+            "DATABASE_CONFIGURATION_OR_DATABASE_FAILURE"
+        )
+
+    if (
+        "connection refused" in text
+        and
+        (
+            "database" in text
+            or
+            "mysql" in text
+            or
+            "pgsql" in text
+            or
+            "sqlsrv" in text
+        )
+    ):
+
+        return (
+            "DATABASE_CONNECTION_REFUSED"
+        )
+
+    if (
+        "sqlstate" in text
+        or
+        "queryexception" in text
+    ):
+
+        return (
+            "DATABASE_CONFIGURATION_OR_DATABASE_FAILURE"
+        )
+
+    # --------------------------------------------------------
+    # Cryptographic configuration
+    # --------------------------------------------------------
+
+    if (
+        "supported ciphers" in text
+        or
+        "cipher" in text
+        and
+        "key length" in text
+    ):
+
+        return (
+            "CRYPTOGRAPHIC_CONFIGURATION"
+        )
+
+    # --------------------------------------------------------
+    # Application configuration
+    # --------------------------------------------------------
+
+    if any(
+        phrase in text
+        for phrase in [
+            "undefined index",
+            "undefined variable",
+            "application configuration",
+            "no application encryption key",
+            "app_key",
+            "application key",
+            "class not found",
+            "target class",
+            "bootstrap",
+            "environment file",
+            "vite manifest not found",
+            "configuration",
+        ]
+    ):
+
+        if "bootstrap" in text:
+
+            return (
+                "APPLICATION_BOOTSTRAP_FAILURE"
+            )
+
+        return (
+            "APPLICATION_CONFIGURATION"
+        )
+
+    # --------------------------------------------------------
+    # Test command mismatch
+    # --------------------------------------------------------
+
+    if (
+        "invalidpestcommand" in text
+        or
+        "please run [./vendor/bin/pest]" in text
+    ):
+
+        return (
+            "TEST_COMMAND_MISMATCH"
+        )
+
+    # --------------------------------------------------------
+    # Composer dependency
+    # --------------------------------------------------------
+
+    if (
+        "composer" in text
+        and
+        (
+            "dependency" in text
+            or
+            "could not resolve" in text
+            or
+            "install" in text
+            or
+            "memory" in text
+        )
+    ):
+
+        return "COMPOSER"
+
+    # --------------------------------------------------------
+    # Test failure
+    # --------------------------------------------------------
+
+    if (
+        "phpunit" in text
+        or
+        "pest" in text
+        or
+        "tests failed" in text
+        or
+        "failed tests" in text
+        or
+        "failure" in text
+    ):
+
+        return "TEST_FAILURE"
+
+    # --------------------------------------------------------
+    # Permission
+    # --------------------------------------------------------
+
+    if (
+        "permission denied" in text
+        or
+        "operation not permitted" in text
+    ):
 
         return "INFRASTRUCTURE"
 
@@ -515,84 +1223,18 @@ def classify_failure(
     if (
         "could not resolve host" in text
         or
-        "network" in text
-    ):
-
-        return "NETWORK"
-
-    # --------------------------------------------------------
-    # PHP version
-    # --------------------------------------------------------
-
-    if (
-        "requires php" in text
+        "network is unreachable" in text
         or
-        "your php version" in text
+        "connection timed out" in text
     ):
-
-        return "PHP VERSION"
-
-    # --------------------------------------------------------
-    # PHP extension
-    # --------------------------------------------------------
-
-    if (
-        "ext-" in text
-        or
-        "extension" in text
-    ):
-
-        return "PHP EXTENSION"
-
-    # --------------------------------------------------------
-    # Dependency
-    # --------------------------------------------------------
-
-    if (
-        "dependency" in text
-        or
-        "class not found" in text
-    ):
-
-        return "DEPENDENCY"
-
-    # --------------------------------------------------------
-    # Composer
-    # --------------------------------------------------------
-
-    if (
-        "composer" in text
-        and
-        (
-            "memory" in text
-            or
-            "dependency" in text
-        )
-    ):
-
-        return "COMPOSER"
-
-    # --------------------------------------------------------
-    # PHPUnit / tests
-    # --------------------------------------------------------
-
-    if (
-        "phpunit" in text
-        or
-        "test" in text
-    ):
-
-        return "TEST FAILURE"
-
-    # --------------------------------------------------------
-    # Permission
-    # --------------------------------------------------------
-
-    if "permission denied" in text:
 
         return "INFRASTRUCTURE"
 
-    return "UNKNOWN"
+    # --------------------------------------------------------
+    # Unknown
+    # --------------------------------------------------------
+
+    return "OTHER_TEST_FAILURE"
 
 
 # ============================================================
@@ -603,8 +1245,8 @@ def main():
 
     parser = argparse.ArgumentParser(
         description=(
-            "Run reproducibility checks "
-            "on frozen Laravel candidates."
+            "Run Stage 3 reproducibility "
+            "checks on frozen Laravel candidates."
         )
     )
 
@@ -638,16 +1280,36 @@ def main():
     parser.add_argument(
         "--timeout",
         type=int,
-        default=900,
+        default=1800,
+    )
+
+    parser.add_argument(
+        "--output",
+        default=str(
+            DEFAULT_OUTPUT
+        ),
+    )
+
+    parser.add_argument(
+        "--xlsx",
+        default=str(
+            DEFAULT_XLSX
+        ),
+    )
+
+    parser.add_argument(
+        "--manifest",
+        default=str(
+            DEFAULT_MANIFEST
+        ),
     )
 
     parser.add_argument(
         "--skip-install",
         action="store_true",
         help=(
-            "Only inspect repositories. "
-            "Do not run composer install "
-            "or tests."
+            "Inspect repositories only; "
+            "do not run composer install or tests."
         ),
     )
 
@@ -665,6 +1327,18 @@ def main():
         args.workspace
     )
 
+    output_file = Path(
+        args.output
+    )
+
+    xlsx_file = Path(
+        args.xlsx
+    )
+
+    manifest_file = Path(
+        args.manifest
+    )
+
     # ========================================================
     # CHECK INPUT
     # ========================================================
@@ -672,8 +1346,7 @@ def main():
     if not input_file.exists():
 
         raise FileNotFoundError(
-            f"Input file not found: "
-            f"{input_file}"
+            f"Input file not found: {input_file}"
         )
 
     # ========================================================
@@ -689,7 +1362,7 @@ def main():
     ).reset_index(drop=True)
 
     # ========================================================
-    # CREATE / LOAD PILOT
+    # LOAD / CREATE PILOT
     # ========================================================
 
     if pilot_file.exists():
@@ -714,6 +1387,12 @@ def main():
             pilot_file,
             index=False,
         )
+
+    if args.limit > 0:
+
+        pilot = pilot.head(
+            args.limit
+        ).copy()
 
     # ========================================================
     # WORKSPACE
@@ -745,7 +1424,7 @@ def main():
     )
 
     print(
-        "REPRODUCIBILITY CHECK"
+        "REPRODUCIBILITY CHECK — STAGE 3"
     )
 
     print(
@@ -778,29 +1457,45 @@ def main():
     )
 
     print(
+        "Timeout:",
+        args.timeout,
+        "seconds",
+    )
+
+    print(
         "Workspace:",
         workspace,
     )
 
-    print()
+    if not git_available:
+
+        raise RuntimeError(
+            "Git is required but was not found."
+        )
+
+    # ========================================================
+    # RESULTS
+    # ========================================================
 
     results = []
 
     # ========================================================
-    # PROCESS PILOT
+    # LOOP
     # ========================================================
 
     for index, row in pilot.iterrows():
 
-        repository_name = str(
-            row["repo_full_name"]
+        repo_full_name = str(
+            row.get(
+                "repo_full_name",
+                "",
+            )
         )
 
-        repository_url = str(
+        url = str(
             row.get(
                 "url",
-                f"https://github.com/"
-                f"{repository_name}.git",
+                f"https://github.com/{repo_full_name}.git",
             )
         )
 
@@ -809,12 +1504,70 @@ def main():
                 "latest_sha",
                 "",
             )
-        ).strip()
+        )
+
+        environment_group = str(
+            row.get(
+                "environment_group",
+                "",
+            )
+        )
+
+        php_constraint = str(
+            row.get(
+                "php_version_constraint",
+                "",
+            )
+        )
+
+        laravel_constraint = str(
+            row.get(
+                "laravel_version_constraint",
+                "",
+            )
+        )
+
+        result = {
+            "repo_full_name": repo_full_name,
+            "url": url,
+            "latest_sha": latest_sha,
+            "environment_group": environment_group,
+            "php_version_constraint": php_constraint,
+            "laravel_version_constraint": laravel_constraint,
+            "clone_status": "",
+            "checkout_status": "",
+            "composer_json": False,
+            "php_extensions": "",
+            "test_command": "",
+            "test_command_source": "",
+            "php_available": php_available,
+            "composer_available": composer_available,
+            "composer_install": "",
+            "test_environment_preparation": "",
+            "sqlite_preparation": "",
+            "test_execution": "",
+            "failure_category": "",
+            "failure_detail": "",
+            "reproducibility_status": "",
+            "tested_at": datetime.now(
+                timezone.utc
+            ).isoformat(),
+        }
+
+        print()
+        print(
+            f"[{index + 1}/{len(pilot)}] "
+            f"{repo_full_name}"
+        )
+
+        # ====================================================
+        # REPOSITORY WORKSPACE
+        # ====================================================
 
         safe_name = re.sub(
             r"[^A-Za-z0-9_.-]+",
             "_",
-            repository_name,
+            repo_full_name,
         )
 
         repository_directory = (
@@ -822,151 +1575,34 @@ def main():
         )
 
         # ----------------------------------------------------
-        # Result structure
+        # Remove previous clone
         # ----------------------------------------------------
-
-        result = {
-
-            "repo_full_name":
-                repository_name,
-
-            "url":
-                repository_url,
-
-            "latest_sha":
-                latest_sha,
-
-            "environment_group":
-                row.get(
-                    "environment_group",
-                    "",
-                ),
-
-            "php_version_constraint":
-                row.get(
-                    "php_version_constraint",
-                    "",
-                ),
-
-            "laravel_version_constraint":
-                row.get(
-                    "laravel_version_constraint",
-                    "",
-                ),
-
-            "clone_status":
-                "NOT STARTED",
-
-            "checkout_status":
-                "NOT STARTED",
-
-            "composer_json":
-                False,
-
-            "php_extensions":
-                "",
-
-            "test_command":
-                "",
-
-            "test_command_source":
-                "",
-
-            "php_available":
-                php_available,
-
-            "composer_available":
-                composer_available,
-
-            "composer_install":
-                "NOT STARTED",
-
-            "test_execution":
-                "NOT STARTED",
-
-            "failure_category":
-                "",
-
-            "failure_detail":
-                "",
-
-            "reproducibility_status":
-                "NOT STARTED",
-
-            "tested_at":
-                datetime.now(
-                    timezone.utc
-                ).isoformat(),
-        }
-
-        print(
-            f"[{index + 1}/{len(pilot)}] "
-            f"{repository_name}"
-        )
-
-        # ====================================================
-        # GIT AVAILABILITY
-        # ====================================================
-
-        if not git_available:
-
-            result[
-                "clone_status"
-            ] = "BLOCKED"
-
-            result[
-                "failure_category"
-            ] = "INFRASTRUCTURE"
-
-            result[
-                "failure_detail"
-            ] = (
-                "git command is not "
-                "available on this machine."
-            )
-
-            result[
-                "reproducibility_status"
-            ] = (
-                "PARTIALLY REPRODUCIBLE"
-            )
-
-            results.append(
-                result
-            )
-
-            continue
-
-        # ====================================================
-        # CLEAN OLD REPOSITORY
-        # ====================================================
 
         if repository_directory.exists():
 
             shutil.rmtree(
-                repository_directory
+                repository_directory,
+                ignore_errors=True,
             )
 
         # ====================================================
         # CLONE
         # ====================================================
 
-        return_code, output, duration = (
+        clone_code, clone_output, _ = (
             run_command(
                 [
                     "git",
                     "clone",
                     "--no-tags",
-                    repository_url,
-                    str(
-                        repository_directory
-                    ),
+                    url,
+                    str(repository_directory),
                 ],
                 timeout=args.timeout,
             )
         )
 
-        if return_code != 0:
+        if clone_code != 0:
 
             result[
                 "clone_status"
@@ -974,14 +1610,11 @@ def main():
 
             result[
                 "failure_category"
-            ] = classify_failure(
-                output,
-                "clone",
-            )
+            ] = "INFRASTRUCTURE"
 
             result[
                 "failure_detail"
-            ] = output
+            ] = clone_output
 
             result[
                 "reproducibility_status"
@@ -1003,22 +1636,20 @@ def main():
 
         if latest_sha:
 
-            (
-                return_code,
-                output,
-                duration,
-            ) = run_command(
-                [
-                    "git",
-                    "checkout",
-                    "--detach",
-                    latest_sha,
-                ],
-                cwd=repository_directory,
-                timeout=120,
+            checkout_code, checkout_output, _ = (
+                run_command(
+                    [
+                        "git",
+                        "checkout",
+                        "--detach",
+                        latest_sha,
+                    ],
+                    cwd=repository_directory,
+                    timeout=120,
+                )
             )
 
-            if return_code != 0:
+            if checkout_code != 0:
 
                 result[
                     "checkout_status"
@@ -1030,7 +1661,7 @@ def main():
 
                 result[
                     "failure_detail"
-                ] = output
+                ] = checkout_output
 
                 result[
                     "reproducibility_status"
@@ -1042,9 +1673,15 @@ def main():
 
                 continue
 
-        result[
-            "checkout_status"
-        ] = "PASS"
+            result[
+                "checkout_status"
+            ] = "PASS"
+
+        else:
+
+            result[
+                "checkout_status"
+            ] = "SKIPPED_NO_SHA"
 
         # ====================================================
         # COMPOSER.JSON
@@ -1068,8 +1705,8 @@ def main():
             result[
                 "failure_detail"
             ] = (
-                "composer.json was not "
-                "found at tested commit."
+                "composer.json was not found "
+                "at tested commit."
             )
 
             result[
@@ -1122,6 +1759,14 @@ def main():
             ] = "SKIPPED"
 
             result[
+                "test_environment_preparation"
+            ] = "SKIPPED"
+
+            result[
+                "sqlite_preparation"
+            ] = "SKIPPED"
+
+            result[
                 "test_execution"
             ] = "SKIPPED"
 
@@ -1162,6 +1807,14 @@ def main():
             ] = "BLOCKED"
 
             result[
+                "test_environment_preparation"
+            ] = "BLOCKED"
+
+            result[
+                "sqlite_preparation"
+            ] = "BLOCKED"
+
+            result[
                 "test_execution"
             ] = "BLOCKED"
 
@@ -1172,12 +1825,10 @@ def main():
             result[
                 "failure_detail"
             ] = (
-                "Required command(s) "
-                "unavailable: "
+                "Required command(s) unavailable: "
                 + ", ".join(missing)
-                + ". This is an HPC "
-                "environment limitation, "
-                "not a repository failure."
+                + ". This is an HPC environment "
+                "limitation, not a repository failure."
             )
 
             result[
@@ -1248,7 +1899,87 @@ def main():
         ] = "PASS"
 
         # ====================================================
-        # TEST COMMAND
+        # STAGE 3 TEST ENVIRONMENT PREPARATION
+        # ====================================================
+
+        (
+            environment_ok,
+            environment_detail,
+        ) = prepare_test_environment(
+            repository_directory
+        )
+
+        result[
+            "test_environment_preparation"
+        ] = environment_detail
+
+        if not environment_ok:
+
+            result[
+                "test_execution"
+            ] = "BLOCKED"
+
+            result[
+                "failure_category"
+            ] = "APPLICATION_CONFIGURATION"
+
+            result[
+                "failure_detail"
+            ] = environment_detail
+
+            result[
+                "reproducibility_status"
+            ] = "FAILED"
+
+            results.append(
+                result
+            )
+
+            continue
+
+        # ====================================================
+        # SQLITE PREPARATION
+        # ====================================================
+
+        (
+            sqlite_ok,
+            sqlite_detail,
+        ) = prepare_sqlite_database(
+            repository_directory
+        )
+
+        result[
+            "sqlite_preparation"
+        ] = sqlite_detail
+
+        if not sqlite_ok:
+
+            result[
+                "test_execution"
+            ] = "BLOCKED"
+
+            result[
+                "failure_category"
+            ] = (
+                "DATABASE_CONFIGURATION_OR_DATABASE_FAILURE"
+            )
+
+            result[
+                "failure_detail"
+            ] = sqlite_detail
+
+            result[
+                "reproducibility_status"
+            ] = "FAILED"
+
+            results.append(
+                result
+            )
+
+            continue
+
+        # ====================================================
+        # TEST COMMAND CHECK
         # ====================================================
 
         if not test_command:
@@ -1259,7 +1990,7 @@ def main():
 
             result[
                 "failure_category"
-            ] = "REPOSITORY"
+            ] = "TEST_COMMAND_MISMATCH"
 
             result[
                 "failure_detail"
@@ -1286,8 +2017,7 @@ def main():
         ):
 
             script_name = (
-                test_command
-                .replace(
+                test_command.replace(
                     "composer run ",
                     "",
                     1,
@@ -1331,6 +2061,10 @@ def main():
             ] = "NONE"
 
             result[
+                "failure_detail"
+            ] = ""
+
+            result[
                 "reproducibility_status"
             ] = "REPRODUCIBLE"
 
@@ -1368,10 +2102,30 @@ def main():
     )
 
     # ========================================================
-    # OUTPUT DIRECTORY
+    # SANITIZE EXCEL VALUES
     # ========================================================
 
-    DEFAULT_OUTPUT.parent.mkdir(
+    results_df = (
+        sanitize_dataframe_for_excel(
+            results_df
+        )
+    )
+
+    # ========================================================
+    # CREATE OUTPUT DIRECTORIES
+    # ========================================================
+
+    output_file.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    xlsx_file.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    manifest_file.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
@@ -1381,7 +2135,7 @@ def main():
     # ========================================================
 
     results_df.to_csv(
-        DEFAULT_OUTPUT,
+        output_file,
         index=False,
     )
 
@@ -1389,58 +2143,33 @@ def main():
     # EXCEL
     # ========================================================
 
-    with pd.ExcelWriter(
-        DEFAULT_XLSX,
-        engine="openpyxl",
-    ) as writer:
+    try:
 
         results_df.to_excel(
-            writer,
-            sheet_name=(
-                "Reproducibility Results"
-            ),
+            xlsx_file,
             index=False,
         )
 
-        status_summary = (
-            results_df[
-                "reproducibility_status"
-            ]
-            .value_counts(
-                dropna=False
-            )
-            .rename_axis(
-                "Status"
-            )
-            .reset_index(
-                name="Projects"
+    except Exception as exc:
+
+        print()
+        print(
+            "WARNING: Excel export failed:"
+        )
+
+        print(
+            repr(exc)
+        )
+
+        # Re-sanitize all strings and retry.
+        results_df = (
+            sanitize_dataframe_for_excel(
+                results_df
             )
         )
 
-        status_summary.to_excel(
-            writer,
-            sheet_name="Status Summary",
-            index=False,
-        )
-
-        failure_summary = (
-            results_df[
-                "failure_category"
-            ]
-            .value_counts(
-                dropna=False
-            )
-            .rename_axis(
-                "Failure Category"
-            )
-            .reset_index(
-                name="Projects"
-            )
-        )
-
-        failure_summary.to_excel(
-            writer,
-            sheet_name="Failure Summary",
+        results_df.to_excel(
+            xlsx_file,
             index=False,
         )
 
@@ -1448,64 +2177,101 @@ def main():
     # MANIFEST
     # ========================================================
 
+    status_counts = {}
+
+    if (
+        "reproducibility_status"
+        in results_df.columns
+    ):
+
+        status_counts = {
+            str(k): int(v)
+            for k, v in results_df[
+                "reproducibility_status"
+            ]
+            .value_counts(
+                dropna=False
+            )
+            .items()
+        }
+
+    failure_counts = {}
+
+    if (
+        "failure_category"
+        in results_df.columns
+    ):
+
+        failure_counts = {
+            str(k): int(v)
+            for k, v in results_df[
+                "failure_category"
+            ]
+            .fillna("")
+            .value_counts(
+                dropna=False
+            )
+            .items()
+        }
+
     manifest = {
-
-        "created_at_utc":
-            datetime.now(
-                timezone.utc
-            ).isoformat(),
-
-        "input":
-            str(input_file),
-
-        "pilot":
-            str(pilot_file),
-
-        "frozen_candidate_count":
-            len(dataframe),
-
-        "pilot_count":
-            len(pilot),
-
-        "php_available":
-            php_available,
-
-        "composer_available":
-            composer_available,
-
-        "git_available":
-            git_available,
-
-        "output_csv":
-            str(DEFAULT_OUTPUT),
-
-        "output_excel":
-            str(DEFAULT_XLSX),
-
-        "workspace":
-            str(workspace),
-
-        "important_note": (
-            "Infrastructure limitations "
-            "must not be interpreted as "
-            "repository portability failures."
+        "stage": "Stage 3",
+        "script": (
+            "scripts/09_reproducibility_check.py"
+        ),
+        "created_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
+        "input": str(
+            input_file
+        ),
+        "pilot": str(
+            pilot_file
+        ),
+        "output_csv": str(
+            output_file
+        ),
+        "output_xlsx": str(
+            xlsx_file
+        ),
+        "workspace": str(
+            workspace
+        ),
+        "frozen_candidate_count": int(
+            len(dataframe)
+        ),
+        "pilot_count": int(
+            len(pilot)
+        ),
+        "php_available": bool(
+            php_available
+        ),
+        "composer_available": bool(
+            composer_available
+        ),
+        "git_available": bool(
+            git_available
+        ),
+        "timeout_seconds": int(
+            args.timeout
+        ),
+        "status_counts": status_counts,
+        "failure_category_counts": (
+            failure_counts
         ),
     }
 
-    with open(
-        DEFAULT_MANIFEST,
-        "w",
-        encoding="utf-8",
-    ) as file:
-
-        json.dump(
+    manifest_file.write_text(
+        json.dumps(
             manifest,
-            file,
             indent=2,
-        )
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
     # ========================================================
-    # FINAL SUMMARY
+    # SUMMARY
     # ========================================================
 
     print()
@@ -1514,37 +2280,47 @@ def main():
     )
 
     print(
-        "REPRODUCIBILITY SUMMARY"
+        "STAGE 3 REPRODUCIBILITY SUMMARY"
     )
 
     print(
         "=" * 70
     )
 
-    print(
-        results_df[
-            "reproducibility_status"
-        ]
-        .value_counts(
-            dropna=False
+    if (
+        "reproducibility_status"
+        in results_df.columns
+    ):
+
+        print(
+            results_df[
+                "reproducibility_status"
+            ].value_counts(
+                dropna=False
+            )
         )
-        .to_string()
-    )
 
     print()
     print(
         "FAILURE CATEGORIES"
     )
 
-    print(
-        results_df[
-            "failure_category"
-        ]
-        .value_counts(
-            dropna=False
+    if (
+        "failure_category"
+        in results_df.columns
+    ):
+
+        print(
+            results_df[
+                "failure_category"
+            ]
+            .fillna("")
+            .replace(
+                "",
+                "NONE",
+            )
+            .value_counts()
         )
-        .to_string()
-    )
 
     print()
     print(
@@ -1553,20 +2329,19 @@ def main():
 
     print(
         "CSV:",
-        DEFAULT_OUTPUT,
+        output_file,
     )
 
     print(
         "Excel:",
-        DEFAULT_XLSX,
+        xlsx_file,
     )
 
     print(
         "Manifest:",
-        DEFAULT_MANIFEST,
+        manifest_file,
     )
 
 
 if __name__ == "__main__":
-
     main()
