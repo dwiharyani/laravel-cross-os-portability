@@ -313,6 +313,7 @@ jobs:
           python - <<'PY'
 
           import csv
+          import os
 
           source = (
               "data/interim/"
@@ -324,9 +325,9 @@ jobs:
               "reproducibility_pilot20.single.csv"
           )
 
-          repository = (
-              "${TARGET_REPOSITORY}"
-          )
+          repository = os.environ[
+              "TARGET_REPOSITORY"
+          ].strip()
 
           with open(
               source,
@@ -341,7 +342,7 @@ jobs:
               rows = [
                   row
                   for row in reader
-                  if row["repo_full_name"]
+                  if row["repo_full_name"].strip()
                   == repository
               ]
 
