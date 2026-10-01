@@ -11,7 +11,7 @@ on:
 jobs:
 
   # ============================================================
-  # JOB 1 — Build runtime matrix
+  # JOB 1 — Build repository/runtime matrix
   # ============================================================
 
   prepare-matrix:
@@ -33,10 +33,10 @@ jobs:
       - name: Build repository/runtime matrix
         id: matrix
         run: |
-
           python - <<'PY'
           import csv
           import json
+          import re
           from pathlib import Path
 
           pilot = Path(
@@ -44,6 +44,66 @@ jobs:
           )
 
           rows = []
+
+          def resolve_php_runtime(constraint):
+              if not constraint:
+                  return None
+
+              value = str(constraint).strip()
+
+              known = {
+                  "^8.5": "8.5",
+                  "^8.4": "8.4",
+                  "^8.3": "8.3",
+                  "^8.2": "8.2",
+                  "^8.1": "8.1",
+                  "^8.0.2": "8.0",
+                  "^8.0": "8.0",
+                  "^7.4": "7.4",
+                  "^7.3|^8.0": "8.0",
+                  "^7.2.5": "7.2",
+                  "^7.1.3": "7.1",
+                  ">=5.6.4": "5.6",
+              }
+
+              if value in known:
+                  return known[value]
+
+              versions = re.findall(
+                  r"(?<!\d)(\d+)\.(\d+)(?:\.\d+)?",
+                  value
+              )
+
+              candidates = []
+
+              for major, minor in versions:
+                  version = f"{major}.{minor}"
+
+                  if version in {
+                      "5.6",
+                      "7.1",
+                      "7.2",
+                      "7.3",
+                      "7.4",
+                      "8.0",
+                      "8.1",
+                      "8.2",
+                      "8.3",
+                      "8.4",
+                      "8.5",
+                  }:
+                      candidates.append(version)
+
+              if not candidates:
+                  return None
+
+              return max(
+                  candidates,
+                  key=lambda x: tuple(
+                      int(v)
+                      for v in x.split(".")
+                  )
+              )
 
           with pilot.open(
               encoding="utf-8",
@@ -54,65 +114,70 @@ jobs:
 
               for row in reader:
 
-                  repo = row["repo_full_name"].strip()
+                  repo = row[
+                      "repo_full_name"
+                  ].strip()
 
-                  php = (
-                      row.get("requested_php")
-                      or row.get("selected_php_runtime")
+                  constraint = (
+                      row.get(
+                          "php_version_constraint"
+                      )
                       or ""
                   ).strip()
 
+                  php = resolve_php_runtime(
+                      constraint
+                  )
+
                   if not php:
                       raise RuntimeError(
-                          f"Missing PHP runtime for {repo}"
+                          f"Cannot resolve PHP runtime "
+                          f"for {repo}. "
+                          f"Constraint: {constraint!r}"
                       )
 
-                  # ------------------------------------------------
-                  # Normalize runtime versions.
-                  #
-                  # These are the runtime versions already selected
-                  # during Stage 2.
-                  # ------------------------------------------------
+                  rows.append({
+                      "repo": repo,
+                      "php": php,
+                  })
 
-                  runtime_map = {
-                      "5.6": "5.6",
-                      "7.4": "7.4",
-                      "8.0": "8.0",
-                      "8.1": "8.1",
-                      "8.2": "8.2",
-                      "8.3": "8.3",
-                      "8.4": "8.4",
-                      "8.5": "8.5",
-                  }
+          repositories = [
+              row["repo"]
+              for row in rows
+          ]
 
-                  if php not in runtime_map:
-                      raise RuntimeError(
-                          f"Unsupported PHP runtime "
-                          f"{php} for {repo}"
-                      )
-
-                  rows.append(
-                      {
-                          "repo": repo,
-                          "php": runtime_map[php],
-                      }
-                  )
+          if len(repositories) != len(
+              set(repositories)
+          ):
+              raise RuntimeError(
+                  "Duplicate repository detected."
+              )
 
           matrix = {
               "include": rows
           }
 
-          print(
-              json.dumps(
-                  matrix,
-                  indent=2
+          print("=" * 80)
+          print("STAGE 3 RUNTIME MATRIX")
+          print("=" * 80)
+
+          for row in rows:
+              print(
+                  f'{row["repo"]} -> PHP {row["php"]}'
               )
+
+          print("=" * 80)
+          print("Repositories:", len(rows))
+
+          matrix_json = json.dumps(
+              matrix,
+              separators=(",", ":")
           )
 
           Path(
               "/tmp/stage3_matrix.json"
           ).write_text(
-              json.dumps(matrix),
+              matrix_json,
               encoding="utf-8"
           )
 
@@ -122,18 +187,16 @@ jobs:
 
           echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
 
+
   # ============================================================
-  # JOB 2 — Run one repository with its selected PHP runtime
+  # JOB 2 — Run one repository
   # ============================================================
 
   stage3:
-
     needs: prepare-matrix
 
     strategy:
-
       fail-fast: false
-
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
 
     runs-on: ubuntu-22.04
@@ -142,25 +205,13 @@ jobs:
 
     steps:
 
-      # ----------------------------------------------------------
-      # Checkout methodology repository
-      # ----------------------------------------------------------
-
       - name: Checkout methodology repository
         uses: actions/checkout@v4
-
-      # ----------------------------------------------------------
-      # Python
-      # ----------------------------------------------------------
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      # ----------------------------------------------------------
-      # PHP runtime selected for THIS repository
-      # ----------------------------------------------------------
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -170,13 +221,8 @@ jobs:
           coverage: none
           tools: composer
 
-      # ----------------------------------------------------------
-      # Verify runtime
-      # ----------------------------------------------------------
-
       - name: Verify runtime
         run: |
-
           echo "============================================"
           echo "STAGE 3 RUNTIME"
           echo "============================================"
@@ -200,43 +246,24 @@ jobs:
           echo
           python --version
 
-      # ----------------------------------------------------------
-      # Python dependencies
-      # ----------------------------------------------------------
-
       - name: Install Python dependencies
         run: |
-
           python -m pip install --upgrade pip
 
           pip install \
             pandas \
             openpyxl
 
-      # ----------------------------------------------------------
-      # Prepare directories
-      # ----------------------------------------------------------
-
       - name: Prepare directories
         run: |
-
           mkdir -p data/interim
-
-          mkdir -p \
-            data/interim/reproducibility_workspace
-
-      # ----------------------------------------------------------
-      # Create one-repository pilot file
-      # ----------------------------------------------------------
+          mkdir -p data/interim/reproducibility_workspace
 
       - name: Create single repository pilot
         env:
           TARGET_REPOSITORY: ${{ matrix.repo }}
-
         run: |
-
           python - <<'PY'
-
           import csv
           import os
           from pathlib import Path
@@ -249,7 +276,9 @@ jobs:
               "data/interim/reproducibility_pilot_single.csv"
           )
 
-          repo = os.environ["TARGET_REPOSITORY"]
+          repository = os.environ[
+              "TARGET_REPOSITORY"
+          ]
 
           with source.open(
               encoding="utf-8",
@@ -262,14 +291,13 @@ jobs:
                   row
                   for row in reader
                   if row["repo_full_name"].strip()
-                  == repo
+                  == repository
               ]
 
           if len(rows) != 1:
-
               raise RuntimeError(
                   f"Expected exactly one row for "
-                  f"{repo}, found {len(rows)}"
+                  f"{repository}, found {len(rows)}"
               )
 
           with target.open(
@@ -287,83 +315,52 @@ jobs:
               writer.writerows(rows)
 
           print(
-              f"Created single repository pilot: "
-              f"{repo}"
+              f"Created single-repository pilot "
+              f"for {repository}"
           )
 
           PY
 
-          cat \
-            data/interim/reproducibility_pilot_single.csv
-
-      # ----------------------------------------------------------
-      # Run Stage 3
-      # ----------------------------------------------------------
-
       - name: Run Stage 3
         env:
-
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          STAGE3_TIMEOUT:
-            ${{ inputs.timeout_minutes }}
-
+          PYTHONUNBUFFERED: "1"
+          STAGE3_TEST_TIMEOUT: ${{ github.event.inputs.timeout_minutes }}
         run: |
-
           python scripts/09_reproducibility_check.py \
             --input data/interim/cross_os_candidates.csv \
             --pilot data/interim/reproducibility_pilot_single.csv \
             --limit 1 \
-            --timeout "$((STAGE3_TIMEOUT * 60))"
-
-      # ----------------------------------------------------------
-      # Show result
-      # ----------------------------------------------------------
+            --timeout $((STAGE3_TEST_TIMEOUT * 60))
 
       - name: Show results
         if: always()
         run: |
+          echo "============================================"
+          echo "STAGE 3 RESULT"
+          echo "============================================"
+
+          echo "Repository:"
+          echo "${{ matrix.repo }}"
+
+          echo "PHP:"
+          echo "${{ matrix.php }}"
 
           echo
-          echo "============================================"
-          echo "RESULT — ${{ matrix.repo }}"
-          echo "PHP      — ${{ matrix.php }}"
-          echo "============================================"
 
-          if [ -f \
-            data/interim/reproducibility_results.csv
-          ]; then
-
-            cat \
-              data/interim/reproducibility_results.csv
-
+          if [ -f data/interim/reproducibility_results.csv ]; then
+            cat data/interim/reproducibility_results.csv
+          else
+            echo "No result CSV produced."
           fi
-
-      # ----------------------------------------------------------
-      # Upload result
-      # ----------------------------------------------------------
 
       - name: Upload Stage 3 result
         if: always()
         uses: actions/upload-artifact@v4
-
         with:
-
-          name: >
-            stage3-${{
-              matrix.repo
-              }}-php-${{
-              matrix.php
-              }}
-
+          name: stage3-${{ strategy.job-index }}-${{ matrix.repo }}-php-${{ matrix.php }}
           path: |
-
             data/interim/reproducibility_results.csv
-
             data/interim/reproducibility_results.xlsx
-
             data/interim/reproducibility_results.manifest.json
-
             data/interim/reproducibility_workspace/**
-
           if-no-files-found: warn
