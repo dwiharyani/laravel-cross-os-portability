@@ -40,7 +40,7 @@ jobs:
           from collections import Counter
 
           INPUT = Path(
-              "data/interim/reproducibility_full555.csv"
+              "data/interim/cross_os_candidates.csv"
           )
 
           def resolve_php_runtime(constraint):
@@ -236,7 +236,7 @@ jobs:
           mkdir -p data/interim
 
           python scripts/09_reproducibility_check.py \
-            --input data/interim/reproducibility_full555.csv \
+            --input data/interim/cross_os_candidates.csv \
             --repo "${{ matrix.repo }}" \
             --limit 1 \
             --timeout $(( ${{ inputs.timeout_minutes }} * 60 )) \
