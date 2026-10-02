@@ -36,95 +36,106 @@ jobs:
         run: |
 
           python - <<'PY'
+
           import csv
           import json
           import re
           from pathlib import Path
 
+
           pilot = Path(
               "data/interim/reproducibility_pilot20.csv"
           )
 
-          rows = []
 
           def resolve_php_runtime(constraint):
 
               constraint = (
-                  str(constraint or "")
-                  .strip()
-              )
+                  constraint
+                  or ""
+              ).strip()
+
+              # ------------------------------------------------
+              # Prefer the newest compatible runtime that is
+              # explicitly supported by the constraint.
+              # ------------------------------------------------
 
               if not constraint:
                   return None
 
-              # --------------------------------------------------
-              # Extract PHP versions from composer constraint.
-              # --------------------------------------------------
-
-              versions = re.findall(
-                  r"(?<!\d)(\d+\.\d+)(?!\d)",
+              # PHP 5.6
+              if re.search(
+                  r"(?<!\d)5\.6",
                   constraint
-              )
+              ):
+                  return "5.6"
 
-              if not versions:
-                  return None
+              # PHP 7.x
+              if re.search(
+                  r"(?<!\d)7\.1",
+                  constraint
+              ):
+                  return "7.4"
 
-              parsed = []
+              if re.search(
+                  r"(?<!\d)7\.2",
+                  constraint
+              ):
+                  return "7.4"
 
-              for version in versions:
+              if re.search(
+                  r"(?<!\d)7\.3",
+                  constraint
+              ):
+                  return "7.4"
 
-                  try:
-                      major, minor = map(
-                          int,
-                          version.split(".")
-                      )
+              if re.search(
+                  r"(?<!\d)7\.4",
+                  constraint
+              ):
+                  return "7.4"
 
-                      parsed.append(
-                          (major, minor)
-                      )
+              # PHP 8.x
+              if re.search(
+                  r"(?<!\d)8\.0",
+                  constraint
+              ):
+                  return "8.0"
 
-                  except ValueError:
-                      continue
+              if re.search(
+                  r"(?<!\d)8\.1",
+                  constraint
+              ):
+                  return "8.1"
 
-              if not parsed:
-                  return None
+              if re.search(
+                  r"(?<!\d)8\.2",
+                  constraint
+              ):
+                  return "8.2"
 
-              # --------------------------------------------------
-              # Select the highest compatible runtime that is
-              # supported by setup-php.
-              #
-              # PHP 5.6 / 7.x are retained when explicitly required.
-              # --------------------------------------------------
+              if re.search(
+                  r"(?<!\d)8\.3",
+                  constraint
+              ):
+                  return "8.3"
 
-              supported = [
-                  (5, 6),
-                  (7, 4),
-                  (8, 0),
-                  (8, 1),
-                  (8, 2),
-                  (8, 3),
-                  (8, 4),
-                  (8, 5),
-              ]
+              if re.search(
+                  r"(?<!\d)8\.4",
+                  constraint
+              ):
+                  return "8.4"
 
-              candidates = []
+              if re.search(
+                  r"(?<!\d)8\.5",
+                  constraint
+              ):
+                  return "8.5"
 
-              for major, minor in parsed:
+              return None
 
-                  for runtime in supported:
 
-                      if runtime >= (major, minor):
-                          candidates.append(runtime)
-
-              if not candidates:
-                  return None
-
-              selected = min(
-                  candidates,
-                  key=lambda x: x
-              )
-
-              return f"{selected[0]}.{selected[1]}"
+          rows = []
 
           with pilot.open(
               encoding="utf-8",
@@ -133,7 +144,10 @@ jobs:
 
               reader = csv.DictReader(f)
 
-              for row in reader:
+              for index, row in enumerate(
+                  reader,
+                  start=1
+              ):
 
                   repo = (
                       row["repo_full_name"]
@@ -155,20 +169,22 @@ jobs:
 
                       raise RuntimeError(
                           "Unable to resolve PHP runtime "
-                          f"for {repo}: "
-                          f"{constraint}"
+                          f"for {repo}: {constraint}"
                       )
 
                   rows.append(
                       {
                           "repo": repo,
                           "php": php,
+                          "repo_index": index,
                       }
                   )
+
 
           matrix = {
               "include": rows
           }
+
 
           print(
               json.dumps(
@@ -176,6 +192,7 @@ jobs:
                   indent=2
               )
           )
+
 
           Path(
               "/tmp/stage3_matrix.json"
@@ -192,7 +209,7 @@ jobs:
 
 
   # ============================================================
-  # JOB 2 — Run one repository with selected PHP runtime
+  # JOB 2 — Run one repository
   # ============================================================
 
   stage3:
@@ -230,7 +247,7 @@ jobs:
 
 
       # ----------------------------------------------------------
-      # PHP runtime selected for this repository
+      # PHP runtime
       # ----------------------------------------------------------
 
       - name: Setup PHP
@@ -301,7 +318,7 @@ jobs:
 
 
       # ----------------------------------------------------------
-      # Create single repository pilot file
+      # Create one-repository pilot
       # ----------------------------------------------------------
 
       - name: Create single repository pilot
@@ -313,67 +330,71 @@ jobs:
           python - <<'PY'
 
           import csv
+          from pathlib import Path
           import os
 
-          source = (
-              "data/interim/"
-              "reproducibility_pilot20.csv"
+
+          source = Path(
+              "data/interim/reproducibility_pilot20.csv"
           )
 
-          target = (
-              "data/interim/"
-              "reproducibility_pilot20.single.csv"
+          target = Path(
+              "data/interim/reproducibility_pilot20.single.csv"
           )
 
-          repository = os.environ[
+          target_repo = os.environ[
               "TARGET_REPOSITORY"
-          ].strip()
+          ]
 
-          with open(
-              source,
+
+          with source.open(
               encoding="utf-8",
               newline=""
-          ) as source_file:
+          ) as f:
 
-              reader = csv.DictReader(
-                  source_file
-              )
+              reader = csv.DictReader(f)
 
-              rows = [
-                  row
-                  for row in reader
-                  if row["repo_full_name"].strip()
-                  == repository
-              ]
+              rows = list(reader)
 
-          if not rows:
+
+          selected = [
+              row
+              for row in rows
+              if row["repo_full_name"].strip()
+              == target_repo
+          ]
+
+
+          if not selected:
 
               raise RuntimeError(
-                  f"Repository not found: "
-                  f"{repository}"
+                  "Repository not found: "
+                  + target_repo
               )
 
-          with open(
-              target,
+
+          with target.open(
               "w",
               encoding="utf-8",
               newline=""
-          ) as target_file:
+          ) as f:
 
               writer = csv.DictWriter(
-                  target_file,
-                  fieldnames=rows[0].keys()
+                  f,
+                  fieldnames=reader.fieldnames
               )
 
               writer.writeheader()
 
-              writer.writerows(rows)
+              writer.writerows(
+                  selected
+              )
+
 
           print(
-              "Created single repository pilot:"
+              "Repository selected:",
+              target_repo
           )
-
-          print(repository)
 
           PY
 
@@ -384,82 +405,473 @@ jobs:
 
       - name: Run Stage 3
         env:
-          PYTHONUNBUFFERED: "1"
           STAGE3_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
 
         run: |
 
-          python scripts/09_reproducibility_check.py \
-            --input \
-            data/interim/cross_os_candidates.csv \
+          TIMEOUT_SECONDS=$(
+            python - <<'PY'
+          import os
+
+          minutes = int(
+              os.environ.get(
+                  "STAGE3_TIMEOUT_MINUTES",
+                  "30"
+              )
+          )
+
+          print(
+              minutes * 60
+          )
+          PY
+          )
+
+          echo "============================================"
+          echo "RUNNING STAGE 3"
+          echo "============================================"
+
+          echo "Repository:"
+          echo "${{ matrix.repo }}"
+
+          echo "PHP:"
+          echo "${{ matrix.php }}"
+
+          echo "Timeout:"
+          echo "${TIMEOUT_SECONDS} seconds"
+
+          python \
+            scripts/09_reproducibility_check.py \
             --pilot \
             data/interim/reproducibility_pilot20.single.csv \
             --limit 1 \
-            --timeout \
-            $((STAGE3_TIMEOUT_MINUTES * 60))
+            --timeout "${TIMEOUT_SECONDS}"
 
 
       # ----------------------------------------------------------
-      # Show results
+      # Show result
       # ----------------------------------------------------------
 
-      - name: Show results
+      - name: Show result
         if: always()
         run: |
 
           echo "============================================"
-          echo "STAGE 3 RESULTS"
+          echo "STAGE 3 RESULT"
           echo "============================================"
 
-          if [ -f data/interim/reproducibility_results.csv ]; then
+          if [ -f \
+            data/interim/reproducibility_results.csv
+          ]; then
 
             cat \
               data/interim/reproducibility_results.csv
 
           else
 
-            echo "No CSV result found."
+            echo "Result CSV not found."
 
           fi
 
 
       # ----------------------------------------------------------
-      # Prepare safe artifact name
+      # Upload ONLY small repository result
+      #
+      # IMPORTANT:
+      # Do NOT upload reproducibility_workspace.
       # ----------------------------------------------------------
 
-      - name: Prepare artifact name
-        id: artifact_name
-        if: always()
-        env:
-          REPOSITORY: ${{ matrix.repo }}
-          PHP_VERSION: ${{ matrix.php }}
-        run: |
-
-          SAFE_REPOSITORY=$(
-            echo "$REPOSITORY" |
-            sed 's#[^A-Za-z0-9._-]#-#g'
-          )
-
-          echo \
-            "name=stage3-${SAFE_REPOSITORY}-php-${PHP_VERSION}" \
-            >> "$GITHUB_OUTPUT"
-
-
-      # ----------------------------------------------------------
-      # Upload Stage 3 result
-      # ----------------------------------------------------------
-
-      - name: Upload Stage 3 result
+      - name: Upload repository result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-
-          name: ${{ steps.artifact_name.outputs.name }}
-
+          name: stage3-result-${{ matrix.repo_index }}
           path: |
             data/interim/reproducibility_results.csv
-            data/interim/reproducibility_results.xlsx
             data/interim/reproducibility_results.manifest.json
-            data/interim/reproducibility_workspace/**
-
           if-no-files-found: warn
+
+
+  # ============================================================
+  # JOB 3 — Aggregate all repository results
+  # ============================================================
+
+  aggregate-results:
+
+    needs: stage3
+
+    if: ${{ always() }}
+
+    runs-on: ubuntu-24.04
+
+    steps:
+
+      # ----------------------------------------------------------
+      # Checkout
+      # ----------------------------------------------------------
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+
+      # ----------------------------------------------------------
+      # Download all small repository results
+      # ----------------------------------------------------------
+
+      - name: Download repository results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stage3-result-*
+          path: stage3_results
+          merge-multiple: false
+
+
+      # ----------------------------------------------------------
+      # Python
+      # ----------------------------------------------------------
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # ----------------------------------------------------------
+      # Python dependencies
+      # ----------------------------------------------------------
+
+      - name: Install Python dependencies
+        run: |
+
+          python -m pip install --upgrade pip
+
+          pip install \
+            pandas \
+            openpyxl
+
+
+      # ----------------------------------------------------------
+      # Aggregate results
+      # ----------------------------------------------------------
+
+      - name: Aggregate Stage 3 results
+        run: |
+
+          python - <<'PY'
+
+          from pathlib import Path
+          import pandas as pd
+          import json
+          import re
+
+
+          root = Path(
+              "stage3_results"
+          )
+
+
+          csv_files = sorted(
+              root.glob(
+                  "**/reproducibility_results.csv"
+              )
+          )
+
+
+          print("=" * 100)
+          print("STAGE 3 AGGREGATION")
+          print("=" * 100)
+
+          print(
+              "Result CSV files found:",
+              len(csv_files)
+          )
+
+
+          frames = []
+
+
+          for path in csv_files:
+
+              print(
+                  "Reading:",
+                  path
+              )
+
+              try:
+
+                  df = pd.read_csv(
+                      path
+                  )
+
+                  frames.append(
+                      df
+                  )
+
+              except Exception as exc:
+
+                  print(
+                      "FAILED:",
+                      path,
+                      repr(exc)
+                  )
+
+
+          if not frames:
+
+              raise RuntimeError(
+                  "No reproducibility result CSV files found."
+              )
+
+
+          final = pd.concat(
+              frames,
+              ignore_index=True
+          )
+
+
+          # ------------------------------------------------------
+          # Remove accidental duplicates
+          # ------------------------------------------------------
+
+          if "repo_full_name" in final.columns:
+
+              final = final.drop_duplicates(
+                  subset=[
+                      "repo_full_name"
+                  ],
+                  keep="last"
+              )
+
+
+          # ------------------------------------------------------
+          # Sort
+          # ------------------------------------------------------
+
+          if "repo_full_name" in final.columns:
+
+              final = final.sort_values(
+                  "repo_full_name"
+              ).reset_index(
+                  drop=True
+              )
+
+
+          # ------------------------------------------------------
+          # Output directory
+          # ------------------------------------------------------
+
+          output_dir = Path(
+              "data/interim"
+          )
+
+          output_dir.mkdir(
+              parents=True,
+              exist_ok=True
+          )
+
+
+          # ------------------------------------------------------
+          # CSV
+          # ------------------------------------------------------
+
+          output_csv = (
+              output_dir
+              / "stage3_reproducibility_pilot20_final.csv"
+          )
+
+
+          final.to_csv(
+              output_csv,
+              index=False
+          )
+
+
+          # ------------------------------------------------------
+          # Excel
+          # ------------------------------------------------------
+
+          output_xlsx = (
+              output_dir
+              / "stage3_reproducibility_pilot20_final.xlsx"
+          )
+
+
+          final.to_excel(
+              output_xlsx,
+              index=False
+          )
+
+
+          # ------------------------------------------------------
+          # Summary
+          # ------------------------------------------------------
+
+          print()
+          print(
+              "Final repository rows:",
+              len(final)
+          )
+
+          print(
+              "Final columns:",
+              len(final.columns)
+          )
+
+          if "reproducibility_status" in final.columns:
+
+              print()
+              print(
+                  "REPRODUCIBILITY STATUS"
+              )
+
+              print(
+                  final[
+                      "reproducibility_status"
+                  ].value_counts(
+                      dropna=False
+                  ).to_string()
+              )
+
+
+          if "failure_category" in final.columns:
+
+              print()
+              print(
+                  "FAILURE CATEGORY"
+              )
+
+              print(
+                  final[
+                      "failure_category"
+                  ].value_counts(
+                      dropna=False
+                  ).to_string()
+              )
+
+
+          print()
+          print(
+              "CSV:",
+              output_csv
+          )
+
+          print(
+              "Excel:",
+              output_xlsx
+          )
+
+
+          # ------------------------------------------------------
+          # Save aggregation manifest
+          # ------------------------------------------------------
+
+          manifest = {
+
+              "stage": "Stage 3",
+
+              "result_files_found":
+                  len(csv_files),
+
+              "final_repository_count":
+                  len(final),
+
+              "output_csv":
+                  str(output_csv),
+
+              "output_xlsx":
+                  str(output_xlsx),
+
+              "source_files":
+                  [
+                      str(p)
+                      for p in csv_files
+                  ],
+          }
+
+
+          output_manifest = (
+              output_dir
+              / "stage3_reproducibility_pilot20_final.manifest.json"
+          )
+
+
+          output_manifest.write_text(
+              json.dumps(
+                  manifest,
+                  indent=2
+              ),
+              encoding="utf-8"
+          )
+
+
+          PY
+
+
+      # ----------------------------------------------------------
+      # Verify final dataset
+      # ----------------------------------------------------------
+
+      - name: Verify final dataset
+        run: |
+
+          echo "============================================"
+          echo "FINAL STAGE 3 DATASET"
+          echo "============================================"
+
+          echo
+          echo "CSV:"
+          ls -lh \
+            data/interim/stage3_reproducibility_pilot20_final.csv
+
+          echo
+          echo "Excel:"
+          ls -lh \
+            data/interim/stage3_reproducibility_pilot20_final.xlsx
+
+          echo
+          echo "Manifest:"
+          ls -lh \
+            data/interim/stage3_reproducibility_pilot20_final.manifest.json
+
+          echo
+          echo "CSV rows:"
+          python - <<'PY'
+
+          import pandas as pd
+
+          path = (
+              "data/interim/"
+              "stage3_reproducibility_pilot20_final.csv"
+          )
+
+          df = pd.read_csv(
+              path
+          )
+
+          print(
+              len(df)
+          )
+
+          print()
+
+          print(
+              df.to_string(
+                  index=False
+              )
+          )
+
+          PY
+
+
+      # ----------------------------------------------------------
+      # Upload ONE final artifact
+      # ----------------------------------------------------------
+
+      - name: Upload final Stage 3 dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-final-results
+          path: |
+            data/interim/stage3_reproducibility_pilot20_final.csv
+            data/interim/stage3_reproducibility_pilot20_final.xlsx
+            data/interim/stage3_reproducibility_pilot20_final.manifest.json
+          if-no-files-found: error
