@@ -1,0 +1,576 @@
+name: Stage 3 Full Reproducibility 555
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout_minutes:
+        description: "Timeout per repository in minutes"
+        required: true
+        default: "30"
+
+jobs:
+
+  prepare-matrix:
+
+    runs-on: ubuntu-24.04
+
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build repository matrix
+        id: matrix
+        run: |
+
+          python - <<'PY'
+
+          import csv
+          import json
+          import re
+          from pathlib import Path
+          from collections import Counter
+
+          INPUT = Path(
+              "data/interim/reproducibility_full555.csv"
+          )
+
+          def resolve_php_runtime(constraint):
+
+              constraint = (
+                  constraint or ""
+              ).strip()
+
+              if not constraint:
+                  return None
+
+              if re.search(r"(?<!\d)5\.6", constraint):
+                  return "5.6"
+
+              if re.search(r"(?<!\d)7\.1", constraint):
+                  return "7.4"
+
+              if re.search(r"(?<!\d)7\.2", constraint):
+                  return "7.4"
+
+              if re.search(r"(?<!\d)7\.3", constraint):
+                  return "7.4"
+
+              if re.search(r"(?<!\d)7\.4", constraint):
+                  return "7.4"
+
+              if re.search(r"(?<!\d)8\.0", constraint):
+                  return "8.0"
+
+              if re.search(r"(?<!\d)8\.1", constraint):
+                  return "8.1"
+
+              if re.search(r"(?<!\d)8\.2", constraint):
+                  return "8.2"
+
+              if re.search(r"(?<!\d)8\.3", constraint):
+                  return "8.3"
+
+              if re.search(r"(?<!\d)8\.4", constraint):
+                  return "8.4"
+
+              if re.search(r"(?<!\d)8\.5", constraint):
+                  return "8.5"
+
+              return None
+
+          rows = []
+
+          with INPUT.open(
+              encoding="utf-8",
+              newline=""
+          ) as f:
+
+              reader = csv.DictReader(f)
+
+              for index, row in enumerate(reader, start=1):
+
+                  repo = row[
+                      "repo_full_name"
+                  ].strip()
+
+                  php_constraint = (
+                      row.get(
+                          "php_version_constraint"
+                      )
+                      or ""
+                  ).strip()
+
+                  php = resolve_php_runtime(
+                      php_constraint
+                  )
+
+                  if not php:
+
+                      raise RuntimeError(
+                          f"Cannot resolve PHP runtime "
+                          f"for {repo}: "
+                          f"{php_constraint}"
+                      )
+
+                  rows.append(
+                      {
+                          "index": index,
+                          "repo": repo,
+                          "php": php,
+                      }
+                  )
+
+          if len(rows) != 555:
+              raise RuntimeError(
+                  f"Expected 555 repositories, "
+                  f"found {len(rows)}"
+              )
+
+          if len(
+              {r["repo"] for r in rows}
+          ) != 555:
+              raise RuntimeError(
+                  "Duplicate repositories detected."
+              )
+
+          matrix = {
+              "include": rows
+          }
+
+          print(
+              "Repositories:",
+              len(rows)
+          )
+
+          print(
+              "Unique repositories:",
+              len(
+                  {r["repo"] for r in rows}
+              )
+          )
+
+          print()
+          print(
+              "PHP runtime distribution:"
+          )
+
+          counts = Counter(
+              r["php"] for r in rows
+          )
+
+          for php, count in sorted(
+              counts.items()
+          ):
+              print(
+                  f"PHP {php}: {count}"
+              )
+
+          Path(
+              "/tmp/full555_matrix.json"
+          ).write_text(
+              json.dumps(matrix),
+              encoding="utf-8"
+          )
+
+          PY
+
+          MATRIX_JSON=$(
+              cat /tmp/full555_matrix.json
+          )
+
+          echo "matrix=$MATRIX_JSON" \
+              >> "$GITHUB_OUTPUT"
+
+
+  run-repository:
+
+    needs: prepare-matrix
+
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+
+      matrix:
+        include: ${{ fromJson(needs.prepare-matrix.outputs.matrix).include }}
+
+    runs-on: ubuntu-22.04
+
+    timeout-minutes: 35
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup repository-specific PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install \
+            pandas \
+            openpyxl
+
+      - name: Run exact repository
+        run: |
+
+          mkdir -p data/interim
+
+          python scripts/09_reproducibility_check.py \
+            --input data/interim/reproducibility_full555.csv \
+            --repo "${{ matrix.repo }}" \
+            --limit 1 \
+            --timeout $(( ${{ inputs.timeout_minutes }} * 60 )) \
+            --output "data/interim/result_${{ matrix.index }}.csv" \
+            --xlsx "data/interim/result_${{ matrix.index }}.xlsx" \
+            --manifest "data/interim/result_${{ matrix.index }}.manifest.json" \
+            --workspace "data/interim/workspace_${{ matrix.index }}"
+
+      - name: Validate single repository result
+        if: always()
+        run: |
+
+          python - <<'PY'
+
+          import pandas as pd
+          from pathlib import Path
+
+          expected = "${{ matrix.repo }}"
+          path = Path(
+              "data/interim/result_${{ matrix.index }}.csv"
+          )
+
+          if not path.exists():
+              raise SystemExit(
+                  "Result CSV was not produced."
+              )
+
+          df = pd.read_csv(path)
+
+          print(
+              "Expected repository:",
+              expected
+          )
+
+          print(
+              "Result rows:",
+              len(df)
+          )
+
+          print(
+              "Repositories:",
+              df["repo_full_name"].tolist()
+          )
+
+          if len(df) != 1:
+              raise SystemExit(
+                  f"Expected exactly 1 result, "
+                  f"found {len(df)}"
+              )
+
+          actual = str(
+              df.iloc[0]["repo_full_name"]
+          ).strip()
+
+          if actual != expected:
+              raise SystemExit(
+                  f"Repository mismatch: "
+                  f"expected {expected}, "
+                  f"got {actual}"
+              )
+
+          PY
+
+      - name: Upload repository result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-result-${{ matrix.index }}
+          path: |
+            data/interim/result_${{ matrix.index }}.csv
+            data/interim/result_${{ matrix.index }}.manifest.json
+          if-no-files-found: warn
+          retention-days: 7
+
+
+  consolidate:
+
+    if: always()
+    needs:
+      - prepare-matrix
+      - run-repository
+
+    runs-on: ubuntu-24.04
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Download repository results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stage3-result-*
+          path: data/interim/full555_results
+          merge-multiple: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install \
+            pandas \
+            openpyxl
+
+      - name: Consolidate all results
+        run: |
+
+          python - <<'PY'
+
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT = Path(
+              "data/interim/full555_results"
+          )
+
+          files = sorted(
+              ROOT.glob(
+                  "stage3-result-*/*.csv"
+              )
+          )
+
+          print(
+              "Repository result files:",
+              len(files)
+          )
+
+          frames = []
+
+          for f in files:
+
+              try:
+
+                  df = pd.read_csv(f)
+
+                  if len(df) > 0:
+                      frames.append(df)
+
+              except Exception as e:
+
+                  print(
+                      "Could not read:",
+                      f,
+                      e
+                  )
+
+          if not frames:
+
+              raise RuntimeError(
+                  "No repository result files found."
+              )
+
+          result = pd.concat(
+              frames,
+              ignore_index=True
+          )
+
+          result = (
+              result
+              .drop_duplicates(
+                  subset=[
+                      "repo_full_name"
+                  ],
+                  keep="last"
+              )
+              .reset_index(drop=True)
+          )
+
+          print()
+          print(
+              "Consolidated rows:",
+              len(result)
+          )
+
+          print(
+              "Unique repositories:",
+              result[
+                  "repo_full_name"
+              ].nunique()
+          )
+
+          if len(result) != 555:
+              raise RuntimeError(
+                  f"Expected 555 final results, "
+                  f"found {len(result)}"
+              )
+
+          if (
+              result[
+                  "repo_full_name"
+              ].nunique()
+              != 555
+          ):
+              raise RuntimeError(
+                  "Expected 555 unique repositories."
+              )
+
+          output = Path(
+              "data/interim"
+          )
+
+          csv_out = (
+              output /
+              "stage3_full_reproducibility_results.csv"
+          )
+
+          xlsx_out = (
+              output /
+              "stage3_full_reproducibility_results.xlsx"
+          )
+
+          result.to_csv(
+              csv_out,
+              index=False
+          )
+
+          status = (
+              result[
+                  "reproducibility_status"
+              ]
+              .fillna("UNKNOWN")
+              .astype(str)
+              .str.upper()
+          )
+
+          summary = (
+              status
+              .value_counts()
+              .rename_axis("status")
+              .reset_index(
+                  name="count"
+              )
+          )
+
+          summary[
+              "percentage"
+          ] = (
+              summary["count"]
+              / len(result)
+              * 100
+          ).round(1)
+
+          failures = result[
+              status == "FAILED"
+          ]
+
+          failure_types = (
+              failures[
+                  "failure_category"
+              ]
+              .fillna("UNKNOWN")
+              .value_counts()
+              .rename_axis(
+                  "failure_category"
+              )
+              .reset_index(
+                  name="count"
+              )
+          )
+
+          if len(failures) > 0:
+
+              failure_types[
+                  "percentage_of_failures"
+              ] = (
+                  failure_types["count"]
+                  / len(failures)
+                  * 100
+              ).round(1)
+
+          with pd.ExcelWriter(
+              xlsx_out,
+              engine="openpyxl"
+          ) as writer:
+
+              result.to_excel(
+                  writer,
+                  sheet_name="Repository_Results",
+                  index=False
+              )
+
+              summary.to_excel(
+                  writer,
+                  sheet_name="Summary",
+                  index=False
+              )
+
+              failure_types.to_excel(
+                  writer,
+                  sheet_name="Failure_Types",
+                  index=False
+              )
+
+          print()
+          print(
+              "=" * 80
+          )
+
+          print(
+              "FINAL STAGE 3 RESULTS"
+          )
+
+          print(
+              "=" * 80
+          )
+
+          print(
+              summary.to_string(
+                  index=False
+              )
+          )
+
+          print()
+          print(
+              "CSV:",
+              csv_out
+          )
+
+          print(
+              "Excel:",
+              xlsx_out
+          )
+
+          PY
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-full-555-final
+          path: |
+            data/interim/stage3_full_reproducibility_results.csv
+            data/interim/stage3_full_reproducibility_results.xlsx
+          if-no-files-found: error
+          retention-days: 30

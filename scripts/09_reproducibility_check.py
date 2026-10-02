@@ -1271,6 +1271,13 @@ def main():
     )
 
     parser.add_argument(
+        "--repo",
+        type=str,
+        default=None,
+        help="Run reproducibility check for one exact repository.",
+    )
+
+    parser.add_argument(
         "--workspace",
         default=str(
             DEFAULT_WORKSPACE
@@ -1365,7 +1372,38 @@ def main():
     # LOAD / CREATE PILOT
     # ========================================================
 
-    if pilot_file.exists():
+    if args.repo:
+
+        repo_name = args.repo.strip()
+
+        matches = dataframe[
+            dataframe["repo_full_name"].astype(str).str.strip()
+            == repo_name
+        ].copy()
+
+        if len(matches) == 0:
+
+            raise ValueError(
+                f"Repository not found in input dataset: "
+                f"{repo_name}"
+            )
+
+        if len(matches) > 1:
+
+            raise ValueError(
+                f"Repository appears multiple times: "
+                f"{repo_name}"
+            )
+
+        pilot = matches.reset_index(
+            drop=True
+        )
+
+        print(
+            f"Exact repository mode: {repo_name}"
+        )
+
+    elif pilot_file.exists():
 
         pilot = pd.read_csv(
             pilot_file
@@ -1388,7 +1426,7 @@ def main():
             index=False,
         )
 
-    if args.limit > 0:
+    if not args.repo and args.limit > 0:
 
         pilot = pilot.head(
             args.limit
