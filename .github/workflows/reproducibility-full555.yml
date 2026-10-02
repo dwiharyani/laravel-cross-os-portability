@@ -35,6 +35,7 @@ jobs:
 
           python - <<'PY'
 
+          import os
           import csv
           import json
           import re
@@ -228,8 +229,9 @@ jobs:
               )
 
               with open(
-                  "${GITHUB_OUTPUT}",
-                  "a"
+                  os.environ["GITHUB_OUTPUT"],
+                  "a",
+                  encoding="utf-8"
               ) as output:
 
                   output.write(
