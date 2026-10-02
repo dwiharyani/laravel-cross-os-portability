@@ -55,6 +55,9 @@ jobs:
               if re.search(r"(?<!\d)5\.6", constraint):
                   return "5.6"
 
+              if re.search(r"(?<!\d)7\.0", constraint):
+                  return "7.4"
+
               if re.search(r"(?<!\d)7\.1", constraint):
                   return "7.4"
 
