@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_run_id:
-        description: "GitHub Actions run ID containing the completed 279 Stage 4 executions"
+        description: "Run ID containing the completed Stage 4 execution artifacts"
         required: true
         type: string
 
@@ -20,7 +20,7 @@ jobs:
 
     steps:
 
-      - name: Checkout methodology repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -33,19 +33,215 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pandas openpyxl
 
-      - name: Download existing Stage 4 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ inputs.source_run_id }}
-          repository: ${{ github.repository }}
-          pattern: stage4-*
-          path: stage4_artifacts
-          merge-multiple: true
+      # ==========================================================
+      # DOWNLOAD ALL ARTIFACTS USING GITHUB REST API
+      # ==========================================================
 
-      - name: Consolidate 279 existing executions
+      - name: Download all Stage 4 execution artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
+
+          set -euo pipefail
+
+          mkdir -p stage4_artifacts
+
+          echo "Source run ID: ${SOURCE_RUN_ID}"
+          echo "Repository: ${REPOSITORY}"
+
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import subprocess
+          import zipfile
+          import io
+          import urllib.request
+          import urllib.parse
+
+          token = os.environ["GH_TOKEN"]
+          run_id = os.environ["SOURCE_RUN_ID"]
+          repository = os.environ["REPOSITORY"]
+
+          owner, repo = repository.split("/", 1)
+
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "User-Agent": "stage4-consolidation"
+          }
+
+          base = (
+              f"https://api.github.com/repos/"
+              f"{owner}/{repo}/actions/runs/{run_id}/artifacts"
+          )
+
+          artifacts = []
+
+          # ------------------------------------------------------
+          # Explicit pagination
+          # ------------------------------------------------------
+
+          page = 1
+
+          while True:
+
+              url = (
+                  base
+                  + "?per_page=100"
+                  + f"&page={page}"
+              )
+
+              request = urllib.request.Request(
+                  url,
+                  headers=headers
+              )
+
+              with urllib.request.urlopen(request) as response:
+                  payload = json.load(response)
+
+              batch = payload.get("artifacts", [])
+
+              print(
+                  f"Artifact API page {page}: "
+                  f"{len(batch)} artifacts"
+              )
+
+              artifacts.extend(batch)
+
+              if len(batch) < 100:
+                  break
+
+              page += 1
+
+          print()
+          print(
+              "Total artifacts returned by GitHub API:",
+              len(artifacts)
+          )
+
+          # ------------------------------------------------------
+          # Only Stage 4 execution artifacts
+          # ------------------------------------------------------
+
+          selected = []
+
+          for artifact in artifacts:
+
+              name = artifact.get("name", "")
+
+              if (
+                  name.startswith("stage4-linux-")
+                  or name.startswith("stage4-windows-")
+                  or name.startswith("stage4-macos-")
+                  or name.startswith("stage4-batch1-")
+                  or name.startswith("stage4-batch2-")
+                  or name.startswith("stage4-batch3-")
+              ):
+                  selected.append(artifact)
+
+          print(
+              "Selected Stage 4 artifacts:",
+              len(selected)
+          )
+
+          # ------------------------------------------------------
+          # Remove duplicate artifact names
+          # ------------------------------------------------------
+
+          unique = {}
+
+          for artifact in selected:
+              unique[artifact["name"]] = artifact
+
+          selected = list(unique.values())
+
+          print(
+              "Unique Stage 4 artifacts:",
+              len(selected)
+          )
+
+          # ------------------------------------------------------
+          # Download every artifact ZIP
+          # ------------------------------------------------------
+
+          output_dir = pathlib.Path(
+              "stage4_artifacts"
+          )
+
+          for number, artifact in enumerate(
+              selected,
+              start=1
+          ):
+
+              artifact_id = artifact["id"]
+              artifact_name = artifact["name"]
+
+              print(
+                  f"[{number}/{len(selected)}] "
+                  f"Downloading {artifact_name}"
+              )
+
+              download_url = (
+                  f"https://api.github.com/repos/"
+                  f"{owner}/{repo}/actions/artifacts/"
+                  f"{artifact_id}/zip"
+              )
+
+              request = urllib.request.Request(
+                  download_url,
+                  headers=headers
+              )
+
+              with urllib.request.urlopen(request) as response:
+                  data = response.read()
+
+              with zipfile.ZipFile(
+                  io.BytesIO(data)
+              ) as archive:
+
+                  archive.extractall(
+                      output_dir
+                  )
+
+          # ------------------------------------------------------
+          # Count result JSON files
+          # ------------------------------------------------------
+
+          result_files = sorted(
+              output_dir.rglob(
+                  "stage4_result_*.json"
+              )
+          )
+
+          print()
+          print(
+              "Result JSON files downloaded:",
+              len(result_files)
+          )
+
+          if len(result_files) != 279:
+              raise RuntimeError(
+                  "Expected 279 result JSON files, "
+                  f"found {len(result_files)}"
+              )
+
+          print()
+          print("ALL 279 RESULT FILES DOWNLOADED")
+          PY
+
+      # ==========================================================
+      # CONSOLIDATE
+      # ==========================================================
+
+      - name: Consolidate 279 executions
+        shell: bash
+        run: |
+
           python - <<'PY'
           import glob
           import json
@@ -54,19 +250,11 @@ jobs:
 
           import pandas as pd
 
-          # --------------------------------------------------
-          # Locate all JSON execution results
-          # --------------------------------------------------
-
           files = sorted(
               set(
                   glob.glob(
                       "stage4_artifacts/**/stage4_result_*.json",
                       recursive=True
-                  )
-                  +
-                  glob.glob(
-                      "stage4_artifacts/stage4_result_*.json"
                   )
               )
           )
@@ -78,29 +266,32 @@ jobs:
                   f"Expected 279 result files, found {len(files)}"
               )
 
-          # --------------------------------------------------
-          # Load results
-          # --------------------------------------------------
-
           rows = []
 
           for filename in files:
+
               with open(
                   filename,
                   encoding="utf-8"
               ) as f:
-                  rows.append(json.load(f))
+                  rows.append(
+                      json.load(f)
+                  )
 
           df = pd.DataFrame(rows)
 
-          print("Execution rows:", len(df))
+          print(
+              "Execution rows:",
+              len(df)
+          )
 
-          # --------------------------------------------------
+          # ------------------------------------------------------
           # Validate OS distribution
-          # --------------------------------------------------
+          # ------------------------------------------------------
 
           print()
           print("OS distribution:")
+
           print(
               df["os"]
               .value_counts()
@@ -108,58 +299,56 @@ jobs:
               .to_string()
           )
 
-          expected_os = {
-              "linux": 93,
-              "windows": 93,
-              "macos": 93,
-          }
+          for os_name in [
+              "linux",
+              "windows",
+              "macos"
+          ]:
 
-          actual_os = df["os"].value_counts().to_dict()
+              count = (
+                  df["os"] == os_name
+              ).sum()
 
-          for os_name, expected in expected_os.items():
-              actual = actual_os.get(os_name, 0)
+              if count != 93:
 
-              if actual != expected:
                   raise RuntimeError(
-                      f"{os_name}: expected {expected}, "
-                      f"found {actual}"
+                      f"{os_name}: expected 93, "
+                      f"found {count}"
                   )
 
-          # --------------------------------------------------
-          # Validate repository count
-          # --------------------------------------------------
+          # ------------------------------------------------------
+          # Validate repositories
+          # ------------------------------------------------------
 
           repository_count = (
               df["repo_full_name"]
               .nunique()
           )
 
-          print()
           print(
               "Unique repositories:",
               repository_count
           )
 
           if repository_count != 93:
+
               raise RuntimeError(
                   f"Expected 93 repositories, "
                   f"found {repository_count}"
               )
 
-          # --------------------------------------------------
+          # ------------------------------------------------------
           # Raw CSV
-          #
-          # Keep raw execution information unchanged.
-          # --------------------------------------------------
+          # ------------------------------------------------------
 
           df.to_csv(
               "stage4_cross_os_results.csv",
               index=False
           )
 
-          # --------------------------------------------------
-          # Cross-OS pivot
-          # --------------------------------------------------
+          # ------------------------------------------------------
+          # Cross OS pivot
+          # ------------------------------------------------------
 
           pivot = df.pivot_table(
               index=[
@@ -176,14 +365,16 @@ jobs:
               "windows",
               "macos"
           ]:
+
               if os_name not in pivot.columns:
+
                   pivot[os_name] = "MISSING"
 
           def classify(row):
 
               values = [
-                  str(row[os_name]).upper()
-                  for os_name in [
+                  str(row[x]).upper()
+                  for x in [
                       "linux",
                       "windows",
                       "macos"
@@ -191,9 +382,10 @@ jobs:
               ]
 
               if all(
-                  value == "REPRODUCIBLE"
-                  for value in values
+                  x == "REPRODUCIBLE"
+                  for x in values
               ):
+
                   return "ALL_OS_REPRODUCIBLE"
 
               if (
@@ -201,6 +393,7 @@ jobs:
                   and values[1] == "FAILED"
                   and values[2] == "REPRODUCIBLE"
               ):
+
                   return "WINDOWS_FAILURE"
 
               if (
@@ -208,6 +401,7 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "FAILED"
               ):
+
                   return "MACOS_FAILURE"
 
               if (
@@ -215,9 +409,11 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "REPRODUCIBLE"
               ):
+
                   return "LINUX_FAILURE"
 
               if values.count("FAILED") >= 2:
+
                   return "MULTI_OS_FAILURE"
 
               return "INCOMPLETE_OR_OTHER"
@@ -232,20 +428,14 @@ jobs:
               index=False
           )
 
-          # --------------------------------------------------
+          # ------------------------------------------------------
           # Summary
-          # --------------------------------------------------
+          # ------------------------------------------------------
 
           summary = pd.DataFrame(
               [
-                  [
-                      "Repositories",
-                      len(pivot)
-                  ],
-                  [
-                      "OS executions",
-                      len(df)
-                  ],
+                  ["Repositories", len(pivot)],
+                  ["OS executions", len(df)],
                   [
                       "Linux executions",
                       (df["os"] == "linux").sum()
@@ -305,45 +495,32 @@ jobs:
               index=False
           )
 
-          # --------------------------------------------------
-          # Excel sanitization
-          #
-          # Excel/openpyxl rejects control characters in
-          # strings. The raw CSV remains untouched.
-          # --------------------------------------------------
+          # ------------------------------------------------------
+          # Excel-safe cleaning
+          # ------------------------------------------------------
 
-          ILLEGAL_EXCEL_CHARS = re.compile(
+          illegal = re.compile(
               r"[\x00-\x08\x0B\x0C\x0E-\x1F]"
           )
 
-          def clean_excel_value(value):
+          def clean(value):
 
               if isinstance(value, str):
-                  return ILLEGAL_EXCEL_CHARS.sub(
+
+                  return illegal.sub(
                       "",
                       value
                   )
 
               return value
 
-          def clean_dataframe(dataframe):
+          excel_df = df.map(clean)
+          excel_pivot = pivot.map(clean)
+          excel_summary = summary.map(clean)
 
-              result = dataframe.copy()
-
-              for column in result.columns:
-                  result[column] = result[column].map(
-                      clean_excel_value
-                  )
-
-              return result
-
-          excel_df = clean_dataframe(df)
-          excel_pivot = clean_dataframe(pivot)
-          excel_summary = clean_dataframe(summary)
-
-          # --------------------------------------------------
-          # Excel output
-          # --------------------------------------------------
+          # ------------------------------------------------------
+          # Excel
+          # ------------------------------------------------------
 
           with pd.ExcelWriter(
               "stage4_cross_os_results.xlsx",
@@ -368,10 +545,6 @@ jobs:
                   index=False
               )
 
-          # --------------------------------------------------
-          # Final validation
-          # --------------------------------------------------
-
           print()
           print("=" * 70)
           print("STAGE 4 CONSOLIDATION SUCCESS")
@@ -388,26 +561,14 @@ jobs:
           )
 
           print()
-          print(summary.to_string(index=False))
-
-          print()
-          print("Generated files:")
-
-          for filename in [
-              "stage4_cross_os_results.csv",
-              "stage4_cross_os_portability.csv",
-              "stage4_cross_os_summary.csv",
-              "stage4_cross_os_results.xlsx",
-          ]:
-              path = Path(filename)
-
-              print(
-                  f"{filename}: "
-                  f"{path.stat().st_size:,} bytes"
+          print(
+              summary.to_string(
+                  index=False
               )
+          )
           PY
 
-      - name: Upload consolidated results
+      - name: Upload final Stage 4 results
         uses: actions/upload-artifact@v4
         with:
           name: stage4-final-results
