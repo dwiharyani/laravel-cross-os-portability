@@ -33,10 +33,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pandas openpyxl
 
-      # ==========================================================
-      # DOWNLOAD ALL ARTIFACTS USING GITHUB REST API
-      # ==========================================================
-
       - name: Download all Stage 4 execution artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +40,6 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
-
           set -euo pipefail
 
           mkdir -p stage4_artifacts
@@ -57,53 +52,35 @@ jobs:
           import os
           import pathlib
           import subprocess
-          import zipfile
-          import io
-          import urllib.request
-          import urllib.parse
 
-          token = os.environ["GH_TOKEN"]
           run_id = os.environ["SOURCE_RUN_ID"]
           repository = os.environ["REPOSITORY"]
 
-          owner, repo = repository.split("/", 1)
-
-          headers = {
-              "Authorization": f"Bearer {token}",
-              "Accept": "application/vnd.github+json",
-              "X-GitHub-Api-Version": "2022-11-28",
-              "User-Agent": "stage4-consolidation"
-          }
-
-          base = (
-              f"https://api.github.com/repos/"
-              f"{owner}/{repo}/actions/runs/{run_id}/artifacts"
-          )
+          output_dir = pathlib.Path("stage4_artifacts")
+          output_dir.mkdir(parents=True, exist_ok=True)
 
           artifacts = []
-
-          # ------------------------------------------------------
-          # Explicit pagination
-          # ------------------------------------------------------
-
           page = 1
 
           while True:
+              print(f"Requesting artifact API page {page}...")
 
-              url = (
-                  base
-                  + "?per_page=100"
-                  + f"&page={page}"
+              raw = subprocess.check_output(
+                  [
+                      "gh",
+                      "api",
+                      f"repos/{repository}/actions/runs/{run_id}/artifacts",
+                      "-H",
+                      "X-GitHub-Api-Version: 2022-11-28",
+                      "-f",
+                      "per_page=100",
+                      "-f",
+                      f"page={page}",
+                  ],
+                  text=True
               )
 
-              request = urllib.request.Request(
-                  url,
-                  headers=headers
-              )
-
-              with urllib.request.urlopen(request) as response:
-                  payload = json.load(response)
-
+              payload = json.loads(raw)
               batch = payload.get("artifacts", [])
 
               print(
@@ -124,14 +101,9 @@ jobs:
               len(artifacts)
           )
 
-          # ------------------------------------------------------
-          # Only Stage 4 execution artifacts
-          # ------------------------------------------------------
-
           selected = []
 
           for artifact in artifacts:
-
               name = artifact.get("name", "")
 
               if (
@@ -149,14 +121,10 @@ jobs:
               len(selected)
           )
 
-          # ------------------------------------------------------
-          # Remove duplicate artifact names
-          # ------------------------------------------------------
-
           unique = {}
 
           for artifact in selected:
-              unique[artifact["name"]] = artifact
+              unique[artifact["id"]] = artifact
 
           selected = list(unique.values())
 
@@ -165,57 +133,37 @@ jobs:
               len(selected)
           )
 
-          # ------------------------------------------------------
-          # Download every artifact ZIP
-          # ------------------------------------------------------
+          if len(selected) != 279:
+              raise RuntimeError(
+                  f"Expected 279 Stage 4 artifacts, found {len(selected)}"
+              )
 
-          output_dir = pathlib.Path(
-              "stage4_artifacts"
-          )
+          for number, artifact in enumerate(selected, start=1):
 
-          for number, artifact in enumerate(
-              selected,
-              start=1
-          ):
-
-              artifact_id = artifact["id"]
               artifact_name = artifact["name"]
 
               print(
-                  f"[{number}/{len(selected)}] "
-                  f"Downloading {artifact_name}"
+                  f"[{number}/279] Downloading {artifact_name}"
               )
 
-              download_url = (
-                  f"https://api.github.com/repos/"
-                  f"{owner}/{repo}/actions/artifacts/"
-                  f"{artifact_id}/zip"
+              subprocess.run(
+                  [
+                      "gh",
+                      "run",
+                      "download",
+                      run_id,
+                      "--repo",
+                      repository,
+                      "--name",
+                      artifact_name,
+                      "--dir",
+                      str(output_dir / artifact_name),
+                  ],
+                  check=True
               )
-
-              request = urllib.request.Request(
-                  download_url,
-                  headers=headers
-              )
-
-              with urllib.request.urlopen(request) as response:
-                  data = response.read()
-
-              with zipfile.ZipFile(
-                  io.BytesIO(data)
-              ) as archive:
-
-                  archive.extractall(
-                      output_dir
-                  )
-
-          # ------------------------------------------------------
-          # Count result JSON files
-          # ------------------------------------------------------
 
           result_files = sorted(
-              output_dir.rglob(
-                  "stage4_result_*.json"
-              )
+              output_dir.rglob("stage4_result_*.json")
           )
 
           print()
@@ -226,28 +174,20 @@ jobs:
 
           if len(result_files) != 279:
               raise RuntimeError(
-                  "Expected 279 result JSON files, "
-                  f"found {len(result_files)}"
+                  f"Expected 279 result JSON files, found {len(result_files)}"
               )
 
           print()
           print("ALL 279 RESULT FILES DOWNLOADED")
           PY
 
-      # ==========================================================
-      # CONSOLIDATE
-      # ==========================================================
-
       - name: Consolidate 279 executions
         shell: bash
         run: |
-
           python - <<'PY'
           import glob
           import json
           import re
-          from pathlib import Path
-
           import pandas as pd
 
           files = sorted(
@@ -269,29 +209,15 @@ jobs:
           rows = []
 
           for filename in files:
-
-              with open(
-                  filename,
-                  encoding="utf-8"
-              ) as f:
-                  rows.append(
-                      json.load(f)
-                  )
+              with open(filename, encoding="utf-8") as f:
+                  rows.append(json.load(f))
 
           df = pd.DataFrame(rows)
 
-          print(
-              "Execution rows:",
-              len(df)
-          )
-
-          # ------------------------------------------------------
-          # Validate OS distribution
-          # ------------------------------------------------------
+          print("Execution rows:", len(df))
 
           print()
           print("OS distribution:")
-
           print(
               df["os"]
               .value_counts()
@@ -299,31 +225,15 @@ jobs:
               .to_string()
           )
 
-          for os_name in [
-              "linux",
-              "windows",
-              "macos"
-          ]:
-
-              count = (
-                  df["os"] == os_name
-              ).sum()
+          for os_name in ["linux", "windows", "macos"]:
+              count = (df["os"] == os_name).sum()
 
               if count != 93:
-
                   raise RuntimeError(
-                      f"{os_name}: expected 93, "
-                      f"found {count}"
+                      f"{os_name}: expected 93, found {count}"
                   )
 
-          # ------------------------------------------------------
-          # Validate repositories
-          # ------------------------------------------------------
-
-          repository_count = (
-              df["repo_full_name"]
-              .nunique()
-          )
+          repository_count = df["repo_full_name"].nunique()
 
           print(
               "Unique repositories:",
@@ -331,61 +241,34 @@ jobs:
           )
 
           if repository_count != 93:
-
               raise RuntimeError(
-                  f"Expected 93 repositories, "
-                  f"found {repository_count}"
+                  f"Expected 93 repositories, found {repository_count}"
               )
-
-          # ------------------------------------------------------
-          # Raw CSV
-          # ------------------------------------------------------
 
           df.to_csv(
               "stage4_cross_os_results.csv",
               index=False
           )
 
-          # ------------------------------------------------------
-          # Cross OS pivot
-          # ------------------------------------------------------
-
           pivot = df.pivot_table(
-              index=[
-                  "repo_full_name",
-                  "latest_sha"
-              ],
+              index=["repo_full_name", "latest_sha"],
               columns="os",
               values="reproducibility_status",
               aggfunc="first"
           ).reset_index()
 
-          for os_name in [
-              "linux",
-              "windows",
-              "macos"
-          ]:
-
+          for os_name in ["linux", "windows", "macos"]:
               if os_name not in pivot.columns:
-
                   pivot[os_name] = "MISSING"
 
           def classify(row):
 
               values = [
                   str(row[x]).upper()
-                  for x in [
-                      "linux",
-                      "windows",
-                      "macos"
-                  ]
+                  for x in ["linux", "windows", "macos"]
               ]
 
-              if all(
-                  x == "REPRODUCIBLE"
-                  for x in values
-              ):
-
+              if all(x == "REPRODUCIBLE" for x in values):
                   return "ALL_OS_REPRODUCIBLE"
 
               if (
@@ -393,7 +276,6 @@ jobs:
                   and values[1] == "FAILED"
                   and values[2] == "REPRODUCIBLE"
               ):
-
                   return "WINDOWS_FAILURE"
 
               if (
@@ -401,7 +283,6 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "FAILED"
               ):
-
                   return "MACOS_FAILURE"
 
               if (
@@ -409,11 +290,9 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "REPRODUCIBLE"
               ):
-
                   return "LINUX_FAILURE"
 
               if values.count("FAILED") >= 2:
-
                   return "MULTI_OS_FAILURE"
 
               return "INCOMPLETE_OR_OTHER"
@@ -428,26 +307,13 @@ jobs:
               index=False
           )
 
-          # ------------------------------------------------------
-          # Summary
-          # ------------------------------------------------------
-
           summary = pd.DataFrame(
               [
                   ["Repositories", len(pivot)],
                   ["OS executions", len(df)],
-                  [
-                      "Linux executions",
-                      (df["os"] == "linux").sum()
-                  ],
-                  [
-                      "Windows executions",
-                      (df["os"] == "windows").sum()
-                  ],
-                  [
-                      "macOS executions",
-                      (df["os"] == "macos").sum()
-                  ],
+                  ["Linux executions", (df["os"] == "linux").sum()],
+                  ["Windows executions", (df["os"] == "windows").sum()],
+                  ["macOS executions", (df["os"] == "macos").sum()],
                   [
                       "All three OS reproducible",
                       (
@@ -484,10 +350,7 @@ jobs:
                       ).sum()
                   ],
               ],
-              columns=[
-                  "metric",
-                  "count"
-              ]
+              columns=["metric", "count"]
           )
 
           summary.to_csv(
@@ -495,32 +358,18 @@ jobs:
               index=False
           )
 
-          # ------------------------------------------------------
-          # Excel-safe cleaning
-          # ------------------------------------------------------
-
           illegal = re.compile(
               r"[\x00-\x08\x0B\x0C\x0E-\x1F]"
           )
 
           def clean(value):
-
               if isinstance(value, str):
-
-                  return illegal.sub(
-                      "",
-                      value
-                  )
-
+                  return illegal.sub("", value)
               return value
 
           excel_df = df.map(clean)
           excel_pivot = pivot.map(clean)
           excel_summary = summary.map(clean)
-
-          # ------------------------------------------------------
-          # Excel
-          # ------------------------------------------------------
 
           with pd.ExcelWriter(
               "stage4_cross_os_results.xlsx",
@@ -550,22 +399,10 @@ jobs:
           print("STAGE 4 CONSOLIDATION SUCCESS")
           print("=" * 70)
 
-          print(
-              "Execution rows:",
-              len(df)
-          )
-
-          print(
-              "Repository rows:",
-              len(pivot)
-          )
-
+          print("Execution rows:", len(df))
+          print("Repository rows:", len(pivot))
           print()
-          print(
-              summary.to_string(
-                  index=False
-              )
-          )
+          print(summary.to_string(index=False))
           PY
 
       - name: Upload final Stage 4 results
