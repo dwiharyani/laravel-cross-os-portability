@@ -1,0 +1,412 @@
+name: Stage 4 Apple-to-Apple Pilot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  pilot:
+    name: "${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+
+      matrix:
+        include:
+
+          # Repository 1
+          - repo_full_name: Kareem-Bizreh/E-Commerce_Platform
+            url: https://github.com/Kareem-Bizreh/E-Commerce_Platform
+            latest_sha: 7fffee8dd991c6499a256afb52c20f5398cb4d48
+            php_runtime: "8.2"
+            os: linux
+            runner: ubuntu-22.04
+
+          - repo_full_name: Kareem-Bizreh/E-Commerce_Platform
+            url: https://github.com/Kareem-Bizreh/E-Commerce_Platform
+            latest_sha: 7fffee8dd991c6499a256afb52c20f5398cb4d48
+            php_runtime: "8.2"
+            os: windows
+            runner: windows-2022
+
+          - repo_full_name: Kareem-Bizreh/E-Commerce_Platform
+            url: https://github.com/Kareem-Bizreh/E-Commerce_Platform
+            latest_sha: 7fffee8dd991c6499a256afb52c20f5398cb4d48
+            php_runtime: "8.2"
+            os: macos
+            runner: macos-15
+
+          # Repository 2
+          - repo_full_name: goldcoders-corp/vuetified
+            url: https://github.com/goldcoders-corp/vuetified
+            latest_sha: 1c3be8e37c8e68e9fea13def8f450fde9734b0b8
+            php_runtime: "8.0"
+            os: linux
+            runner: ubuntu-22.04
+
+          - repo_full_name: goldcoders-corp/vuetified
+            url: https://github.com/goldcoders-corp/vuetified
+            latest_sha: 1c3be8e37c8e68e9fea13def8f450fde9734b0b8
+            php_runtime: "8.0"
+            os: windows
+            runner: windows-2022
+
+          - repo_full_name: goldcoders-corp/vuetified
+            url: https://github.com/goldcoders-corp/vuetified
+            latest_sha: 1c3be8e37c8e68e9fea13def8f450fde9734b0b8
+            php_runtime: "8.0"
+            os: macos
+            runner: macos-15
+
+          # Repository 3
+          - repo_full_name: igudy/employees-management-system
+            url: https://github.com/igudy/employees-management-system
+            latest_sha: df8b014b1bd8992065f89300646a69ea496ff19f
+            php_runtime: "7.4"
+            os: linux
+            runner: ubuntu-22.04
+
+          - repo_full_name: igudy/employees-management-system
+            url: https://github.com/igudy/employees-management-system
+            latest_sha: df8b014b1bd8992065f89300646a69ea496ff19f
+            php_runtime: "7.4"
+            os: windows
+            runner: windows-2022
+
+          - repo_full_name: igudy/employees-management-system
+            url: https://github.com/igudy/employees-management-system
+            latest_sha: df8b014b1bd8992065f89300646a69ea496ff19f
+            php_runtime: "7.4"
+            os: macos
+            runner: macos-15
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Checkout target repository
+        shell: bash
+        env:
+          TARGET_URL: ${{ matrix.url }}
+          TARGET_SHA: ${{ matrix.latest_sha }}
+        run: |
+          set -e
+
+          git clone \
+            --no-tags \
+            --depth 1 \
+            "$TARGET_URL" \
+            target-repository
+
+          cd target-repository
+
+          git fetch \
+            --depth 1 \
+            origin "$TARGET_SHA"
+
+          git checkout \
+            --detach \
+            "$TARGET_SHA"
+
+      # ----------------------------------------------------------
+      # Detect extensions required by composer.lock
+      # ----------------------------------------------------------
+
+      - name: Detect required PHP extensions
+        id: extensions
+        shell: bash
+        working-directory: target-repository
+        run: |
+
+          python - <<'PY'
+
+          import json
+          import os
+          import re
+
+          files = [
+              "composer.json",
+              "composer.lock"
+          ]
+
+          requirements = set()
+
+          for filename in files:
+
+              if not os.path.exists(filename):
+                  continue
+
+              with open(
+                  filename,
+                  encoding="utf-8"
+              ) as f:
+
+                  data = json.load(f)
+
+              def collect(obj):
+
+                  if isinstance(obj, dict):
+
+                      req = obj.get(
+                          "require",
+                          {}
+                      )
+
+                      if isinstance(req, dict):
+
+                          for name in req:
+
+                              if name.startswith(
+                                  "ext-"
+                              ):
+
+                                  requirements.add(
+                                      name[4:]
+                                  )
+
+                      for value in obj.values():
+                          collect(value)
+
+                  elif isinstance(obj, list):
+
+                      for value in obj:
+                          collect(value)
+
+              collect(data)
+
+          # Remove Composer virtual/platform packages
+          excluded = {
+              "php",
+              "composer-runtime-api",
+              "composer-plugin-api"
+          }
+
+          requirements = sorted(
+              x for x in requirements
+              if x not in excluded
+          )
+
+          extension_string = ",".join(
+              requirements
+          )
+
+          print(
+              "Required PHP extensions:"
+          )
+
+          print(
+              extension_string
+              if extension_string
+              else "(none explicitly required)"
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a"
+          ) as output:
+
+              output.write(
+                  "extensions="
+                  + extension_string
+                  + "\n"
+              )
+
+              output.write(
+                  "count="
+                  + str(len(requirements))
+                  + "\n"
+              )
+
+          PY
+
+      # ----------------------------------------------------------
+      # Setup identical PHP environment
+      # ----------------------------------------------------------
+
+      - name: Setup PHP
+        id: setup_php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_runtime }}
+          extensions: ${{ steps.extensions.outputs.extensions }}
+          tools: composer:2
+          coverage: none
+
+      # ----------------------------------------------------------
+      # Environment audit
+      # ----------------------------------------------------------
+
+      - name: Audit PHP environment
+        shell: bash
+        working-directory: target-repository
+        env:
+          REQUIRED_EXTENSIONS: ${{ steps.extensions.outputs.extensions }}
+        run: |
+
+          echo "=========================================="
+          echo "APPLE-TO-APPLE ENVIRONMENT AUDIT"
+          echo "=========================================="
+
+          echo
+          echo "OS:"
+          uname -a || true
+
+          echo
+          echo "PHP:"
+          php -v
+
+          echo
+          echo "Composer:"
+          composer --version
+
+          echo
+          echo "PHP extensions:"
+          php -m
+
+          echo
+          echo "Required extensions:"
+          echo "$REQUIRED_EXTENSIONS"
+
+          python - <<'PY'
+
+          import os
+          import subprocess
+
+          required = [
+              x.strip()
+              for x in os.environ.get(
+                  "REQUIRED_EXTENSIONS",
+                  ""
+              ).split(",")
+              if x.strip()
+          ]
+
+          installed = subprocess.check_output(
+              ["php", "-m"],
+              text=True,
+              errors="replace"
+          ).lower().splitlines()
+
+          installed = {
+              x.strip()
+              for x in installed
+          }
+
+          print()
+          print(
+              "Extension audit:"
+          )
+
+          missing = []
+
+          for ext in required:
+
+              if ext.lower() in installed:
+                  print(
+                      f"{ext}: PRESENT"
+                  )
+              else:
+                  print(
+                      f"{ext}: MISSING"
+                  )
+                  missing.append(ext)
+
+          if missing:
+
+              print()
+              print(
+                  "MISSING EXTENSIONS:"
+              )
+
+              for ext in missing:
+                  print(ext)
+
+              raise SystemExit(20)
+
+          print()
+          print(
+              "ALL REQUIRED EXTENSIONS PRESENT"
+          )
+
+          PY
+
+      # ----------------------------------------------------------
+      # Composer installation
+      # ----------------------------------------------------------
+
+      - name: Composer install
+        shell: bash
+        working-directory: target-repository
+        run: |
+          composer install \
+            --no-interaction \
+            --prefer-dist \
+            --no-progress \
+            --optimize-autoloader
+
+      # ----------------------------------------------------------
+      # Laravel environment
+      # ----------------------------------------------------------
+
+      - name: Prepare Laravel environment
+        shell: bash
+        working-directory: target-repository
+        run: |
+
+          if [ -f ".env.example" ] && [ ! -f ".env" ]; then
+            cp .env.example .env
+          fi
+
+          if [ -f "artisan" ]; then
+            php artisan key:generate --force || true
+            php artisan config:clear || true
+          fi
+
+      # ----------------------------------------------------------
+      # Test
+      # ----------------------------------------------------------
+
+      - name: Run tests
+        shell: bash
+        working-directory: target-repository
+        run: |
+
+          if [ -f "artisan" ]; then
+            php artisan test
+          else
+            echo "No Laravel artisan file."
+            exit 2
+          fi
+
+      - name: Final environment report
+        if: always()
+        shell: bash
+        working-directory: target-repository
+        run: |
+
+          echo
+          echo "=========================================="
+          echo "FINAL ENVIRONMENT"
+          echo "=========================================="
+
+          echo "OS:"
+          uname -a || true
+
+          echo
+          echo "PHP:"
+          php -v || true
+
+          echo
+          echo "Composer:"
+          composer --version || true
+
+          echo
+          echo "Extensions:"
+          php -m || true
