@@ -1,0 +1,420 @@
+name: Stage 4 Consolidate Existing Results
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "GitHub Actions run ID containing the completed 279 Stage 4 executions"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+
+  consolidate:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pandas openpyxl
+
+      - name: Download existing Stage 4 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.source_run_id }}
+          repository: ${{ github.repository }}
+          pattern: stage4-*
+          path: stage4_artifacts
+          merge-multiple: true
+
+      - name: Consolidate 279 existing executions
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import re
+          from pathlib import Path
+
+          import pandas as pd
+
+          # --------------------------------------------------
+          # Locate all JSON execution results
+          # --------------------------------------------------
+
+          files = sorted(
+              set(
+                  glob.glob(
+                      "stage4_artifacts/**/stage4_result_*.json",
+                      recursive=True
+                  )
+                  +
+                  glob.glob(
+                      "stage4_artifacts/stage4_result_*.json"
+                  )
+              )
+          )
+
+          print("Result files:", len(files))
+
+          if len(files) != 279:
+              raise RuntimeError(
+                  f"Expected 279 result files, found {len(files)}"
+              )
+
+          # --------------------------------------------------
+          # Load results
+          # --------------------------------------------------
+
+          rows = []
+
+          for filename in files:
+              with open(
+                  filename,
+                  encoding="utf-8"
+              ) as f:
+                  rows.append(json.load(f))
+
+          df = pd.DataFrame(rows)
+
+          print("Execution rows:", len(df))
+
+          # --------------------------------------------------
+          # Validate OS distribution
+          # --------------------------------------------------
+
+          print()
+          print("OS distribution:")
+          print(
+              df["os"]
+              .value_counts()
+              .sort_index()
+              .to_string()
+          )
+
+          expected_os = {
+              "linux": 93,
+              "windows": 93,
+              "macos": 93,
+          }
+
+          actual_os = df["os"].value_counts().to_dict()
+
+          for os_name, expected in expected_os.items():
+              actual = actual_os.get(os_name, 0)
+
+              if actual != expected:
+                  raise RuntimeError(
+                      f"{os_name}: expected {expected}, "
+                      f"found {actual}"
+                  )
+
+          # --------------------------------------------------
+          # Validate repository count
+          # --------------------------------------------------
+
+          repository_count = (
+              df["repo_full_name"]
+              .nunique()
+          )
+
+          print()
+          print(
+              "Unique repositories:",
+              repository_count
+          )
+
+          if repository_count != 93:
+              raise RuntimeError(
+                  f"Expected 93 repositories, "
+                  f"found {repository_count}"
+              )
+
+          # --------------------------------------------------
+          # Raw CSV
+          #
+          # Keep raw execution information unchanged.
+          # --------------------------------------------------
+
+          df.to_csv(
+              "stage4_cross_os_results.csv",
+              index=False
+          )
+
+          # --------------------------------------------------
+          # Cross-OS pivot
+          # --------------------------------------------------
+
+          pivot = df.pivot_table(
+              index=[
+                  "repo_full_name",
+                  "latest_sha"
+              ],
+              columns="os",
+              values="reproducibility_status",
+              aggfunc="first"
+          ).reset_index()
+
+          for os_name in [
+              "linux",
+              "windows",
+              "macos"
+          ]:
+              if os_name not in pivot.columns:
+                  pivot[os_name] = "MISSING"
+
+          def classify(row):
+
+              values = [
+                  str(row[os_name]).upper()
+                  for os_name in [
+                      "linux",
+                      "windows",
+                      "macos"
+                  ]
+              ]
+
+              if all(
+                  value == "REPRODUCIBLE"
+                  for value in values
+              ):
+                  return "ALL_OS_REPRODUCIBLE"
+
+              if (
+                  values[0] == "REPRODUCIBLE"
+                  and values[1] == "FAILED"
+                  and values[2] == "REPRODUCIBLE"
+              ):
+                  return "WINDOWS_FAILURE"
+
+              if (
+                  values[0] == "REPRODUCIBLE"
+                  and values[1] == "REPRODUCIBLE"
+                  and values[2] == "FAILED"
+              ):
+                  return "MACOS_FAILURE"
+
+              if (
+                  values[0] == "FAILED"
+                  and values[1] == "REPRODUCIBLE"
+                  and values[2] == "REPRODUCIBLE"
+              ):
+                  return "LINUX_FAILURE"
+
+              if values.count("FAILED") >= 2:
+                  return "MULTI_OS_FAILURE"
+
+              return "INCOMPLETE_OR_OTHER"
+
+          pivot["cross_os_status"] = pivot.apply(
+              classify,
+              axis=1
+          )
+
+          pivot.to_csv(
+              "stage4_cross_os_portability.csv",
+              index=False
+          )
+
+          # --------------------------------------------------
+          # Summary
+          # --------------------------------------------------
+
+          summary = pd.DataFrame(
+              [
+                  [
+                      "Repositories",
+                      len(pivot)
+                  ],
+                  [
+                      "OS executions",
+                      len(df)
+                  ],
+                  [
+                      "Linux executions",
+                      (df["os"] == "linux").sum()
+                  ],
+                  [
+                      "Windows executions",
+                      (df["os"] == "windows").sum()
+                  ],
+                  [
+                      "macOS executions",
+                      (df["os"] == "macos").sum()
+                  ],
+                  [
+                      "All three OS reproducible",
+                      (
+                          pivot["cross_os_status"]
+                          == "ALL_OS_REPRODUCIBLE"
+                      ).sum()
+                  ],
+                  [
+                      "Windows-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "WINDOWS_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "macOS-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "MACOS_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "Linux-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "LINUX_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "Multi-OS failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "MULTI_OS_FAILURE"
+                      ).sum()
+                  ],
+              ],
+              columns=[
+                  "metric",
+                  "count"
+              ]
+          )
+
+          summary.to_csv(
+              "stage4_cross_os_summary.csv",
+              index=False
+          )
+
+          # --------------------------------------------------
+          # Excel sanitization
+          #
+          # Excel/openpyxl rejects control characters in
+          # strings. The raw CSV remains untouched.
+          # --------------------------------------------------
+
+          ILLEGAL_EXCEL_CHARS = re.compile(
+              r"[\x00-\x08\x0B\x0C\x0E-\x1F]"
+          )
+
+          def clean_excel_value(value):
+
+              if isinstance(value, str):
+                  return ILLEGAL_EXCEL_CHARS.sub(
+                      "",
+                      value
+                  )
+
+              return value
+
+          def clean_dataframe(dataframe):
+
+              result = dataframe.copy()
+
+              for column in result.columns:
+                  result[column] = result[column].map(
+                      clean_excel_value
+                  )
+
+              return result
+
+          excel_df = clean_dataframe(df)
+          excel_pivot = clean_dataframe(pivot)
+          excel_summary = clean_dataframe(summary)
+
+          # --------------------------------------------------
+          # Excel output
+          # --------------------------------------------------
+
+          with pd.ExcelWriter(
+              "stage4_cross_os_results.xlsx",
+              engine="openpyxl"
+          ) as writer:
+
+              excel_df.to_excel(
+                  writer,
+                  sheet_name="OS_Executions",
+                  index=False
+              )
+
+              excel_pivot.to_excel(
+                  writer,
+                  sheet_name="Cross_OS_Portability",
+                  index=False
+              )
+
+              excel_summary.to_excel(
+                  writer,
+                  sheet_name="Summary",
+                  index=False
+              )
+
+          # --------------------------------------------------
+          # Final validation
+          # --------------------------------------------------
+
+          print()
+          print("=" * 70)
+          print("STAGE 4 CONSOLIDATION SUCCESS")
+          print("=" * 70)
+
+          print(
+              "Execution rows:",
+              len(df)
+          )
+
+          print(
+              "Repository rows:",
+              len(pivot)
+          )
+
+          print()
+          print(summary.to_string(index=False))
+
+          print()
+          print("Generated files:")
+
+          for filename in [
+              "stage4_cross_os_results.csv",
+              "stage4_cross_os_portability.csv",
+              "stage4_cross_os_summary.csv",
+              "stage4_cross_os_results.xlsx",
+          ]:
+              path = Path(filename)
+
+              print(
+                  f"{filename}: "
+                  f"{path.stat().st_size:,} bytes"
+              )
+          PY
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-final-results
+          path: |
+            stage4_cross_os_results.csv
+            stage4_cross_os_portability.csv
+            stage4_cross_os_summary.csv
+            stage4_cross_os_results.xlsx
+          if-no-files-found: error
+          retention-days: 90
