@@ -16,13 +16,15 @@ jobs:
   prepare-matrix:
     runs-on: ubuntu-22.04
     outputs:
-      matrix: ${{ steps.build.outputs.matrix }}
+      batch1: ${{ steps.build.outputs.batch1 }}
+      batch2: ${{ steps.build.outputs.batch2 }}
+      batch3: ${{ steps.build.outputs.batch3 }}
 
     steps:
       - name: Checkout methodology repository
         uses: actions/checkout@v4
 
-      - name: Build Cross-OS matrix
+      - name: Build three cross-OS matrices
         id: build
         shell: bash
         run: |
@@ -33,62 +35,94 @@ jobs:
 
           input_file = "data/interim/stage4_cross_os_eligible.csv"
 
-          rows = []
           with open(input_file, encoding="utf-8", newline="") as f:
-              for r in csv.DictReader(f):
-                  rows.append(r)
+              rows = list(csv.DictReader(f))
 
           if len(rows) != 93:
-              raise RuntimeError(f"Expected 93 eligible repositories, found {len(rows)}")
+              raise RuntimeError(
+                  f"Expected 93 eligible repositories, found {len(rows)}"
+              )
 
-          include = []
-          for idx, r in enumerate(rows, start=1):
-              for os_name, runner in [
-                  ("linux", "ubuntu-22.04"),
-                  ("windows", "windows-2022"),
-                  ("macos", "macos-15"),
-              ]:
-                  include.append({
-                      "repo_index": idx,
-                      "repo_full_name": r["repo_full_name"],
-                      "url": r["url"],
-                      "latest_sha": r["latest_sha"],
-                      "php_runtime": r["php_runtime"],
-                      "laravel_version_constraint": r.get("laravel_version_constraint", ""),
-                      "test_command": r.get("test_command", ""),
-                      "test_command_source": r.get("test_command_source", ""),
-                      "os": os_name,
-                      "runner": runner,
-                  })
+          os_targets = [
+              ("linux", "ubuntu-22.04"),
+              ("windows", "windows-2022"),
+              ("macos", "macos-15"),
+          ]
 
-          matrix = json.dumps({"include": include}, separators=(",", ":"))
+          batches = [
+              rows[0:31],
+              rows[31:62],
+              rows[62:93],
+          ]
 
-          if len(matrix.encode()) > 900_000:
-              raise RuntimeError("Matrix output is too large for a safe GITHUB_OUTPUT payload.")
+          outputs = {}
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write("matrix<<STAGE4_MATRIX\n")
-              f.write(matrix)
-              f.write("\nSTAGE4_MATRIX\n")
+          for batch_number, batch_rows in enumerate(batches, start=1):
+              include = []
 
-          print("Eligible repositories:", len(rows))
-          print("Cross-OS executions:", len(include))
-          print("Linux:", sum(x["os"] == "linux" for x in include))
-          print("Windows:", sum(x["os"] == "windows" for x in include))
-          print("macOS:", sum(x["os"] == "macos" for x in include))
+              for idx, r in enumerate(
+                  batch_rows,
+                  start=(batch_number - 1) * 31 + 1
+              ):
+                  for os_name, runner in os_targets:
+                      include.append({
+                          "repo_index": idx,
+                          "repo_full_name": r["repo_full_name"],
+                          "url": r["url"],
+                          "latest_sha": r["latest_sha"],
+                          "php_runtime": r["php_runtime"],
+                          "laravel_version_constraint":
+                              r.get("laravel_version_constraint", ""),
+                          "test_command": r.get("test_command", ""),
+                          "test_command_source":
+                              r.get("test_command_source", ""),
+                          "os": os_name,
+                          "runner": runner,
+                      })
+
+              value = json.dumps(
+                  {"include": include},
+                  separators=(",", ":")
+              )
+
+              outputs[f"batch{batch_number}"] = value
+
+              print(
+                  f"Batch {batch_number}: "
+                  f"{len(batch_rows)} repositories / "
+                  f"{len(include)} executions"
+              )
+
+          github_output = os.environ["GITHUB_OUTPUT"]
+
+          with open(
+              github_output,
+              "a",
+              encoding="utf-8"
+          ) as f:
+              for name, value in outputs.items():
+                  f.write(f"{name}={value}\n")
+
+          print()
+          print("Total repositories:", len(rows))
+          print("Total executions:", len(rows) * 3)
+          print("Linux:", len(rows))
+          print("Windows:", len(rows))
+          print("macOS:", len(rows))
           PY
 
-  run-cross-os:
+  run-batch-1:
     needs: prepare-matrix
-    runs-on: ${{ matrix.runner }}
-    continue-on-error: true
 
     strategy:
       fail-fast: false
       max-parallel: 12
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch1) }}
 
-    name: "${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+
+    name: "Batch 1 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
 
     steps:
       - name: Checkout methodology repository
@@ -112,7 +146,6 @@ jobs:
           git --version || true
 
       - name: Run exact-commit reproducibility protocol
-        id: protocol
         continue-on-error: true
         shell: bash
         env:
@@ -155,7 +188,8 @@ jobs:
               "reproducibility_status": "FAILED",
               "failure_category": "INFRASTRUCTURE",
               "failure_stage": "RUNTIME_SETUP",
-              "failure_detail": "Protocol did not produce stage4_result.json."
+              "failure_detail":
+                  "Protocol did not produce stage4_result.json."
           }
 
           with open(
@@ -167,17 +201,193 @@ jobs:
           PY
           fi
 
-          echo "=== RESULT FILE ==="
           ls -lah "$RESULT"
-
-          echo "=== RESULT CONTENT ==="
-          cat "$RESULT"
 
       - name: Upload execution result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage4-${{ matrix.repo_index }}-${{ matrix.os }}
+          name: stage4-batch1-${{ matrix.repo_index }}-${{ matrix.os }}
+          path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  run-batch-2:
+    needs: prepare-matrix
+
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch2) }}
+
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+
+    name: "Batch 2 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php_runtime }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Run exact-commit reproducibility protocol
+        continue-on-error: true
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+        run: |
+          python scripts/14_cross_os_reproducibility.py
+
+      - name: Save result
+        if: always()
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+        run: |
+          RESULT="stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
+
+          if [ -f stage4_result.json ]; then
+            cp stage4_result.json "$RESULT"
+          else
+            python - <<'PY'
+          import json
+          import os
+
+          result = {
+              "repo_full_name": os.environ["STAGE4_REPO"],
+              "latest_sha": os.environ["STAGE4_SHA"],
+              "os": os.environ["STAGE4_OS"],
+              "runner": os.environ["STAGE4_RUNNER"],
+              "php_runtime_requested": os.environ["STAGE4_PHP"],
+              "reproducibility_status": "FAILED",
+              "failure_category": "INFRASTRUCTURE",
+              "failure_stage": "RUNTIME_SETUP",
+              "failure_detail":
+                  "Protocol did not produce stage4_result.json."
+          }
+
+          with open(
+              "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(result, f, indent=2)
+          PY
+          fi
+
+      - name: Upload execution result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-batch2-${{ matrix.repo_index }}-${{ matrix.os }}
+          path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  run-batch-3:
+    needs: prepare-matrix
+
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch3) }}
+
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+
+    name: "Batch 3 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php_runtime }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Run exact-commit reproducibility protocol
+        continue-on-error: true
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+        run: |
+          python scripts/14_cross_os_reproducibility.py
+
+      - name: Save result
+        if: always()
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+        run: |
+          RESULT="stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
+
+          if [ -f stage4_result.json ]; then
+            cp stage4_result.json "$RESULT"
+          else
+            python - <<'PY'
+          import json
+          import os
+
+          result = {
+              "repo_full_name": os.environ["STAGE4_REPO"],
+              "latest_sha": os.environ["STAGE4_SHA"],
+              "os": os.environ["STAGE4_OS"],
+              "runner": os.environ["STAGE4_RUNNER"],
+              "php_runtime_requested": os.environ["STAGE4_PHP"],
+              "reproducibility_status": "FAILED",
+              "failure_category": "INFRASTRUCTURE",
+              "failure_stage": "RUNTIME_SETUP",
+              "failure_detail":
+                  "Protocol did not produce stage4_result.json."
+          }
+
+          with open(
+              "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(result, f, indent=2)
+          PY
+          fi
+
+      - name: Upload execution result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-batch3-${{ matrix.repo_index }}-${{ matrix.os }}
           path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
           if-no-files-found: error
           retention-days: 30
