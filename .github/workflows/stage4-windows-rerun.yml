@@ -1,0 +1,194 @@
+name: Stage 4 Windows Rerun
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  prepare:
+    runs-on: ubuntu-22.04
+
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Windows matrix
+        id: build
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import os
+
+          input_file = "data/interim/stage4_cross_os_matrix.csv"
+
+          with open(input_file, encoding="utf-8", newline="") as f:
+              rows = list(csv.DictReader(f))
+
+          windows = [
+              r for r in rows
+              if r["os"].lower() == "windows"
+          ]
+
+          if len(windows) != 93:
+              raise RuntimeError(
+                  f"Expected 93 Windows executions, found {len(windows)}"
+              )
+
+          include = []
+
+          for r in windows:
+              include.append({
+                  "repo_index": int(r["repo_index"]),
+                  "repo_full_name": r["repo_full_name"],
+                  "latest_sha": r["latest_sha"],
+                  "php_runtime": r["php_runtime"],
+                  "laravel_version_constraint":
+                      r.get("laravel_version_constraint", ""),
+                  "test_command":
+                      r.get("test_command", ""),
+                  "os": "windows",
+                  "runner": "windows-2022",
+                  "url":
+                      "https://github.com/" + r["repo_full_name"],
+              })
+
+          matrix = json.dumps(
+              {"include": include},
+              separators=(",", ":")
+          )
+
+          with open(
+              os.environ["GITHUB_OUTPUT"],
+              "a",
+              encoding="utf-8"
+          ) as f:
+              f.write("matrix=" + matrix + "\n")
+
+          print("Windows executions:", len(include))
+          PY
+
+  windows:
+    needs: prepare
+
+    runs-on: windows-2022
+
+    continue-on-error: true
+
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    name: "windows / ${{ matrix.repo_full_name }}"
+
+    steps:
+
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_runtime }}
+          extensions: mbstring, xml, ctype, fileinfo, sodium, openssl, pdo, pdo_mysql
+          tools: composer:v2
+          coverage: none
+
+      - name: Verify PHP environment
+        shell: bash
+        run: |
+          echo "=== PHP ==="
+          php -v
+
+          echo
+          echo "=== PHP INI ==="
+          php --ini
+
+          echo
+          echo "=== REQUIRED EXTENSIONS ==="
+          php -m | sort | grep -E 'ctype|fileinfo|mbstring|openssl|pdo|sodium|xml' || true
+
+          echo
+          echo "=== COMPOSER ==="
+          composer --version
+
+          echo
+          echo "=== PLATFORM CHECK ==="
+          composer check-platform-reqs || true
+
+      - name: Run exact-commit reproducibility protocol
+        shell: bash
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
+          STAGE4_OS: windows
+          STAGE4_RUNNER: windows-2022
+        run: |
+          python scripts/14_cross_os_reproducibility.py
+
+      - name: Save result
+        if: always()
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: windows
+          STAGE4_RUNNER: windows-2022
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+        run: |
+          RESULT="stage4_windows_rerun_${{ matrix.repo_index }}.json"
+
+          if [ -f stage4_result.json ]; then
+            cp stage4_result.json "$RESULT"
+          else
+            python - <<'PY'
+          import json
+          import os
+
+          result = {
+              "repo_full_name": os.environ["STAGE4_REPO"],
+              "latest_sha": os.environ["STAGE4_SHA"],
+              "os": "windows",
+              "runner": "windows-2022",
+              "php_runtime_requested":
+                  os.environ["STAGE4_PHP"],
+              "reproducibility_status": "FAILED",
+              "failure_category": "INFRASTRUCTURE",
+              "failure_stage": "RUNTIME_SETUP",
+              "failure_detail":
+                  "Protocol did not produce stage4_result.json."
+          }
+
+          with open(
+              "stage4_windows_rerun_${{ matrix.repo_index }}.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(result, f, indent=2)
+          PY
+          fi
+
+          ls -lah "$RESULT"
+
+      - name: Upload Windows result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-windows-rerun-${{ matrix.repo_index }}
+          path: stage4_windows_rerun_${{ matrix.repo_index }}.json
+          if-no-files-found: error
+          retention-days: 30
