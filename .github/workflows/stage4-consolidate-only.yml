@@ -37,30 +37,93 @@ jobs:
       # DOWNLOAD ARTIFACTS FROM THE COMPLETED STAGE 4 RUN
       # ==========================================================
 
-      - name: Download Linux artifacts
+      # ==========================================================
+      # GET ALL 279 ARTIFACT IDS
+      # ==========================================================
+
+      - name: Get Stage 4 artifact IDs
+        id: artifact_ids
+        uses: actions/github-script@v7
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runId = Number(process.env.SOURCE_RUN_ID);
+
+            const artifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+                per_page: 100
+              }
+            );
+
+            const selected = artifacts.filter(
+              a => a.name.startsWith("stage4-")
+            );
+
+            const unique = [];
+            const seen = new Set();
+
+            for (const a of selected) {
+              if (!seen.has(a.id)) {
+                seen.add(a.id);
+                unique.push(a.id);
+              }
+            }
+
+            core.info(`Total artifacts: ${artifacts.length}`);
+            core.info(`Selected Stage 4 artifacts: ${unique.length}`);
+
+            if (unique.length !== 279) {
+              throw new Error(
+                `Expected 279 Stage 4 artifacts, found ${unique.length}`
+              );
+            }
+
+            const batch1 = unique.slice(0, 93).join(",");
+            const batch2 = unique.slice(93, 186).join(",");
+            const batch3 = unique.slice(186, 279).join(",");
+
+            core.setOutput("batch1", batch1);
+            core.setOutput("batch2", batch2);
+            core.setOutput("batch3", batch3);
+
+            core.info("Batch 1: 93 artifacts");
+            core.info("Batch 2: 93 artifacts");
+            core.info("Batch 3: 93 artifacts");
+
+      # ==========================================================
+      # DOWNLOAD 279 ARTIFACTS IN THREE GROUPS
+      # ==========================================================
+
+      - name: Download artifacts 1-93
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: stage4-linux-*
+          artifact-ids: ${{ steps.artifact_ids.outputs.batch1 }}
           path: stage4_artifacts
           merge-multiple: true
 
-      - name: Download Windows artifacts
+      - name: Download artifacts 94-186
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: stage4-windows-*
+          artifact-ids: ${{ steps.artifact_ids.outputs.batch2 }}
           path: stage4_artifacts
           merge-multiple: true
 
-      - name: Download macOS artifacts
+      - name: Download artifacts 187-279
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: stage4-macos-*
+          artifact-ids: ${{ steps.artifact_ids.outputs.batch3 }}
           path: stage4_artifacts
           merge-multiple: true
 
