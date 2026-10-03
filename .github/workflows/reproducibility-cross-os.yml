@@ -130,36 +130,56 @@ jobs:
       - name: Save result
         if: always()
         shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
         run: |
+          RESULT="stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
+
           if [ -f stage4_result.json ]; then
-            cp stage4_result.json "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
+            cp stage4_result.json "$RESULT"
           else
             python - <<'PY'
-          import json, os
-          r = {
-            "repo_full_name": os.environ.get("STAGE4_REPO", "${{ matrix.repo_full_name }}"),
-            "latest_sha": os.environ.get("STAGE4_SHA", "${{ matrix.latest_sha }}"),
-            "os": os.environ.get("STAGE4_OS", "${{ matrix.os }}"),
-            "runner": os.environ.get("STAGE4_RUNNER", "${{ matrix.runner }}"),
-            "php_runtime_requested": os.environ.get("STAGE4_PHP", "${{ matrix.php_runtime }}"),
-            "reproducibility_status": "FAILED",
-            "failure_category": "INFRASTRUCTURE",
-            "failure_stage": "RUNTIME_SETUP",
-            "failure_detail": "Cross-OS protocol did not produce a result file."
+          import json
+          import os
+
+          result = {
+              "repo_full_name": os.environ["STAGE4_REPO"],
+              "latest_sha": os.environ["STAGE4_SHA"],
+              "os": os.environ["STAGE4_OS"],
+              "runner": os.environ["STAGE4_RUNNER"],
+              "php_runtime_requested": os.environ["STAGE4_PHP"],
+              "reproducibility_status": "FAILED",
+              "failure_category": "INFRASTRUCTURE",
+              "failure_stage": "RUNTIME_SETUP",
+              "failure_detail": "Protocol did not produce stage4_result.json."
           }
-          open("stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json", "w").write(json.dumps(r, indent=2))
+
+          with open(
+              "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(result, f, indent=2)
           PY
           fi
+
+          echo "=== RESULT FILE ==="
+          ls -lah "$RESULT"
+
+          echo "=== RESULT CONTENT ==="
+          cat "$RESULT"
 
       - name: Upload execution result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stage4-${{ matrix.repo_index }}-${{ matrix.os }}
-          path: |
-            stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
-            stage4_result.json
-          if-no-files-found: warn
+          path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
+          if-no-files-found: error
           retention-days: 30
 
   consolidate:
