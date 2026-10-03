@@ -793,24 +793,58 @@ jobs:
               index=False
           )
 
+          # --------------------------------------------------
+          # Excel-safe sanitization
+          #
+          # Composer / PHPUnit output can contain control
+          # characters that are valid in terminal logs but
+          # forbidden by Excel/openpyxl.
+          #
+          # Keep the raw CSV unchanged. Only sanitize values
+          # for the XLSX presentation layer.
+          # --------------------------------------------------
+
+          import re
+
+          def clean_excel_value(value):
+              if isinstance(value, str):
+                  return re.sub(
+                      r"[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]",
+                      "",
+                      value
+                  )
+              return value
+
+          excel_df = df.map(
+              clean_excel_value
+          )
+
+          excel_pivot = pivot.map(
+              clean_excel_value
+          )
+
+          excel_summary = summary.map(
+              clean_excel_value
+          )
+
           with pd.ExcelWriter(
               "stage4_cross_os_results.xlsx",
               engine="openpyxl"
           ) as writer:
 
-              df.to_excel(
+              excel_df.to_excel(
                   writer,
                   sheet_name="OS_Executions",
                   index=False
               )
 
-              pivot.to_excel(
+              excel_pivot.to_excel(
                   writer,
                   sheet_name="Cross_OS_Portability",
                   index=False
               )
 
-              summary.to_excel(
+              excel_summary.to_excel(
                   writer,
                   sheet_name="Summary",
                   index=False
