@@ -37,18 +37,57 @@ jobs:
       # DOWNLOAD ARTIFACTS FROM THE COMPLETED STAGE 4 RUN
       # ==========================================================
 
-      - name: Download Stage 4 artifacts
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: stage4-*
+          pattern: stage4-linux-*
           path: stage4_artifacts
           merge-multiple: true
 
-      # ==========================================================
-      # VALIDATE AND CONSOLIDATE
-      # ==========================================================
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: stage4-windows-*
+          path: stage4_artifacts
+          merge-multiple: true
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: stage4-macos-*
+          path: stage4_artifacts
+          merge-multiple: true
+
+      - name: Validate downloaded Stage 4 results
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== DOWNLOADED ARTIFACTS ==="
+          find stage4_artifacts -type f -maxdepth 3 | sort | head -30
+
+          RESULT_COUNT=$(find stage4_artifacts \
+            -type f \
+            -name 'stage4_result_*.json' \
+            | wc -l)
+
+          echo
+          echo "Result files: ${RESULT_COUNT}"
+
+          if [ "${RESULT_COUNT}" -ne 279 ]; then
+            echo "ERROR: Expected 279 result files."
+            echo "Actual result files: ${RESULT_COUNT}"
+            exit 1
+          fi
+
+          echo
+          echo "279 RESULT FILES FOUND"
 
       - name: Consolidate 279 executions
         shell: bash
