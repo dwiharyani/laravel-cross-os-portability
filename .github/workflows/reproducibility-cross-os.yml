@@ -1,0 +1,273 @@
+name: Stage 4 Cross-OS Portability
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_parallel:
+        description: "Maximum concurrent OS executions"
+        required: true
+        default: "12"
+
+permissions:
+  contents: read
+
+jobs:
+
+  prepare-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Build Cross-OS matrix
+        id: build
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import os
+
+          input_file = "data/interim/stage4_cross_os_eligible.csv"
+
+          rows = []
+          with open(input_file, encoding="utf-8", newline="") as f:
+              for r in csv.DictReader(f):
+                  rows.append(r)
+
+          if len(rows) != 93:
+              raise RuntimeError(f"Expected 93 eligible repositories, found {len(rows)}")
+
+          include = []
+          for idx, r in enumerate(rows, start=1):
+              for os_name, runner in [
+                  ("linux", "ubuntu-22.04"),
+                  ("windows", "windows-2022"),
+                  ("macos", "macos-15"),
+              ]:
+                  include.append({
+                      "repo_index": idx,
+                      "repo_full_name": r["repo_full_name"],
+                      "url": r["url"],
+                      "latest_sha": r["latest_sha"],
+                      "php_runtime": r["php_runtime"],
+                      "laravel_version_constraint": r.get("laravel_version_constraint", ""),
+                      "test_command": r.get("test_command", ""),
+                      "test_command_source": r.get("test_command_source", ""),
+                      "os": os_name,
+                      "runner": runner,
+                  })
+
+          matrix = json.dumps({"include": include}, separators=(",", ":"))
+
+          if len(matrix.encode()) > 900_000:
+              raise RuntimeError("Matrix output is too large for a safe GITHUB_OUTPUT payload.")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write("matrix<<STAGE4_MATRIX\n")
+              f.write(matrix)
+              f.write("\nSTAGE4_MATRIX\n")
+
+          print("Eligible repositories:", len(rows))
+          print("Cross-OS executions:", len(include))
+          print("Linux:", sum(x["os"] == "linux" for x in include))
+          print("Windows:", sum(x["os"] == "windows" for x in include))
+          print("macOS:", sum(x["os"] == "macos" for x in include))
+          PY
+
+  run-cross-os:
+    needs: prepare-matrix
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
+
+    name: "${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        id: setup_php
+        uses: shivammathur/setup-php@v2
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php_runtime }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Verify runtime
+        continue-on-error: true
+        shell: bash
+        run: |
+          php -v || true
+          composer --version || true
+          git --version || true
+
+      - name: Run exact-commit reproducibility protocol
+        id: protocol
+        continue-on-error: true
+        shell: bash
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ matrix.php_runtime }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+        run: |
+          python scripts/14_cross_os_reproducibility.py
+
+      - name: Save result
+        if: always()
+        shell: bash
+        run: |
+          if [ -f stage4_result.json ]; then
+            cp stage4_result.json "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
+          else
+            python - <<'PY'
+          import json, os
+          r = {
+            "repo_full_name": os.environ.get("STAGE4_REPO", "${{ matrix.repo_full_name }}"),
+            "latest_sha": os.environ.get("STAGE4_SHA", "${{ matrix.latest_sha }}"),
+            "os": os.environ.get("STAGE4_OS", "${{ matrix.os }}"),
+            "runner": os.environ.get("STAGE4_RUNNER", "${{ matrix.runner }}"),
+            "php_runtime_requested": os.environ.get("STAGE4_PHP", "${{ matrix.php_runtime }}"),
+            "reproducibility_status": "FAILED",
+            "failure_category": "INFRASTRUCTURE",
+            "failure_stage": "RUNTIME_SETUP",
+            "failure_detail": "Cross-OS protocol did not produce a result file."
+          }
+          open("stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json", "w").write(json.dumps(r, indent=2))
+          PY
+          fi
+
+      - name: Upload execution result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-${{ matrix.repo_index }}-${{ matrix.os }}
+          path: |
+            stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
+            stage4_result.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  consolidate:
+    needs: run-cross-os
+    if: always()
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+
+      - name: Download all Stage 4 results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stage4-*
+          path: stage4_artifacts
+          merge-multiple: true
+
+      - name: Consolidate 279 executions
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import glob
+          import pandas as pd
+          from pathlib import Path
+
+          files = sorted(set(glob.glob("stage4_artifacts/stage4_result_*.json")))
+
+          if len(files) != 279:
+              raise RuntimeError(
+                  f"Expected 279 result files (93 repositories × 3 OS), found {len(files)}"
+              )
+
+          rows = []
+          for f in files:
+              with open(f, encoding="utf-8") as h:
+                  rows.append(json.load(h))
+
+          df = pd.DataFrame(rows)
+
+          required = [
+              "repo_full_name", "latest_sha", "os",
+              "php_runtime_requested", "reproducibility_status",
+              "failure_category", "failure_stage", "failure_detail"
+          ]
+          missing = [c for c in required if c not in df.columns]
+          if missing:
+              raise RuntimeError(f"Missing columns: {missing}")
+
+          df.to_csv("stage4_cross_os_results.csv", index=False)
+
+          pivot = df.pivot_table(
+              index=["repo_full_name", "latest_sha"],
+              columns="os",
+              values="reproducibility_status",
+              aggfunc="first"
+          ).reset_index()
+
+          for c in ["linux", "windows", "macos"]:
+              if c not in pivot.columns:
+                  pivot[c] = "MISSING"
+
+          def classify(r):
+              vals = [str(r[c]).upper() for c in ["linux", "windows", "macos"]]
+              if all(v == "REPRODUCIBLE" for v in vals):
+                  return "ALL_OS_REPRODUCIBLE"
+              if vals[0] == "REPRODUCIBLE" and vals[1] == "FAILED" and vals[2] == "REPRODUCIBLE":
+                  return "WINDOWS_FAILURE"
+              if vals[0] == "REPRODUCIBLE" and vals[1] == "REPRODUCIBLE" and vals[2] == "FAILED":
+                  return "MACOS_FAILURE"
+              if vals[0] == "FAILED" and vals[1] == "REPRODUCIBLE" and vals[2] == "REPRODUCIBLE":
+                  return "LINUX_FAILURE"
+              if vals.count("FAILED") >= 2:
+                  return "MULTI_OS_FAILURE"
+              return "INCOMPLETE_OR_OTHER"
+
+          pivot["cross_os_status"] = pivot.apply(classify, axis=1)
+          pivot.to_csv("stage4_cross_os_portability.csv", index=False)
+
+          summary = pd.DataFrame([
+              ["Repositories", len(pivot)],
+              ["All three OS reproducible", (pivot["cross_os_status"] == "ALL_OS_REPRODUCIBLE").sum()],
+              ["Windows-specific failure", (pivot["cross_os_status"] == "WINDOWS_FAILURE").sum()],
+              ["macOS-specific failure", (pivot["cross_os_status"] == "MACOS_FAILURE").sum()],
+              ["Linux-specific failure", (pivot["cross_os_status"] == "LINUX_FAILURE").sum()],
+              ["Multi-OS failure", (pivot["cross_os_status"] == "MULTI_OS_FAILURE").sum()],
+          ], columns=["metric", "count"])
+
+          summary.to_csv("stage4_cross_os_summary.csv", index=False)
+
+          with pd.ExcelWriter("stage4_cross_os_results.xlsx", engine="openpyxl") as writer:
+              df.to_excel(writer, sheet_name="OS_Executions", index=False)
+              pivot.to_excel(writer, sheet_name="Cross_OS_Portability", index=False)
+              summary.to_excel(writer, sheet_name="Summary", index=False)
+
+          print(summary.to_string(index=False))
+          print(f"\nExecution rows: {len(df)}")
+          print(f"Repository rows: {len(pivot)}")
+          PY
+
+      - name: Upload consolidated Stage 4 results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-final-results
+          path: |
+            stage4_cross_os_results.csv
+            stage4_cross_os_portability.csv
+            stage4_cross_os_summary.csv
+            stage4_cross_os_results.xlsx
+          retention-days: 90
