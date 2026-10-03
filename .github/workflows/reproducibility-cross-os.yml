@@ -13,118 +13,301 @@ permissions:
 
 jobs:
 
-  prepare-matrix:
-    runs-on: ubuntu-22.04
-    outputs:
-      batch1: ${{ steps.build.outputs.batch1 }}
-      batch2: ${{ steps.build.outputs.batch2 }}
-      batch3: ${{ steps.build.outputs.batch3 }}
-
-    steps:
-      - name: Checkout methodology repository
-        uses: actions/checkout@v4
-
-      - name: Build three cross-OS matrices
-        id: build
-        shell: bash
-        run: |
-          python - <<'PY'
-          import csv
-          import json
-          import os
-
-          input_file = "data/interim/stage4_cross_os_eligible.csv"
-
-          with open(input_file, encoding="utf-8", newline="") as f:
-              rows = list(csv.DictReader(f))
-
-          if len(rows) != 93:
-              raise RuntimeError(
-                  f"Expected 93 eligible repositories, found {len(rows)}"
-              )
-
-          os_targets = [
-              ("linux", "ubuntu-22.04"),
-              ("windows", "windows-2022"),
-              ("macos", "macos-15"),
-          ]
-
-          batches = [
-              rows[0:31],
-              rows[31:62],
-              rows[62:93],
-          ]
-
-          outputs = {}
-
-          for batch_number, batch_rows in enumerate(batches, start=1):
-              include = []
-
-              for idx, r in enumerate(
-                  batch_rows,
-                  start=(batch_number - 1) * 31 + 1
-              ):
-                  for os_name, runner in os_targets:
-                      include.append({
-                          "repo_index": idx,
-                          "repo_full_name": r["repo_full_name"],
-                          "url": r["url"],
-                          "latest_sha": r["latest_sha"],
-                          "php_runtime": r["php_runtime"],
-                          "laravel_version_constraint":
-                              r.get("laravel_version_constraint", ""),
-                          "test_command": r.get("test_command", ""),
-                          "test_command_source":
-                              r.get("test_command_source", ""),
-                          "os": os_name,
-                          "runner": runner,
-                      })
-
-              value = json.dumps(
-                  {"include": include},
-                  separators=(",", ":")
-              )
-
-              outputs[f"batch{batch_number}"] = value
-
-              print(
-                  f"Batch {batch_number}: "
-                  f"{len(batch_rows)} repositories / "
-                  f"{len(include)} executions"
-              )
-
-          github_output = os.environ["GITHUB_OUTPUT"]
-
-          with open(
-              github_output,
-              "a",
-              encoding="utf-8"
-          ) as f:
-              for name, value in outputs.items():
-                  f.write(f"{name}={value}\n")
-
-          print()
-          print("Total repositories:", len(rows))
-          print("Total executions:", len(rows) * 3)
-          print("Linux:", len(rows))
-          print("Windows:", len(rows))
-          print("macOS:", len(rows))
-          PY
-
-  run-batch-1:
-    needs: prepare-matrix
+  run-cross-os:
 
     strategy:
       fail-fast: false
       max-parallel: 12
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch1) }}
+
+      matrix:
+        include:
+          - {"repo_index":1,"repo_full_name":"Kareem-Bizreh/E-Commerce_Platform","url":"https://github.com/Kareem-Bizreh/E-Commerce_Platform","latest_sha":"7fffee8dd991c6499a256afb52c20f5398cb4d48","php_runtime":"8.2","laravel_version_constraint":"^11.31","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":1,"repo_full_name":"Kareem-Bizreh/E-Commerce_Platform","url":"https://github.com/Kareem-Bizreh/E-Commerce_Platform","latest_sha":"7fffee8dd991c6499a256afb52c20f5398cb4d48","php_runtime":"8.2","laravel_version_constraint":"^11.31","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":1,"repo_full_name":"Kareem-Bizreh/E-Commerce_Platform","url":"https://github.com/Kareem-Bizreh/E-Commerce_Platform","latest_sha":"7fffee8dd991c6499a256afb52c20f5398cb4d48","php_runtime":"8.2","laravel_version_constraint":"^11.31","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":2,"repo_full_name":"goldcoders-corp/vuetified","url":"https://github.com/goldcoders-corp/vuetified","latest_sha":"1c3be8e37c8e68e9fea13def8f450fde9734b0b8","php_runtime":"8.0","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":2,"repo_full_name":"goldcoders-corp/vuetified","url":"https://github.com/goldcoders-corp/vuetified","latest_sha":"1c3be8e37c8e68e9fea13def8f450fde9734b0b8","php_runtime":"8.0","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":2,"repo_full_name":"goldcoders-corp/vuetified","url":"https://github.com/goldcoders-corp/vuetified","latest_sha":"1c3be8e37c8e68e9fea13def8f450fde9734b0b8","php_runtime":"8.0","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":3,"repo_full_name":"ooaoJ/interscore","url":"https://github.com/ooaoJ/interscore","latest_sha":"966a8e39e2163afa76d37dffd3d4a1788ffaf626","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":3,"repo_full_name":"ooaoJ/interscore","url":"https://github.com/ooaoJ/interscore","latest_sha":"966a8e39e2163afa76d37dffd3d4a1788ffaf626","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":3,"repo_full_name":"ooaoJ/interscore","url":"https://github.com/ooaoJ/interscore","latest_sha":"966a8e39e2163afa76d37dffd3d4a1788ffaf626","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":4,"repo_full_name":"Reaper1994/supermarket-checkout","url":"https://github.com/Reaper1994/supermarket-checkout","latest_sha":"a8b5d1a3822b9f515192e048833aa41b63d67ef8","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":4,"repo_full_name":"Reaper1994/supermarket-checkout","url":"https://github.com/Reaper1994/supermarket-checkout","latest_sha":"a8b5d1a3822b9f515192e048833aa41b63d67ef8","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":4,"repo_full_name":"Reaper1994/supermarket-checkout","url":"https://github.com/Reaper1994/supermarket-checkout","latest_sha":"a8b5d1a3822b9f515192e048833aa41b63d67ef8","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":5,"repo_full_name":"sfauzi/book-career","url":"https://github.com/sfauzi/book-career","latest_sha":"b5ea078e44bc6ff3e2abc1a1068099a3a4cf4921","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":5,"repo_full_name":"sfauzi/book-career","url":"https://github.com/sfauzi/book-career","latest_sha":"b5ea078e44bc6ff3e2abc1a1068099a3a4cf4921","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":5,"repo_full_name":"sfauzi/book-career","url":"https://github.com/sfauzi/book-career","latest_sha":"b5ea078e44bc6ff3e2abc1a1068099a3a4cf4921","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":6,"repo_full_name":"akaunting/akaunting","url":"https://github.com/akaunting/akaunting","latest_sha":"8e8a9ed41cb740503f529cb1c9dbda21b2fd5ea3","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":6,"repo_full_name":"akaunting/akaunting","url":"https://github.com/akaunting/akaunting","latest_sha":"8e8a9ed41cb740503f529cb1c9dbda21b2fd5ea3","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":6,"repo_full_name":"akaunting/akaunting","url":"https://github.com/akaunting/akaunting","latest_sha":"8e8a9ed41cb740503f529cb1c9dbda21b2fd5ea3","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":7,"repo_full_name":"igudy/employees-management-system","url":"https://github.com/igudy/employees-management-system","latest_sha":"df8b014b1bd8992065f89300646a69ea496ff19f","php_runtime":"7.4","laravel_version_constraint":"^8.65","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":7,"repo_full_name":"igudy/employees-management-system","url":"https://github.com/igudy/employees-management-system","latest_sha":"df8b014b1bd8992065f89300646a69ea496ff19f","php_runtime":"7.4","laravel_version_constraint":"^8.65","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":7,"repo_full_name":"igudy/employees-management-system","url":"https://github.com/igudy/employees-management-system","latest_sha":"df8b014b1bd8992065f89300646a69ea496ff19f","php_runtime":"7.4","laravel_version_constraint":"^8.65","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":8,"repo_full_name":"kalwar/NameApp","url":"https://github.com/kalwar/NameApp","latest_sha":"b7905b53e9454fd3fadd1724d660b3a92bd6722d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":8,"repo_full_name":"kalwar/NameApp","url":"https://github.com/kalwar/NameApp","latest_sha":"b7905b53e9454fd3fadd1724d660b3a92bd6722d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":8,"repo_full_name":"kalwar/NameApp","url":"https://github.com/kalwar/NameApp","latest_sha":"b7905b53e9454fd3fadd1724d660b3a92bd6722d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":9,"repo_full_name":"koel/koel","url":"https://github.com/koel/koel","latest_sha":"de173f3a91f9fbf5a48e5d9d4d2735e35ad9a9a1","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":9,"repo_full_name":"koel/koel","url":"https://github.com/koel/koel","latest_sha":"de173f3a91f9fbf5a48e5d9d4d2735e35ad9a9a1","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":9,"repo_full_name":"koel/koel","url":"https://github.com/koel/koel","latest_sha":"de173f3a91f9fbf5a48e5d9d4d2735e35ad9a9a1","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":10,"repo_full_name":"rakibhasansabbir/Laravel-Ecommerce-API","url":"https://github.com/rakibhasansabbir/Laravel-Ecommerce-API","latest_sha":"83fc11067b315a2b900f08ea64274b180b35ffbe","php_runtime":"8.1","laravel_version_constraint":"^9.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":10,"repo_full_name":"rakibhasansabbir/Laravel-Ecommerce-API","url":"https://github.com/rakibhasansabbir/Laravel-Ecommerce-API","latest_sha":"83fc11067b315a2b900f08ea64274b180b35ffbe","php_runtime":"8.1","laravel_version_constraint":"^9.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":10,"repo_full_name":"rakibhasansabbir/Laravel-Ecommerce-API","url":"https://github.com/rakibhasansabbir/Laravel-Ecommerce-API","latest_sha":"83fc11067b315a2b900f08ea64274b180b35ffbe","php_runtime":"8.1","laravel_version_constraint":"^9.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":11,"repo_full_name":"RodneySsemambo/retail-management-dashboard","url":"https://github.com/RodneySsemambo/retail-management-dashboard","latest_sha":"97195b40bb5ac44dcd9bb742171f764f21283342","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":11,"repo_full_name":"RodneySsemambo/retail-management-dashboard","url":"https://github.com/RodneySsemambo/retail-management-dashboard","latest_sha":"97195b40bb5ac44dcd9bb742171f764f21283342","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":11,"repo_full_name":"RodneySsemambo/retail-management-dashboard","url":"https://github.com/RodneySsemambo/retail-management-dashboard","latest_sha":"97195b40bb5ac44dcd9bb742171f764f21283342","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":12,"repo_full_name":"sqlik/sesmograph","url":"https://github.com/sqlik/sesmograph","latest_sha":"23adf5687369b9a0278981c4209a861d2f3e45b3","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":12,"repo_full_name":"sqlik/sesmograph","url":"https://github.com/sqlik/sesmograph","latest_sha":"23adf5687369b9a0278981c4209a861d2f3e45b3","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":12,"repo_full_name":"sqlik/sesmograph","url":"https://github.com/sqlik/sesmograph","latest_sha":"23adf5687369b9a0278981c4209a861d2f3e45b3","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":13,"repo_full_name":"engsahaly/filament_php_course","url":"https://github.com/engsahaly/filament_php_course","latest_sha":"ec3fdd845fbb693b3b316659925d5df5e7f592a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":13,"repo_full_name":"engsahaly/filament_php_course","url":"https://github.com/engsahaly/filament_php_course","latest_sha":"ec3fdd845fbb693b3b316659925d5df5e7f592a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":13,"repo_full_name":"engsahaly/filament_php_course","url":"https://github.com/engsahaly/filament_php_course","latest_sha":"ec3fdd845fbb693b3b316659925d5df5e7f592a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":14,"repo_full_name":"JieAnthony/apple-mdm-system","url":"https://github.com/JieAnthony/apple-mdm-system","latest_sha":"a713671b2307fae99847cec2fe78889d4501d0d0","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":14,"repo_full_name":"JieAnthony/apple-mdm-system","url":"https://github.com/JieAnthony/apple-mdm-system","latest_sha":"a713671b2307fae99847cec2fe78889d4501d0d0","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":14,"repo_full_name":"JieAnthony/apple-mdm-system","url":"https://github.com/JieAnthony/apple-mdm-system","latest_sha":"a713671b2307fae99847cec2fe78889d4501d0d0","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":15,"repo_full_name":"piotr-jura-udemy/laravel-graphql-vue-tailwind-course","url":"https://github.com/piotr-jura-udemy/laravel-graphql-vue-tailwind-course","latest_sha":"c330ba64998facfc2ee9186f00e15f2893a566fa","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":15,"repo_full_name":"piotr-jura-udemy/laravel-graphql-vue-tailwind-course","url":"https://github.com/piotr-jura-udemy/laravel-graphql-vue-tailwind-course","latest_sha":"c330ba64998facfc2ee9186f00e15f2893a566fa","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":15,"repo_full_name":"piotr-jura-udemy/laravel-graphql-vue-tailwind-course","url":"https://github.com/piotr-jura-udemy/laravel-graphql-vue-tailwind-course","latest_sha":"c330ba64998facfc2ee9186f00e15f2893a566fa","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":16,"repo_full_name":"GabrielG71/busca_produto","url":"https://github.com/GabrielG71/busca_produto","latest_sha":"0aa1a30051efec25fa0f5ebf728b070a29e152c4","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":16,"repo_full_name":"GabrielG71/busca_produto","url":"https://github.com/GabrielG71/busca_produto","latest_sha":"0aa1a30051efec25fa0f5ebf728b070a29e152c4","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":16,"repo_full_name":"GabrielG71/busca_produto","url":"https://github.com/GabrielG71/busca_produto","latest_sha":"0aa1a30051efec25fa0f5ebf728b070a29e152c4","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":17,"repo_full_name":"AmirPeyravan/music-player-style","url":"https://github.com/AmirPeyravan/music-player-style","latest_sha":"6ae33c964468f4b3d07516ac7213f6f139e2bcce","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":17,"repo_full_name":"AmirPeyravan/music-player-style","url":"https://github.com/AmirPeyravan/music-player-style","latest_sha":"6ae33c964468f4b3d07516ac7213f6f139e2bcce","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":17,"repo_full_name":"AmirPeyravan/music-player-style","url":"https://github.com/AmirPeyravan/music-player-style","latest_sha":"6ae33c964468f4b3d07516ac7213f6f139e2bcce","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":18,"repo_full_name":"Jieyab89/Lara-Mankost","url":"https://github.com/Jieyab89/Lara-Mankost","latest_sha":"3c6c735160393b20760cbbfa5ffeb2c0965dea8a","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":18,"repo_full_name":"Jieyab89/Lara-Mankost","url":"https://github.com/Jieyab89/Lara-Mankost","latest_sha":"3c6c735160393b20760cbbfa5ffeb2c0965dea8a","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":18,"repo_full_name":"Jieyab89/Lara-Mankost","url":"https://github.com/Jieyab89/Lara-Mankost","latest_sha":"3c6c735160393b20760cbbfa5ffeb2c0965dea8a","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":19,"repo_full_name":"AbdallhElzayat2020/Auth_Authorize_Native","url":"https://github.com/AbdallhElzayat2020/Auth_Authorize_Native","latest_sha":"9ea55407a0d43ec6e5d749c1977150db21e7237c","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":19,"repo_full_name":"AbdallhElzayat2020/Auth_Authorize_Native","url":"https://github.com/AbdallhElzayat2020/Auth_Authorize_Native","latest_sha":"9ea55407a0d43ec6e5d749c1977150db21e7237c","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":19,"repo_full_name":"AbdallhElzayat2020/Auth_Authorize_Native","url":"https://github.com/AbdallhElzayat2020/Auth_Authorize_Native","latest_sha":"9ea55407a0d43ec6e5d749c1977150db21e7237c","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":20,"repo_full_name":"ElieRu/quick-cartel","url":"https://github.com/ElieRu/quick-cartel","latest_sha":"8a61d136d35dea61cfc9106867144f72321af44d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":20,"repo_full_name":"ElieRu/quick-cartel","url":"https://github.com/ElieRu/quick-cartel","latest_sha":"8a61d136d35dea61cfc9106867144f72321af44d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":20,"repo_full_name":"ElieRu/quick-cartel","url":"https://github.com/ElieRu/quick-cartel","latest_sha":"8a61d136d35dea61cfc9106867144f72321af44d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":21,"repo_full_name":"SallaApp/laravel-starter-kit","url":"https://github.com/SallaApp/laravel-starter-kit","latest_sha":"1bd62d5aa968f5c6ed741f1fa8cdfecfe8c2e79a","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":21,"repo_full_name":"SallaApp/laravel-starter-kit","url":"https://github.com/SallaApp/laravel-starter-kit","latest_sha":"1bd62d5aa968f5c6ed741f1fa8cdfecfe8c2e79a","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":21,"repo_full_name":"SallaApp/laravel-starter-kit","url":"https://github.com/SallaApp/laravel-starter-kit","latest_sha":"1bd62d5aa968f5c6ed741f1fa8cdfecfe8c2e79a","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":22,"repo_full_name":"orebarranco/filament-ddd-starter","url":"https://github.com/orebarranco/filament-ddd-starter","latest_sha":"64f20feec67d734bd6632fb44340849860cb3f86","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":22,"repo_full_name":"orebarranco/filament-ddd-starter","url":"https://github.com/orebarranco/filament-ddd-starter","latest_sha":"64f20feec67d734bd6632fb44340849860cb3f86","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":22,"repo_full_name":"orebarranco/filament-ddd-starter","url":"https://github.com/orebarranco/filament-ddd-starter","latest_sha":"64f20feec67d734bd6632fb44340849860cb3f86","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":23,"repo_full_name":"akhwan90/cat_laravel","url":"https://github.com/akhwan90/cat_laravel","latest_sha":"68db44d5619e0a29cfb86b49d7ad3c2d8046cb76","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":23,"repo_full_name":"akhwan90/cat_laravel","url":"https://github.com/akhwan90/cat_laravel","latest_sha":"68db44d5619e0a29cfb86b49d7ad3c2d8046cb76","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":23,"repo_full_name":"akhwan90/cat_laravel","url":"https://github.com/akhwan90/cat_laravel","latest_sha":"68db44d5619e0a29cfb86b49d7ad3c2d8046cb76","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":24,"repo_full_name":"RyderAsKing/Plicense","url":"https://github.com/RyderAsKing/Plicense","latest_sha":"73ec633497967a8f78ff1ab762fdaec7e8294127","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":24,"repo_full_name":"RyderAsKing/Plicense","url":"https://github.com/RyderAsKing/Plicense","latest_sha":"73ec633497967a8f78ff1ab762fdaec7e8294127","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":24,"repo_full_name":"RyderAsKing/Plicense","url":"https://github.com/RyderAsKing/Plicense","latest_sha":"73ec633497967a8f78ff1ab762fdaec7e8294127","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":25,"repo_full_name":"Snevver/SteamGuessr","url":"https://github.com/Snevver/SteamGuessr","latest_sha":"4caa8cf49173fe35766813e87f8b9c21f55c4670","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":25,"repo_full_name":"Snevver/SteamGuessr","url":"https://github.com/Snevver/SteamGuessr","latest_sha":"4caa8cf49173fe35766813e87f8b9c21f55c4670","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":25,"repo_full_name":"Snevver/SteamGuessr","url":"https://github.com/Snevver/SteamGuessr","latest_sha":"4caa8cf49173fe35766813e87f8b9c21f55c4670","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":26,"repo_full_name":"WajdMHeshme/E-Store-Backend","url":"https://github.com/WajdMHeshme/E-Store-Backend","latest_sha":"53382a9846523db112611d37c9334f1f98f17fa9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":26,"repo_full_name":"WajdMHeshme/E-Store-Backend","url":"https://github.com/WajdMHeshme/E-Store-Backend","latest_sha":"53382a9846523db112611d37c9334f1f98f17fa9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":26,"repo_full_name":"WajdMHeshme/E-Store-Backend","url":"https://github.com/WajdMHeshme/E-Store-Backend","latest_sha":"53382a9846523db112611d37c9334f1f98f17fa9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":27,"repo_full_name":"alihamzahq/laravel-multi-tenant-saas-starter","url":"https://github.com/alihamzahq/laravel-multi-tenant-saas-starter","latest_sha":"7040645e2a737fafad6aa6dfc820c3d104677b99","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":27,"repo_full_name":"alihamzahq/laravel-multi-tenant-saas-starter","url":"https://github.com/alihamzahq/laravel-multi-tenant-saas-starter","latest_sha":"7040645e2a737fafad6aa6dfc820c3d104677b99","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":27,"repo_full_name":"alihamzahq/laravel-multi-tenant-saas-starter","url":"https://github.com/alihamzahq/laravel-multi-tenant-saas-starter","latest_sha":"7040645e2a737fafad6aa6dfc820c3d104677b99","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":28,"repo_full_name":"phamhieuit04/vibra-api","url":"https://github.com/phamhieuit04/vibra-api","latest_sha":"abd3191d726f9d79bc9c422aa16961150bd59e7d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":28,"repo_full_name":"phamhieuit04/vibra-api","url":"https://github.com/phamhieuit04/vibra-api","latest_sha":"abd3191d726f9d79bc9c422aa16961150bd59e7d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":28,"repo_full_name":"phamhieuit04/vibra-api","url":"https://github.com/phamhieuit04/vibra-api","latest_sha":"abd3191d726f9d79bc9c422aa16961150bd59e7d","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":29,"repo_full_name":"AbdullahShublaq/CHATash","url":"https://github.com/AbdullahShublaq/CHATash","latest_sha":"ead6c56b14cecc199a3577d8cef828087dbc81a9","php_runtime":"7.4","laravel_version_constraint":"^7.24","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":29,"repo_full_name":"AbdullahShublaq/CHATash","url":"https://github.com/AbdullahShublaq/CHATash","latest_sha":"ead6c56b14cecc199a3577d8cef828087dbc81a9","php_runtime":"7.4","laravel_version_constraint":"^7.24","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":29,"repo_full_name":"AbdullahShublaq/CHATash","url":"https://github.com/AbdullahShublaq/CHATash","latest_sha":"ead6c56b14cecc199a3577d8cef828087dbc81a9","php_runtime":"7.4","laravel_version_constraint":"^7.24","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":30,"repo_full_name":"dharmendraone/user-task-laravel","url":"https://github.com/dharmendraone/user-task-laravel","latest_sha":"b142483de4133fc95de230ebd8f8b11e0acfa748","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":30,"repo_full_name":"dharmendraone/user-task-laravel","url":"https://github.com/dharmendraone/user-task-laravel","latest_sha":"b142483de4133fc95de230ebd8f8b11e0acfa748","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":30,"repo_full_name":"dharmendraone/user-task-laravel","url":"https://github.com/dharmendraone/user-task-laravel","latest_sha":"b142483de4133fc95de230ebd8f8b11e0acfa748","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":31,"repo_full_name":"404NotFoundIndonesia/raktrek","url":"https://github.com/404NotFoundIndonesia/raktrek","latest_sha":"e00aa117fe3f702e443c396fb2174395e9e23961","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":31,"repo_full_name":"404NotFoundIndonesia/raktrek","url":"https://github.com/404NotFoundIndonesia/raktrek","latest_sha":"e00aa117fe3f702e443c396fb2174395e9e23961","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":31,"repo_full_name":"404NotFoundIndonesia/raktrek","url":"https://github.com/404NotFoundIndonesia/raktrek","latest_sha":"e00aa117fe3f702e443c396fb2174395e9e23961","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":32,"repo_full_name":"Devnawjesh/hr-payroll","url":"https://github.com/Devnawjesh/hr-payroll","latest_sha":"a04a017c6f743d14cb6e6cf534a2561975f6d9d3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":32,"repo_full_name":"Devnawjesh/hr-payroll","url":"https://github.com/Devnawjesh/hr-payroll","latest_sha":"a04a017c6f743d14cb6e6cf534a2561975f6d9d3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":32,"repo_full_name":"Devnawjesh/hr-payroll","url":"https://github.com/Devnawjesh/hr-payroll","latest_sha":"a04a017c6f743d14cb6e6cf534a2561975f6d9d3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":33,"repo_full_name":"bappy3a/e-commerce-application-using-Laravel-and-Vue","url":"https://github.com/bappy3a/e-commerce-application-using-Laravel-and-Vue","latest_sha":"110b0dbb5ffe183df324c1e291d6731db1654155","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":33,"repo_full_name":"bappy3a/e-commerce-application-using-Laravel-and-Vue","url":"https://github.com/bappy3a/e-commerce-application-using-Laravel-and-Vue","latest_sha":"110b0dbb5ffe183df324c1e291d6731db1654155","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":33,"repo_full_name":"bappy3a/e-commerce-application-using-Laravel-and-Vue","url":"https://github.com/bappy3a/e-commerce-application-using-Laravel-and-Vue","latest_sha":"110b0dbb5ffe183df324c1e291d6731db1654155","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":34,"repo_full_name":"manjurulhoque/laravel-udemy-clone","url":"https://github.com/manjurulhoque/laravel-udemy-clone","latest_sha":"41d92593b1f204a36aa947a723f7a7d8867908a4","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":34,"repo_full_name":"manjurulhoque/laravel-udemy-clone","url":"https://github.com/manjurulhoque/laravel-udemy-clone","latest_sha":"41d92593b1f204a36aa947a723f7a7d8867908a4","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":34,"repo_full_name":"manjurulhoque/laravel-udemy-clone","url":"https://github.com/manjurulhoque/laravel-udemy-clone","latest_sha":"41d92593b1f204a36aa947a723f7a7d8867908a4","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":35,"repo_full_name":"Laravel-Nepal/laravelnepal.com","url":"https://github.com/Laravel-Nepal/laravelnepal.com","latest_sha":"4430386941efa3f0989100b37d3e0dba8491e096","php_runtime":"8.3","laravel_version_constraint":"^12.44","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":35,"repo_full_name":"Laravel-Nepal/laravelnepal.com","url":"https://github.com/Laravel-Nepal/laravelnepal.com","latest_sha":"4430386941efa3f0989100b37d3e0dba8491e096","php_runtime":"8.3","laravel_version_constraint":"^12.44","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":35,"repo_full_name":"Laravel-Nepal/laravelnepal.com","url":"https://github.com/Laravel-Nepal/laravelnepal.com","latest_sha":"4430386941efa3f0989100b37d3e0dba8491e096","php_runtime":"8.3","laravel_version_constraint":"^12.44","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":36,"repo_full_name":"minhajul/blog","url":"https://github.com/minhajul/blog","latest_sha":"76c7bf95c342dd98c27114228796e6a2ecf6f835","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":36,"repo_full_name":"minhajul/blog","url":"https://github.com/minhajul/blog","latest_sha":"76c7bf95c342dd98c27114228796e6a2ecf6f835","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":36,"repo_full_name":"minhajul/blog","url":"https://github.com/minhajul/blog","latest_sha":"76c7bf95c342dd98c27114228796e6a2ecf6f835","php_runtime":"8.4","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":37,"repo_full_name":"TedoHarisC/presensi-app-laravel-filament","url":"https://github.com/TedoHarisC/presensi-app-laravel-filament","latest_sha":"7d41d4f61fcf1a143595131169585904a50ff5c3","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":37,"repo_full_name":"TedoHarisC/presensi-app-laravel-filament","url":"https://github.com/TedoHarisC/presensi-app-laravel-filament","latest_sha":"7d41d4f61fcf1a143595131169585904a50ff5c3","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":37,"repo_full_name":"TedoHarisC/presensi-app-laravel-filament","url":"https://github.com/TedoHarisC/presensi-app-laravel-filament","latest_sha":"7d41d4f61fcf1a143595131169585904a50ff5c3","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":38,"repo_full_name":"mycermy/ims-lo14","url":"https://github.com/mycermy/ims-lo14","latest_sha":"51f3c128678380266c9ad8c21d0163b5fcbba22c","php_runtime":"8.3","laravel_version_constraint":"^11.22","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":38,"repo_full_name":"mycermy/ims-lo14","url":"https://github.com/mycermy/ims-lo14","latest_sha":"51f3c128678380266c9ad8c21d0163b5fcbba22c","php_runtime":"8.3","laravel_version_constraint":"^11.22","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":38,"repo_full_name":"mycermy/ims-lo14","url":"https://github.com/mycermy/ims-lo14","latest_sha":"51f3c128678380266c9ad8c21d0163b5fcbba22c","php_runtime":"8.3","laravel_version_constraint":"^11.22","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":39,"repo_full_name":"ArcInTower/telegram-channel-api","url":"https://github.com/ArcInTower/telegram-channel-api","latest_sha":"87d3a01ac3bb404721d46f652019ba40409136b6","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":39,"repo_full_name":"ArcInTower/telegram-channel-api","url":"https://github.com/ArcInTower/telegram-channel-api","latest_sha":"87d3a01ac3bb404721d46f652019ba40409136b6","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":39,"repo_full_name":"ArcInTower/telegram-channel-api","url":"https://github.com/ArcInTower/telegram-channel-api","latest_sha":"87d3a01ac3bb404721d46f652019ba40409136b6","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":40,"repo_full_name":"YasserElgammal/expenses-tracker","url":"https://github.com/YasserElgammal/expenses-tracker","latest_sha":"44999786610e644b3fb7c5fafccf991ae5433def","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":40,"repo_full_name":"YasserElgammal/expenses-tracker","url":"https://github.com/YasserElgammal/expenses-tracker","latest_sha":"44999786610e644b3fb7c5fafccf991ae5433def","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":40,"repo_full_name":"YasserElgammal/expenses-tracker","url":"https://github.com/YasserElgammal/expenses-tracker","latest_sha":"44999786610e644b3fb7c5fafccf991ae5433def","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":41,"repo_full_name":"mortenebak/laravel-starter-project","url":"https://github.com/mortenebak/laravel-starter-project","latest_sha":"985dbe6d5335526def11c75019ac9cc0448c858c","php_runtime":"8.2","laravel_version_constraint":"^v12.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":41,"repo_full_name":"mortenebak/laravel-starter-project","url":"https://github.com/mortenebak/laravel-starter-project","latest_sha":"985dbe6d5335526def11c75019ac9cc0448c858c","php_runtime":"8.2","laravel_version_constraint":"^v12.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":41,"repo_full_name":"mortenebak/laravel-starter-project","url":"https://github.com/mortenebak/laravel-starter-project","latest_sha":"985dbe6d5335526def11c75019ac9cc0448c858c","php_runtime":"8.2","laravel_version_constraint":"^v12.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":42,"repo_full_name":"Helg18/megadownloaderrobot","url":"https://github.com/Helg18/megadownloaderrobot","latest_sha":"e18a2174f777bfbc75c2971d8ca853dcd7cf88d1","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":42,"repo_full_name":"Helg18/megadownloaderrobot","url":"https://github.com/Helg18/megadownloaderrobot","latest_sha":"e18a2174f777bfbc75c2971d8ca853dcd7cf88d1","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":42,"repo_full_name":"Helg18/megadownloaderrobot","url":"https://github.com/Helg18/megadownloaderrobot","latest_sha":"e18a2174f777bfbc75c2971d8ca853dcd7cf88d1","php_runtime":"7.4","laravel_version_constraint":"^7.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":43,"repo_full_name":"FinTrackhq/FinTrack","url":"https://github.com/FinTrackhq/FinTrack","latest_sha":"eb168b2f134b544995f14422a2814198503a81b2","php_runtime":"8.3","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":43,"repo_full_name":"FinTrackhq/FinTrack","url":"https://github.com/FinTrackhq/FinTrack","latest_sha":"eb168b2f134b544995f14422a2814198503a81b2","php_runtime":"8.3","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":43,"repo_full_name":"FinTrackhq/FinTrack","url":"https://github.com/FinTrackhq/FinTrack","latest_sha":"eb168b2f134b544995f14422a2814198503a81b2","php_runtime":"8.3","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":44,"repo_full_name":"hamza094/daywright","url":"https://github.com/hamza094/daywright","latest_sha":"24fea0ee6e843791a91b3fcab7e803511c23dc21","php_runtime":"8.3","laravel_version_constraint":"^12.41.1","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":44,"repo_full_name":"hamza094/daywright","url":"https://github.com/hamza094/daywright","latest_sha":"24fea0ee6e843791a91b3fcab7e803511c23dc21","php_runtime":"8.3","laravel_version_constraint":"^12.41.1","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":44,"repo_full_name":"hamza094/daywright","url":"https://github.com/hamza094/daywright","latest_sha":"24fea0ee6e843791a91b3fcab7e803511c23dc21","php_runtime":"8.3","laravel_version_constraint":"^12.41.1","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":45,"repo_full_name":"nouron/nouron","url":"https://github.com/nouron/nouron","latest_sha":"61ecb1ef1c9dcde65a8f439b8164da399c9a9174","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":45,"repo_full_name":"nouron/nouron","url":"https://github.com/nouron/nouron","latest_sha":"61ecb1ef1c9dcde65a8f439b8164da399c9a9174","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":45,"repo_full_name":"nouron/nouron","url":"https://github.com/nouron/nouron","latest_sha":"61ecb1ef1c9dcde65a8f439b8164da399c9a9174","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":46,"repo_full_name":"MateusHuebra/Termogram-bot","url":"https://github.com/MateusHuebra/Termogram-bot","latest_sha":"ff7ae90ba59ab68dc34b9ff8cee8b9d618f4bd81","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":46,"repo_full_name":"MateusHuebra/Termogram-bot","url":"https://github.com/MateusHuebra/Termogram-bot","latest_sha":"ff7ae90ba59ab68dc34b9ff8cee8b9d618f4bd81","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":46,"repo_full_name":"MateusHuebra/Termogram-bot","url":"https://github.com/MateusHuebra/Termogram-bot","latest_sha":"ff7ae90ba59ab68dc34b9ff8cee8b9d618f4bd81","php_runtime":"7.4","laravel_version_constraint":"^8.75","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":47,"repo_full_name":"spatie/larabank-aggregates","url":"https://github.com/spatie/larabank-aggregates","latest_sha":"8bcbd71514ec9d4d4e8cd9f36dedad71fa449d29","php_runtime":"8.2","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":47,"repo_full_name":"spatie/larabank-aggregates","url":"https://github.com/spatie/larabank-aggregates","latest_sha":"8bcbd71514ec9d4d4e8cd9f36dedad71fa449d29","php_runtime":"8.2","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":47,"repo_full_name":"spatie/larabank-aggregates","url":"https://github.com/spatie/larabank-aggregates","latest_sha":"8bcbd71514ec9d4d4e8cd9f36dedad71fa449d29","php_runtime":"8.2","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":48,"repo_full_name":"Grasss420/GsWeb","url":"https://github.com/Grasss420/GsWeb","latest_sha":"45c67b1dcef845b5969cda3c81f10a2abc4a4c5c","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":48,"repo_full_name":"Grasss420/GsWeb","url":"https://github.com/Grasss420/GsWeb","latest_sha":"45c67b1dcef845b5969cda3c81f10a2abc4a4c5c","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":48,"repo_full_name":"Grasss420/GsWeb","url":"https://github.com/Grasss420/GsWeb","latest_sha":"45c67b1dcef845b5969cda3c81f10a2abc4a4c5c","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":49,"repo_full_name":"gacela-project/laravel-gacela-example","url":"https://github.com/gacela-project/laravel-gacela-example","latest_sha":"ba01e7b03ba80416cbd3545fe866649d7d1d8723","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":49,"repo_full_name":"gacela-project/laravel-gacela-example","url":"https://github.com/gacela-project/laravel-gacela-example","latest_sha":"ba01e7b03ba80416cbd3545fe866649d7d1d8723","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":49,"repo_full_name":"gacela-project/laravel-gacela-example","url":"https://github.com/gacela-project/laravel-gacela-example","latest_sha":"ba01e7b03ba80416cbd3545fe866649d7d1d8723","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":50,"repo_full_name":"eddy8/LightCMS","url":"https://github.com/eddy8/LightCMS","latest_sha":"1b8235781f794753c28bae38b9a1d88afa53afda","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":50,"repo_full_name":"eddy8/LightCMS","url":"https://github.com/eddy8/LightCMS","latest_sha":"1b8235781f794753c28bae38b9a1d88afa53afda","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":50,"repo_full_name":"eddy8/LightCMS","url":"https://github.com/eddy8/LightCMS","latest_sha":"1b8235781f794753c28bae38b9a1d88afa53afda","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":51,"repo_full_name":"alleyinteractive/link-sharing","url":"https://github.com/alleyinteractive/link-sharing","latest_sha":"c0d7303a45acdff746b15c14938221ba5cd0c832","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":51,"repo_full_name":"alleyinteractive/link-sharing","url":"https://github.com/alleyinteractive/link-sharing","latest_sha":"c0d7303a45acdff746b15c14938221ba5cd0c832","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":51,"repo_full_name":"alleyinteractive/link-sharing","url":"https://github.com/alleyinteractive/link-sharing","latest_sha":"c0d7303a45acdff746b15c14938221ba5cd0c832","php_runtime":"8.4","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":52,"repo_full_name":"ekomh170/hris-backend-laravel-sib","url":"https://github.com/ekomh170/hris-backend-laravel-sib","latest_sha":"92aac30af2ab6048e4e1acdd04cfa7462932088b","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":52,"repo_full_name":"ekomh170/hris-backend-laravel-sib","url":"https://github.com/ekomh170/hris-backend-laravel-sib","latest_sha":"92aac30af2ab6048e4e1acdd04cfa7462932088b","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":52,"repo_full_name":"ekomh170/hris-backend-laravel-sib","url":"https://github.com/ekomh170/hris-backend-laravel-sib","latest_sha":"92aac30af2ab6048e4e1acdd04cfa7462932088b","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":53,"repo_full_name":"philiprehberger/almanac","url":"https://github.com/philiprehberger/almanac","latest_sha":"6e7e78fcab41a771923f29ff40e9ac763e956c26","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":53,"repo_full_name":"philiprehberger/almanac","url":"https://github.com/philiprehberger/almanac","latest_sha":"6e7e78fcab41a771923f29ff40e9ac763e956c26","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":53,"repo_full_name":"philiprehberger/almanac","url":"https://github.com/philiprehberger/almanac","latest_sha":"6e7e78fcab41a771923f29ff40e9ac763e956c26","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":54,"repo_full_name":"librebill/librebill","url":"https://github.com/librebill/librebill","latest_sha":"46bb59cef4f7e9fa7e5cf3464136e229dac94f0a","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":54,"repo_full_name":"librebill/librebill","url":"https://github.com/librebill/librebill","latest_sha":"46bb59cef4f7e9fa7e5cf3464136e229dac94f0a","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":54,"repo_full_name":"librebill/librebill","url":"https://github.com/librebill/librebill","latest_sha":"46bb59cef4f7e9fa7e5cf3464136e229dac94f0a","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":55,"repo_full_name":"inertiajs/pingcrm","url":"https://github.com/inertiajs/pingcrm","latest_sha":"59c77d038f47758417119c28d840025caa9aac6d","php_runtime":"8.2","laravel_version_constraint":"^11.1","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":55,"repo_full_name":"inertiajs/pingcrm","url":"https://github.com/inertiajs/pingcrm","latest_sha":"59c77d038f47758417119c28d840025caa9aac6d","php_runtime":"8.2","laravel_version_constraint":"^11.1","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":55,"repo_full_name":"inertiajs/pingcrm","url":"https://github.com/inertiajs/pingcrm","latest_sha":"59c77d038f47758417119c28d840025caa9aac6d","php_runtime":"8.2","laravel_version_constraint":"^11.1","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":56,"repo_full_name":"boolfalse/laravel-reverb-react-chat","url":"https://github.com/boolfalse/laravel-reverb-react-chat","latest_sha":"eedec6f78ba38a668499c55a61ccc593814b6286","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":56,"repo_full_name":"boolfalse/laravel-reverb-react-chat","url":"https://github.com/boolfalse/laravel-reverb-react-chat","latest_sha":"eedec6f78ba38a668499c55a61ccc593814b6286","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":56,"repo_full_name":"boolfalse/laravel-reverb-react-chat","url":"https://github.com/boolfalse/laravel-reverb-react-chat","latest_sha":"eedec6f78ba38a668499c55a61ccc593814b6286","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":57,"repo_full_name":"sanmaxdev/linkforge","url":"https://github.com/sanmaxdev/linkforge","latest_sha":"a05390f41d8d1586f0f857f6787e43267d60fe56","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":57,"repo_full_name":"sanmaxdev/linkforge","url":"https://github.com/sanmaxdev/linkforge","latest_sha":"a05390f41d8d1586f0f857f6787e43267d60fe56","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":57,"repo_full_name":"sanmaxdev/linkforge","url":"https://github.com/sanmaxdev/linkforge","latest_sha":"a05390f41d8d1586f0f857f6787e43267d60fe56","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":58,"repo_full_name":"AaEzha/Laravel---AdminLTE-3---Fortify","url":"https://github.com/AaEzha/Laravel---AdminLTE-3---Fortify","latest_sha":"cd8bdcb54eddd72881078098b96572cd202da660","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":58,"repo_full_name":"AaEzha/Laravel---AdminLTE-3---Fortify","url":"https://github.com/AaEzha/Laravel---AdminLTE-3---Fortify","latest_sha":"cd8bdcb54eddd72881078098b96572cd202da660","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":58,"repo_full_name":"AaEzha/Laravel---AdminLTE-3---Fortify","url":"https://github.com/AaEzha/Laravel---AdminLTE-3---Fortify","latest_sha":"cd8bdcb54eddd72881078098b96572cd202da660","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":59,"repo_full_name":"Astrotomic/astrotomic.info","url":"https://github.com/Astrotomic/astrotomic.info","latest_sha":"167d001685bc491402fd32a5a481c6d372100309","php_runtime":"8.1","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":59,"repo_full_name":"Astrotomic/astrotomic.info","url":"https://github.com/Astrotomic/astrotomic.info","latest_sha":"167d001685bc491402fd32a5a481c6d372100309","php_runtime":"8.1","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":59,"repo_full_name":"Astrotomic/astrotomic.info","url":"https://github.com/Astrotomic/astrotomic.info","latest_sha":"167d001685bc491402fd32a5a481c6d372100309","php_runtime":"8.1","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":60,"repo_full_name":"morpheusadam/ShopSmith","url":"https://github.com/morpheusadam/ShopSmith","latest_sha":"993738f05a7aff45d40bf5a03f03c1b2d2a47563","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":60,"repo_full_name":"morpheusadam/ShopSmith","url":"https://github.com/morpheusadam/ShopSmith","latest_sha":"993738f05a7aff45d40bf5a03f03c1b2d2a47563","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":60,"repo_full_name":"morpheusadam/ShopSmith","url":"https://github.com/morpheusadam/ShopSmith","latest_sha":"993738f05a7aff45d40bf5a03f03c1b2d2a47563","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":61,"repo_full_name":"superdevops233/laravel-nuxt","url":"https://github.com/superdevops233/laravel-nuxt","latest_sha":"fa7ad5efd87188c5da6c5351c2b19a7c5a63e229","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":61,"repo_full_name":"superdevops233/laravel-nuxt","url":"https://github.com/superdevops233/laravel-nuxt","latest_sha":"fa7ad5efd87188c5da6c5351c2b19a7c5a63e229","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":61,"repo_full_name":"superdevops233/laravel-nuxt","url":"https://github.com/superdevops233/laravel-nuxt","latest_sha":"fa7ad5efd87188c5da6c5351c2b19a7c5a63e229","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":62,"repo_full_name":"bajelanmehran/solid-principles","url":"https://github.com/bajelanmehran/solid-principles","latest_sha":"a771494b45757c5daad464c89b2159f96f445c49","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":62,"repo_full_name":"bajelanmehran/solid-principles","url":"https://github.com/bajelanmehran/solid-principles","latest_sha":"a771494b45757c5daad464c89b2159f96f445c49","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":62,"repo_full_name":"bajelanmehran/solid-principles","url":"https://github.com/bajelanmehran/solid-principles","latest_sha":"a771494b45757c5daad464c89b2159f96f445c49","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":63,"repo_full_name":"dsbilling/dsbilling.no","url":"https://github.com/dsbilling/dsbilling.no","latest_sha":"5b323f6a72aee4fe54f7363930b630cba93dc726","php_runtime":"8.4","laravel_version_constraint":"^12.48","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":63,"repo_full_name":"dsbilling/dsbilling.no","url":"https://github.com/dsbilling/dsbilling.no","latest_sha":"5b323f6a72aee4fe54f7363930b630cba93dc726","php_runtime":"8.4","laravel_version_constraint":"^12.48","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":63,"repo_full_name":"dsbilling/dsbilling.no","url":"https://github.com/dsbilling/dsbilling.no","latest_sha":"5b323f6a72aee4fe54f7363930b630cba93dc726","php_runtime":"8.4","laravel_version_constraint":"^12.48","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":64,"repo_full_name":"frikishaan/tiny-crm","url":"https://github.com/frikishaan/tiny-crm","latest_sha":"4d78908065cead042427322e53449c56f4bbc0b3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":64,"repo_full_name":"frikishaan/tiny-crm","url":"https://github.com/frikishaan/tiny-crm","latest_sha":"4d78908065cead042427322e53449c56f4bbc0b3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":64,"repo_full_name":"frikishaan/tiny-crm","url":"https://github.com/frikishaan/tiny-crm","latest_sha":"4d78908065cead042427322e53449c56f4bbc0b3","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":65,"repo_full_name":"canyok-dev0818/production-ready-api","url":"https://github.com/canyok-dev0818/production-ready-api","latest_sha":"8bf1c1ade5170fc08f5a4621dd00fa2d60bf466c","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":65,"repo_full_name":"canyok-dev0818/production-ready-api","url":"https://github.com/canyok-dev0818/production-ready-api","latest_sha":"8bf1c1ade5170fc08f5a4621dd00fa2d60bf466c","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":65,"repo_full_name":"canyok-dev0818/production-ready-api","url":"https://github.com/canyok-dev0818/production-ready-api","latest_sha":"8bf1c1ade5170fc08f5a4621dd00fa2d60bf466c","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":66,"repo_full_name":"MG22Hadi/Warehouses-Mangement","url":"https://github.com/MG22Hadi/Warehouses-Mangement","latest_sha":"79ef98197a9631eae961736e54620bf31b4cc1da","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":66,"repo_full_name":"MG22Hadi/Warehouses-Mangement","url":"https://github.com/MG22Hadi/Warehouses-Mangement","latest_sha":"79ef98197a9631eae961736e54620bf31b4cc1da","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":66,"repo_full_name":"MG22Hadi/Warehouses-Mangement","url":"https://github.com/MG22Hadi/Warehouses-Mangement","latest_sha":"79ef98197a9631eae961736e54620bf31b4cc1da","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":67,"repo_full_name":"hzeeshan/watch-later","url":"https://github.com/hzeeshan/watch-later","latest_sha":"607565a0740a2aded6d4dc0e54b2e1ddf19ef853","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":67,"repo_full_name":"hzeeshan/watch-later","url":"https://github.com/hzeeshan/watch-later","latest_sha":"607565a0740a2aded6d4dc0e54b2e1ddf19ef853","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":67,"repo_full_name":"hzeeshan/watch-later","url":"https://github.com/hzeeshan/watch-later","latest_sha":"607565a0740a2aded6d4dc0e54b2e1ddf19ef853","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":68,"repo_full_name":"matinsoleymni/TodoAppApi","url":"https://github.com/matinsoleymni/TodoAppApi","latest_sha":"3ab98c532185aa7afc094f12b7660124c309bdcb","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":68,"repo_full_name":"matinsoleymni/TodoAppApi","url":"https://github.com/matinsoleymni/TodoAppApi","latest_sha":"3ab98c532185aa7afc094f12b7660124c309bdcb","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":68,"repo_full_name":"matinsoleymni/TodoAppApi","url":"https://github.com/matinsoleymni/TodoAppApi","latest_sha":"3ab98c532185aa7afc094f12b7660124c309bdcb","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":69,"repo_full_name":"1nFrastr/likeadmin_laravel","url":"https://github.com/1nFrastr/likeadmin_laravel","latest_sha":"5d71e27c3868b598648d7653657737b92f58988a","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":69,"repo_full_name":"1nFrastr/likeadmin_laravel","url":"https://github.com/1nFrastr/likeadmin_laravel","latest_sha":"5d71e27c3868b598648d7653657737b92f58988a","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":69,"repo_full_name":"1nFrastr/likeadmin_laravel","url":"https://github.com/1nFrastr/likeadmin_laravel","latest_sha":"5d71e27c3868b598648d7653657737b92f58988a","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":70,"repo_full_name":"obstschale/wichteln","url":"https://github.com/obstschale/wichteln","latest_sha":"dc8717c58443f54eecb38071ab8908c9381a4ae9","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":70,"repo_full_name":"obstschale/wichteln","url":"https://github.com/obstschale/wichteln","latest_sha":"dc8717c58443f54eecb38071ab8908c9381a4ae9","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":70,"repo_full_name":"obstschale/wichteln","url":"https://github.com/obstschale/wichteln","latest_sha":"dc8717c58443f54eecb38071ab8908c9381a4ae9","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":71,"repo_full_name":"BaseMax/FirstLaravelAPI","url":"https://github.com/BaseMax/FirstLaravelAPI","latest_sha":"13cb2b0cf0720114577ddc1839b931306156a084","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":71,"repo_full_name":"BaseMax/FirstLaravelAPI","url":"https://github.com/BaseMax/FirstLaravelAPI","latest_sha":"13cb2b0cf0720114577ddc1839b931306156a084","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":71,"repo_full_name":"BaseMax/FirstLaravelAPI","url":"https://github.com/BaseMax/FirstLaravelAPI","latest_sha":"13cb2b0cf0720114577ddc1839b931306156a084","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":72,"repo_full_name":"jrmajor/arbor","url":"https://github.com/jrmajor/arbor","latest_sha":"889b7f574c84bd1baa2797e1e3b8ebed294a503d","php_runtime":"8.4","laravel_version_constraint":"^12.56","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":72,"repo_full_name":"jrmajor/arbor","url":"https://github.com/jrmajor/arbor","latest_sha":"889b7f574c84bd1baa2797e1e3b8ebed294a503d","php_runtime":"8.4","laravel_version_constraint":"^12.56","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":72,"repo_full_name":"jrmajor/arbor","url":"https://github.com/jrmajor/arbor","latest_sha":"889b7f574c84bd1baa2797e1e3b8ebed294a503d","php_runtime":"8.4","laravel_version_constraint":"^12.56","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":73,"repo_full_name":"ijklim/docker-laravel","url":"https://github.com/ijklim/docker-laravel","latest_sha":"80ae82ababdff68c3cde035894bf071d9133edac","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":73,"repo_full_name":"ijklim/docker-laravel","url":"https://github.com/ijklim/docker-laravel","latest_sha":"80ae82ababdff68c3cde035894bf071d9133edac","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":73,"repo_full_name":"ijklim/docker-laravel","url":"https://github.com/ijklim/docker-laravel","latest_sha":"80ae82ababdff68c3cde035894bf071d9133edac","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":74,"repo_full_name":"angkosal/laravel-pos","url":"https://github.com/angkosal/laravel-pos","latest_sha":"9634a10b30fd57e1862da319ef2112eb742829a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":74,"repo_full_name":"angkosal/laravel-pos","url":"https://github.com/angkosal/laravel-pos","latest_sha":"9634a10b30fd57e1862da319ef2112eb742829a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":74,"repo_full_name":"angkosal/laravel-pos","url":"https://github.com/angkosal/laravel-pos","latest_sha":"9634a10b30fd57e1862da319ef2112eb742829a5","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":75,"repo_full_name":"emtiazzahid/laravel-quiz-system","url":"https://github.com/emtiazzahid/laravel-quiz-system","latest_sha":"7ba5ae16674b12e799dcd0c636bef5129aea20c9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":75,"repo_full_name":"emtiazzahid/laravel-quiz-system","url":"https://github.com/emtiazzahid/laravel-quiz-system","latest_sha":"7ba5ae16674b12e799dcd0c636bef5129aea20c9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":75,"repo_full_name":"emtiazzahid/laravel-quiz-system","url":"https://github.com/emtiazzahid/laravel-quiz-system","latest_sha":"7ba5ae16674b12e799dcd0c636bef5129aea20c9","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":76,"repo_full_name":"tastyigniter/TastyIgniter","url":"https://github.com/tastyigniter/TastyIgniter","latest_sha":"035028bc43debb9da08a29e2c8030ec70a92126a","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":76,"repo_full_name":"tastyigniter/TastyIgniter","url":"https://github.com/tastyigniter/TastyIgniter","latest_sha":"035028bc43debb9da08a29e2c8030ec70a92126a","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":76,"repo_full_name":"tastyigniter/TastyIgniter","url":"https://github.com/tastyigniter/TastyIgniter","latest_sha":"035028bc43debb9da08a29e2c8030ec70a92126a","php_runtime":"8.3","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":77,"repo_full_name":"laravel/sail-server","url":"https://github.com/laravel/sail-server","latest_sha":"b6f7cc3793cfe9beaee01481da64a026d771fe94","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":77,"repo_full_name":"laravel/sail-server","url":"https://github.com/laravel/sail-server","latest_sha":"b6f7cc3793cfe9beaee01481da64a026d771fe94","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":77,"repo_full_name":"laravel/sail-server","url":"https://github.com/laravel/sail-server","latest_sha":"b6f7cc3793cfe9beaee01481da64a026d771fe94","php_runtime":"7.4","laravel_version_constraint":"^8.12","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":78,"repo_full_name":"leo54200/AI-Powered-Study-Group-Website","url":"https://github.com/leo54200/AI-Powered-Study-Group-Website","latest_sha":"d641059f2b805af796e585d7b2ce9a4da49c7a5d","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":78,"repo_full_name":"leo54200/AI-Powered-Study-Group-Website","url":"https://github.com/leo54200/AI-Powered-Study-Group-Website","latest_sha":"d641059f2b805af796e585d7b2ce9a4da49c7a5d","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":78,"repo_full_name":"leo54200/AI-Powered-Study-Group-Website","url":"https://github.com/leo54200/AI-Powered-Study-Group-Website","latest_sha":"d641059f2b805af796e585d7b2ce9a4da49c7a5d","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":79,"repo_full_name":"lightszentip/laravel-starter-base-app","url":"https://github.com/lightszentip/laravel-starter-base-app","latest_sha":"6227a107dbc395c14854018197c28335a2169b82","php_runtime":"8.2","laravel_version_constraint":"^v12.19","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":79,"repo_full_name":"lightszentip/laravel-starter-base-app","url":"https://github.com/lightszentip/laravel-starter-base-app","latest_sha":"6227a107dbc395c14854018197c28335a2169b82","php_runtime":"8.2","laravel_version_constraint":"^v12.19","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":79,"repo_full_name":"lightszentip/laravel-starter-base-app","url":"https://github.com/lightszentip/laravel-starter-base-app","latest_sha":"6227a107dbc395c14854018197c28335a2169b82","php_runtime":"8.2","laravel_version_constraint":"^v12.19","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":80,"repo_full_name":"albertoarena/filament-event-sourcing-demo","url":"https://github.com/albertoarena/filament-event-sourcing-demo","latest_sha":"423fd0595dfe3c53ffa7b36ca0304f81555d6bcc","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":80,"repo_full_name":"albertoarena/filament-event-sourcing-demo","url":"https://github.com/albertoarena/filament-event-sourcing-demo","latest_sha":"423fd0595dfe3c53ffa7b36ca0304f81555d6bcc","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":80,"repo_full_name":"albertoarena/filament-event-sourcing-demo","url":"https://github.com/albertoarena/filament-event-sourcing-demo","latest_sha":"423fd0595dfe3c53ffa7b36ca0304f81555d6bcc","php_runtime":"8.3","laravel_version_constraint":"^13.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":81,"repo_full_name":"ObedNyakundi/schoolfeesmodule","url":"https://github.com/ObedNyakundi/schoolfeesmodule","latest_sha":"edf3c306768822cdba5e368558d27918b7001016","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":81,"repo_full_name":"ObedNyakundi/schoolfeesmodule","url":"https://github.com/ObedNyakundi/schoolfeesmodule","latest_sha":"edf3c306768822cdba5e368558d27918b7001016","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":81,"repo_full_name":"ObedNyakundi/schoolfeesmodule","url":"https://github.com/ObedNyakundi/schoolfeesmodule","latest_sha":"edf3c306768822cdba5e368558d27918b7001016","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":82,"repo_full_name":"yajra/yajrabox.com","url":"https://github.com/yajra/yajrabox.com","latest_sha":"00237fead541d4558ffc5aae95ddc581fa294f0c","php_runtime":"8.3","laravel_version_constraint":"^13.1.1","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":82,"repo_full_name":"yajra/yajrabox.com","url":"https://github.com/yajra/yajrabox.com","latest_sha":"00237fead541d4558ffc5aae95ddc581fa294f0c","php_runtime":"8.3","laravel_version_constraint":"^13.1.1","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":82,"repo_full_name":"yajra/yajrabox.com","url":"https://github.com/yajra/yajrabox.com","latest_sha":"00237fead541d4558ffc5aae95ddc581fa294f0c","php_runtime":"8.3","laravel_version_constraint":"^13.1.1","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":83,"repo_full_name":"phi-rakib/inventory-management-system-api","url":"https://github.com/phi-rakib/inventory-management-system-api","latest_sha":"abbfaeda7bfea6f0a14ba5724ba81e5de3fa0682","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":83,"repo_full_name":"phi-rakib/inventory-management-system-api","url":"https://github.com/phi-rakib/inventory-management-system-api","latest_sha":"abbfaeda7bfea6f0a14ba5724ba81e5de3fa0682","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":83,"repo_full_name":"phi-rakib/inventory-management-system-api","url":"https://github.com/phi-rakib/inventory-management-system-api","latest_sha":"abbfaeda7bfea6f0a14ba5724ba81e5de3fa0682","php_runtime":"8.2","laravel_version_constraint":"^11.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":84,"repo_full_name":"2KAbhishek/lacrud","url":"https://github.com/2KAbhishek/lacrud","latest_sha":"906dba0d2edfd1119c218867877a4dad20b4ff76","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":84,"repo_full_name":"2KAbhishek/lacrud","url":"https://github.com/2KAbhishek/lacrud","latest_sha":"906dba0d2edfd1119c218867877a4dad20b4ff76","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":84,"repo_full_name":"2KAbhishek/lacrud","url":"https://github.com/2KAbhishek/lacrud","latest_sha":"906dba0d2edfd1119c218867877a4dad20b4ff76","php_runtime":"8.0","laravel_version_constraint":"^9.19","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":85,"repo_full_name":"riskialfi/e-kasir","url":"https://github.com/riskialfi/e-kasir","latest_sha":"bf87e825d788709db429eeef64ef0b000fb690b6","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":85,"repo_full_name":"riskialfi/e-kasir","url":"https://github.com/riskialfi/e-kasir","latest_sha":"bf87e825d788709db429eeef64ef0b000fb690b6","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":85,"repo_full_name":"riskialfi/e-kasir","url":"https://github.com/riskialfi/e-kasir","latest_sha":"bf87e825d788709db429eeef64ef0b000fb690b6","php_runtime":"8.1","laravel_version_constraint":"^10.10","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":86,"repo_full_name":"para1992/laravel-rick-demo","url":"https://github.com/para1992/laravel-rick-demo","latest_sha":"4b3c0eed720cc7a5ed18517dc9b0bb240a3decdd","php_runtime":"8.3","laravel_version_constraint":"^13.17","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":86,"repo_full_name":"para1992/laravel-rick-demo","url":"https://github.com/para1992/laravel-rick-demo","latest_sha":"4b3c0eed720cc7a5ed18517dc9b0bb240a3decdd","php_runtime":"8.3","laravel_version_constraint":"^13.17","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":86,"repo_full_name":"para1992/laravel-rick-demo","url":"https://github.com/para1992/laravel-rick-demo","latest_sha":"4b3c0eed720cc7a5ed18517dc9b0bb240a3decdd","php_runtime":"8.3","laravel_version_constraint":"^13.17","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":87,"repo_full_name":"srph/yeet","url":"https://github.com/srph/yeet","latest_sha":"032bbd2089e363a37b2112e4352a3016ef5c50ed","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":87,"repo_full_name":"srph/yeet","url":"https://github.com/srph/yeet","latest_sha":"032bbd2089e363a37b2112e4352a3016ef5c50ed","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":87,"repo_full_name":"srph/yeet","url":"https://github.com/srph/yeet","latest_sha":"032bbd2089e363a37b2112e4352a3016ef5c50ed","php_runtime":"8.3","laravel_version_constraint":"^13.8","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":88,"repo_full_name":"ilsyaa/lazyui-docs","url":"https://github.com/ilsyaa/lazyui-docs","latest_sha":"7e5ff5b807b6b5b65381ec02117180eb993c8571","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":88,"repo_full_name":"ilsyaa/lazyui-docs","url":"https://github.com/ilsyaa/lazyui-docs","latest_sha":"7e5ff5b807b6b5b65381ec02117180eb993c8571","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":88,"repo_full_name":"ilsyaa/lazyui-docs","url":"https://github.com/ilsyaa/lazyui-docs","latest_sha":"7e5ff5b807b6b5b65381ec02117180eb993c8571","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":89,"repo_full_name":"meetmansoorali/users_management","url":"https://github.com/meetmansoorali/users_management","latest_sha":"8a38ba476bbc2a7ade53391f58c417c6d5d8252d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":89,"repo_full_name":"meetmansoorali/users_management","url":"https://github.com/meetmansoorali/users_management","latest_sha":"8a38ba476bbc2a7ade53391f58c417c6d5d8252d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":89,"repo_full_name":"meetmansoorali/users_management","url":"https://github.com/meetmansoorali/users_management","latest_sha":"8a38ba476bbc2a7ade53391f58c417c6d5d8252d","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":90,"repo_full_name":"siamaknaghel/clinic-management-system","url":"https://github.com/siamaknaghel/clinic-management-system","latest_sha":"56b5db3b69d88aac0867c8b14fe6857abc647749","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":90,"repo_full_name":"siamaknaghel/clinic-management-system","url":"https://github.com/siamaknaghel/clinic-management-system","latest_sha":"56b5db3b69d88aac0867c8b14fe6857abc647749","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":90,"repo_full_name":"siamaknaghel/clinic-management-system","url":"https://github.com/siamaknaghel/clinic-management-system","latest_sha":"56b5db3b69d88aac0867c8b14fe6857abc647749","php_runtime":"8.2","laravel_version_constraint":"^12.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":91,"repo_full_name":"Pupler/Crypto-Exchange-Website","url":"https://github.com/Pupler/Crypto-Exchange-Website","latest_sha":"bdcd8b3bfeb5c6d6385f053e33df60883c4eb84c","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":91,"repo_full_name":"Pupler/Crypto-Exchange-Website","url":"https://github.com/Pupler/Crypto-Exchange-Website","latest_sha":"bdcd8b3bfeb5c6d6385f053e33df60883c4eb84c","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":91,"repo_full_name":"Pupler/Crypto-Exchange-Website","url":"https://github.com/Pupler/Crypto-Exchange-Website","latest_sha":"bdcd8b3bfeb5c6d6385f053e33df60883c4eb84c","php_runtime":"8.2","laravel_version_constraint":"^11.9","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":92,"repo_full_name":"laravelio/paste.laravel.io","url":"https://github.com/laravelio/paste.laravel.io","latest_sha":"331cd4a8f451525cd120bdbe82170d1b6aaae325","php_runtime":"8.4","laravel_version_constraint":"^12.49","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":92,"repo_full_name":"laravelio/paste.laravel.io","url":"https://github.com/laravelio/paste.laravel.io","latest_sha":"331cd4a8f451525cd120bdbe82170d1b6aaae325","php_runtime":"8.4","laravel_version_constraint":"^12.49","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":92,"repo_full_name":"laravelio/paste.laravel.io","url":"https://github.com/laravelio/paste.laravel.io","latest_sha":"331cd4a8f451525cd120bdbe82170d1b6aaae325","php_runtime":"8.4","laravel_version_constraint":"^12.49","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
+          - {"repo_index":93,"repo_full_name":"ikhbalfuady/lavux","url":"https://github.com/ikhbalfuady/lavux","latest_sha":"cd482a20f02cc2214d55de0b4e0b11bca56a8496","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"linux","runner":"ubuntu-22.04"}
+          - {"repo_index":93,"repo_full_name":"ikhbalfuady/lavux","url":"https://github.com/ikhbalfuady/lavux","latest_sha":"cd482a20f02cc2214d55de0b4e0b11bca56a8496","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"windows","runner":"windows-2022"}
+          - {"repo_index":93,"repo_full_name":"ikhbalfuady/lavux","url":"https://github.com/ikhbalfuady/lavux","latest_sha":"cd482a20f02cc2214d55de0b4e0b11bca56a8496","php_runtime":"8.1","laravel_version_constraint":"^10.0","test_command":"","test_command_source":"","os":"macos","runner":"macos-15"}
 
     runs-on: ${{ matrix.runner }}
     continue-on-error: true
 
-    name: "Batch 1 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
+    name: "${{ matrix.os }} / ${{ matrix.repo_index }} / ${{ matrix.repo_full_name }}"
 
     steps:
+
       - name: Checkout methodology repository
         uses: actions/checkout@v4
 
@@ -141,6 +324,10 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          echo "Repository: ${{ matrix.repo_full_name }}"
+          echo "OS: ${{ matrix.os }}"
+          echo "Runner: ${{ matrix.runner }}"
+          echo "PHP requested: ${{ matrix.php_runtime }}"
           php -v || true
           composer --version || true
           git --version || true
@@ -180,14 +367,22 @@ jobs:
           import os
 
           result = {
-              "repo_full_name": os.environ["STAGE4_REPO"],
-              "latest_sha": os.environ["STAGE4_SHA"],
-              "os": os.environ["STAGE4_OS"],
-              "runner": os.environ["STAGE4_RUNNER"],
-              "php_runtime_requested": os.environ["STAGE4_PHP"],
-              "reproducibility_status": "FAILED",
-              "failure_category": "INFRASTRUCTURE",
-              "failure_stage": "RUNTIME_SETUP",
+              "repo_full_name":
+                  os.environ["STAGE4_REPO"],
+              "latest_sha":
+                  os.environ["STAGE4_SHA"],
+              "os":
+                  os.environ["STAGE4_OS"],
+              "runner":
+                  os.environ["STAGE4_RUNNER"],
+              "php_runtime_requested":
+                  os.environ["STAGE4_PHP"],
+              "reproducibility_status":
+                  "FAILED",
+              "failure_category":
+                  "INFRASTRUCTURE",
+              "failure_stage":
+                  "RUNTIME_SETUP",
               "failure_detail":
                   "Protocol did not produce stage4_result.json."
           }
@@ -197,217 +392,45 @@ jobs:
               "w",
               encoding="utf-8"
           ) as f:
-              json.dump(result, f, indent=2)
+              json.dump(
+                  result,
+                  f,
+                  indent=2
+              )
           PY
           fi
 
-          ls -lah "$RESULT"
+          echo "Result:"
+          cat "$RESULT"
 
       - name: Upload execution result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage4-batch1-${{ matrix.repo_index }}-${{ matrix.os }}
+          name: stage4-${{ matrix.repo_index }}-${{ matrix.os }}
           path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
           if-no-files-found: error
-          retention-days: 30
-
-  run-batch-2:
-    needs: prepare-matrix
-
-    strategy:
-      fail-fast: false
-      max-parallel: 12
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch2) }}
-
-    runs-on: ${{ matrix.runner }}
-    continue-on-error: true
-
-    name: "Batch 2 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
-
-    steps:
-      - name: Checkout methodology repository
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php_runtime }}
-          tools: composer:v2
-          coverage: none
-
-      - name: Run exact-commit reproducibility protocol
-        continue-on-error: true
-        shell: bash
-        env:
-          STAGE4_REPO: ${{ matrix.repo_full_name }}
-          STAGE4_URL: ${{ matrix.url }}
-          STAGE4_SHA: ${{ matrix.latest_sha }}
-          STAGE4_PHP: ${{ matrix.php_runtime }}
-          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
-          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
-          STAGE4_OS: ${{ matrix.os }}
-          STAGE4_RUNNER: ${{ matrix.runner }}
-        run: |
-          python scripts/14_cross_os_reproducibility.py
-
-      - name: Save result
-        if: always()
-        shell: bash
-        env:
-          STAGE4_REPO: ${{ matrix.repo_full_name }}
-          STAGE4_SHA: ${{ matrix.latest_sha }}
-          STAGE4_OS: ${{ matrix.os }}
-          STAGE4_RUNNER: ${{ matrix.runner }}
-          STAGE4_PHP: ${{ matrix.php_runtime }}
-        run: |
-          RESULT="stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
-
-          if [ -f stage4_result.json ]; then
-            cp stage4_result.json "$RESULT"
-          else
-            python - <<'PY'
-          import json
-          import os
-
-          result = {
-              "repo_full_name": os.environ["STAGE4_REPO"],
-              "latest_sha": os.environ["STAGE4_SHA"],
-              "os": os.environ["STAGE4_OS"],
-              "runner": os.environ["STAGE4_RUNNER"],
-              "php_runtime_requested": os.environ["STAGE4_PHP"],
-              "reproducibility_status": "FAILED",
-              "failure_category": "INFRASTRUCTURE",
-              "failure_stage": "RUNTIME_SETUP",
-              "failure_detail":
-                  "Protocol did not produce stage4_result.json."
-          }
-
-          with open(
-              "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-              json.dump(result, f, indent=2)
-          PY
-          fi
-
-      - name: Upload execution result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: stage4-batch2-${{ matrix.repo_index }}-${{ matrix.os }}
-          path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
-          if-no-files-found: error
-          retention-days: 30
-
-  run-batch-3:
-    needs: prepare-matrix
-
-    strategy:
-      fail-fast: false
-      max-parallel: 12
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.batch3) }}
-
-    runs-on: ${{ matrix.runner }}
-    continue-on-error: true
-
-    name: "Batch 3 / ${{ matrix.os }} / ${{ matrix.repo_full_name }}"
-
-    steps:
-      - name: Checkout methodology repository
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php_runtime }}
-          tools: composer:v2
-          coverage: none
-
-      - name: Run exact-commit reproducibility protocol
-        continue-on-error: true
-        shell: bash
-        env:
-          STAGE4_REPO: ${{ matrix.repo_full_name }}
-          STAGE4_URL: ${{ matrix.url }}
-          STAGE4_SHA: ${{ matrix.latest_sha }}
-          STAGE4_PHP: ${{ matrix.php_runtime }}
-          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
-          STAGE4_TEST_COMMAND: ${{ matrix.test_command }}
-          STAGE4_OS: ${{ matrix.os }}
-          STAGE4_RUNNER: ${{ matrix.runner }}
-        run: |
-          python scripts/14_cross_os_reproducibility.py
-
-      - name: Save result
-        if: always()
-        shell: bash
-        env:
-          STAGE4_REPO: ${{ matrix.repo_full_name }}
-          STAGE4_SHA: ${{ matrix.latest_sha }}
-          STAGE4_OS: ${{ matrix.os }}
-          STAGE4_RUNNER: ${{ matrix.runner }}
-          STAGE4_PHP: ${{ matrix.php_runtime }}
-        run: |
-          RESULT="stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json"
-
-          if [ -f stage4_result.json ]; then
-            cp stage4_result.json "$RESULT"
-          else
-            python - <<'PY'
-          import json
-          import os
-
-          result = {
-              "repo_full_name": os.environ["STAGE4_REPO"],
-              "latest_sha": os.environ["STAGE4_SHA"],
-              "os": os.environ["STAGE4_OS"],
-              "runner": os.environ["STAGE4_RUNNER"],
-              "php_runtime_requested": os.environ["STAGE4_PHP"],
-              "reproducibility_status": "FAILED",
-              "failure_category": "INFRASTRUCTURE",
-              "failure_stage": "RUNTIME_SETUP",
-              "failure_detail":
-                  "Protocol did not produce stage4_result.json."
-          }
-
-          with open(
-              "stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-              json.dump(result, f, indent=2)
-          PY
-          fi
-
-      - name: Upload execution result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: stage4-batch3-${{ matrix.repo_index }}-${{ matrix.os }}
-          path: stage4_result_${{ matrix.repo_index }}_${{ matrix.os }}.json
-          if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
   consolidate:
+
     needs: run-cross-os
+
     if: always()
+
     runs-on: ubuntu-22.04
 
     steps:
+
       - name: Checkout methodology repository
         uses: actions/checkout@v4
 
-      - name: Setup Python for consolidation
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install consolidation dependencies
-        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install pandas openpyxl
@@ -423,83 +446,207 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import json
           import glob
+          import json
           import pandas as pd
-          from pathlib import Path
 
-          files = sorted(set(glob.glob("stage4_artifacts/stage4_result_*.json")))
+          files = sorted(
+              glob.glob(
+                  "stage4_artifacts/stage4_result_*.json"
+              )
+          )
+
+          print("Result files:", len(files))
 
           if len(files) != 279:
               raise RuntimeError(
-                  f"Expected 279 result files (93 repositories × 3 OS), found {len(files)}"
+                  f"Expected 279 result files, found {len(files)}"
               )
 
           rows = []
-          for f in files:
-              with open(f, encoding="utf-8") as h:
-                  rows.append(json.load(h))
+
+          for filename in files:
+              with open(
+                  filename,
+                  encoding="utf-8"
+              ) as f:
+                  rows.append(json.load(f))
 
           df = pd.DataFrame(rows)
 
-          required = [
-              "repo_full_name", "latest_sha", "os",
-              "php_runtime_requested", "reproducibility_status",
-              "failure_category", "failure_stage", "failure_detail"
-          ]
-          missing = [c for c in required if c not in df.columns]
-          if missing:
-              raise RuntimeError(f"Missing columns: {missing}")
-
-          df.to_csv("stage4_cross_os_results.csv", index=False)
+          df.to_csv(
+              "stage4_cross_os_results.csv",
+              index=False
+          )
 
           pivot = df.pivot_table(
-              index=["repo_full_name", "latest_sha"],
+              index=[
+                  "repo_full_name",
+                  "latest_sha"
+              ],
               columns="os",
               values="reproducibility_status",
               aggfunc="first"
           ).reset_index()
 
-          for c in ["linux", "windows", "macos"]:
-              if c not in pivot.columns:
-                  pivot[c] = "MISSING"
+          for os_name in [
+              "linux",
+              "windows",
+              "macos"
+          ]:
+              if os_name not in pivot.columns:
+                  pivot[os_name] = "MISSING"
 
-          def classify(r):
-              vals = [str(r[c]).upper() for c in ["linux", "windows", "macos"]]
-              if all(v == "REPRODUCIBLE" for v in vals):
+          def classify(row):
+
+              values = [
+                  str(row[x]).upper()
+                  for x in [
+                      "linux",
+                      "windows",
+                      "macos"
+                  ]
+              ]
+
+              if all(
+                  value == "REPRODUCIBLE"
+                  for value in values
+              ):
                   return "ALL_OS_REPRODUCIBLE"
-              if vals[0] == "REPRODUCIBLE" and vals[1] == "FAILED" and vals[2] == "REPRODUCIBLE":
+
+              if (
+                  values[0] == "REPRODUCIBLE"
+                  and values[1] == "FAILED"
+                  and values[2] == "REPRODUCIBLE"
+              ):
                   return "WINDOWS_FAILURE"
-              if vals[0] == "REPRODUCIBLE" and vals[1] == "REPRODUCIBLE" and vals[2] == "FAILED":
+
+              if (
+                  values[0] == "REPRODUCIBLE"
+                  and values[1] == "REPRODUCIBLE"
+                  and values[2] == "FAILED"
+              ):
                   return "MACOS_FAILURE"
-              if vals[0] == "FAILED" and vals[1] == "REPRODUCIBLE" and vals[2] == "REPRODUCIBLE":
+
+              if (
+                  values[0] == "FAILED"
+                  and values[1] == "REPRODUCIBLE"
+                  and values[2] == "REPRODUCIBLE"
+              ):
                   return "LINUX_FAILURE"
-              if vals.count("FAILED") >= 2:
+
+              if values.count("FAILED") >= 2:
                   return "MULTI_OS_FAILURE"
+
               return "INCOMPLETE_OR_OTHER"
 
-          pivot["cross_os_status"] = pivot.apply(classify, axis=1)
-          pivot.to_csv("stage4_cross_os_portability.csv", index=False)
+          pivot["cross_os_status"] = pivot.apply(
+              classify,
+              axis=1
+          )
 
-          summary = pd.DataFrame([
-              ["Repositories", len(pivot)],
-              ["All three OS reproducible", (pivot["cross_os_status"] == "ALL_OS_REPRODUCIBLE").sum()],
-              ["Windows-specific failure", (pivot["cross_os_status"] == "WINDOWS_FAILURE").sum()],
-              ["macOS-specific failure", (pivot["cross_os_status"] == "MACOS_FAILURE").sum()],
-              ["Linux-specific failure", (pivot["cross_os_status"] == "LINUX_FAILURE").sum()],
-              ["Multi-OS failure", (pivot["cross_os_status"] == "MULTI_OS_FAILURE").sum()],
-          ], columns=["metric", "count"])
+          pivot.to_csv(
+              "stage4_cross_os_portability.csv",
+              index=False
+          )
 
-          summary.to_csv("stage4_cross_os_summary.csv", index=False)
+          summary = pd.DataFrame(
+              [
+                  [
+                      "Repositories",
+                      len(pivot)
+                  ],
+                  [
+                      "OS executions",
+                      len(df)
+                  ],
+                  [
+                      "Linux executions",
+                      (df["os"] == "linux").sum()
+                  ],
+                  [
+                      "Windows executions",
+                      (df["os"] == "windows").sum()
+                  ],
+                  [
+                      "macOS executions",
+                      (df["os"] == "macos").sum()
+                  ],
+                  [
+                      "All three OS reproducible",
+                      (
+                          pivot["cross_os_status"]
+                          == "ALL_OS_REPRODUCIBLE"
+                      ).sum()
+                  ],
+                  [
+                      "Windows-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "WINDOWS_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "macOS-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "MACOS_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "Linux-specific failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "LINUX_FAILURE"
+                      ).sum()
+                  ],
+                  [
+                      "Multi-OS failure",
+                      (
+                          pivot["cross_os_status"]
+                          == "MULTI_OS_FAILURE"
+                      ).sum()
+                  ],
+              ],
+              columns=[
+                  "metric",
+                  "count"
+              ]
+          )
 
-          with pd.ExcelWriter("stage4_cross_os_results.xlsx", engine="openpyxl") as writer:
-              df.to_excel(writer, sheet_name="OS_Executions", index=False)
-              pivot.to_excel(writer, sheet_name="Cross_OS_Portability", index=False)
-              summary.to_excel(writer, sheet_name="Summary", index=False)
+          summary.to_csv(
+              "stage4_cross_os_summary.csv",
+              index=False
+          )
 
+          with pd.ExcelWriter(
+              "stage4_cross_os_results.xlsx",
+              engine="openpyxl"
+          ) as writer:
+
+              df.to_excel(
+                  writer,
+                  sheet_name="OS_Executions",
+                  index=False
+              )
+
+              pivot.to_excel(
+                  writer,
+                  sheet_name="Cross_OS_Portability",
+                  index=False
+              )
+
+              summary.to_excel(
+                  writer,
+                  sheet_name="Summary",
+                  index=False
+              )
+
+          print()
           print(summary.to_string(index=False))
-          print(f"\nExecution rows: {len(df)}")
-          print(f"Repository rows: {len(pivot)}")
+          print()
+          print("Execution rows:", len(df))
+          print("Repository rows:", len(pivot))
           PY
 
       - name: Upload consolidated Stage 4 results
