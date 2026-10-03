@@ -34,173 +34,253 @@ jobs:
           python -m pip install pandas openpyxl
 
       # ==========================================================
-      # DOWNLOAD ARTIFACTS FROM THE COMPLETED STAGE 4 RUN
+      # GET ARTIFACT LIST
       # ==========================================================
 
-      # ==========================================================
-      # DOWNLOAD ALL 279 ARTIFACTS THROUGH GITHUB API
-      # ==========================================================
-
-      - name: Download all Stage 4 artifact contents
-        uses: actions/github-script@v7
+      - name: Get Stage 4 artifact manifest
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require("fs");
-            const path = require("path");
-            const AdmZip = require("adm-zip");
-
-            const runId = Number(process.env.SOURCE_RUN_ID);
-
-            const artifacts = await github.paginate(
-              github.rest.actions.listWorkflowRunArtifacts,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: runId,
-                per_page: 100
-              }
-            );
-
-            const selected = artifacts.filter(
-              a =>
-                a.name.startsWith("stage4-") &&
-                !a.expired
-            );
-
-            core.info(`Total artifacts returned: ${artifacts.length}`);
-            core.info(`Selected Stage 4 artifacts: ${selected.length}`);
-
-            if (selected.length !== 279) {
-              throw new Error(
-                `Expected 279 Stage 4 artifacts, found ${selected.length}`
-              );
-            }
-
-            fs.mkdirSync("stage4_artifacts", {
-              recursive: true
-            });
-
-            let count = 0;
-
-            for (const artifact of selected) {
-
-              count++;
-
-              core.info(
-                `[${count}/279] Downloading ${artifact.name}`
-              );
-
-              const response =
-                await github.request(
-                  "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip",
-                  {
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    artifact_id: artifact.id,
-                    headers: {
-                      accept:
-                        "application/vnd.github+json"
-                    }
-                  }
-                );
-
-              const zipPath = path.join(
-                "stage4_artifacts",
-                `${artifact.id}.zip`
-              );
-
-              fs.writeFileSync(
-                zipPath,
-                Buffer.from(response.data)
-              );
-
-              const zip = new AdmZip(zipPath);
-
-              const entries =
-                zip.getEntries();
-
-              for (const entry of entries) {
-
-                if (
-                  entry.entryName.endsWith(
-                    ".json"
-                  )
-                ) {
-
-                  const target =
-                    path.join(
-                      "stage4_artifacts",
-                      path.basename(
-                        entry.entryName
-                      )
-                    );
-
-                  fs.writeFileSync(
-                    target,
-                    entry.getData()
-                  );
-                }
-              }
-
-              fs.unlinkSync(zipPath);
-            }
-
-            const files =
-              fs.readdirSync(
-                "stage4_artifacts"
-              ).filter(
-                f =>
-                  f.startsWith(
-                    "stage4_result_"
-                  ) &&
-                  f.endsWith(".json")
-              );
-
-            core.info(
-              `Result JSON files: ${files.length}`
-            );
-
-            if (files.length !== 279) {
-              throw new Error(
-                `Expected 279 result JSON files, found ${files.length}`
-              );
-            }
-
-            core.info(
-              "Successfully downloaded all 279 Stage 4 results."
-            );
-
-      # ==========================================================
-      # VALIDATE
-      # ==========================================================
-
-      - name: Validate downloaded Stage 4 results
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "=== DOWNLOADED ARTIFACTS ==="
-          find stage4_artifacts -type f -maxdepth 3 | sort | head -30
+          mkdir -p stage4_artifacts
 
-          RESULT_COUNT=$(find stage4_artifacts \
-            -type f \
-            -name 'stage4_result_*.json' \
-            | wc -l)
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
 
-          echo
-          echo "Result files: ${RESULT_COUNT}"
+          token = os.environ["GH_TOKEN"]
+          run_id = os.environ["SOURCE_RUN_ID"]
 
-          if [ "${RESULT_COUNT}" -ne 279 ]; then
-            echo "ERROR: Expected 279 result files."
-            echo "Actual result files: ${RESULT_COUNT}"
-            exit 1
-          fi
+          url = (
+              "https://api.github.com/repos/"
+              "dwiharyani/laravel-cross-os-portability/"
+              "actions/runs/"
+              f"{run_id}/artifacts?per_page=100"
+          )
 
-          echo
-          echo "279 RESULT FILES FOUND"
+          artifacts = []
+
+          page = 1
+
+          while True:
+
+              page_url = (
+                  url +
+                  f"&page={page}"
+              )
+
+              request = urllib.request.Request(
+                  page_url,
+                  headers={
+                      "Accept":
+                          "application/vnd.github+json",
+                      "Authorization":
+                          f"Bearer {token}",
+                      "X-GitHub-Api-Version":
+                          "2022-11-28",
+                  }
+              )
+
+              with urllib.request.urlopen(
+                  request
+              ) as response:
+
+                  data = json.load(response)
+
+              page_items = data.get(
+                  "artifacts",
+                  []
+              )
+
+              print(
+                  f"Artifact API page {page}: "
+                  f"{len(page_items)} artifacts"
+              )
+
+              artifacts.extend(
+                  page_items
+              )
+
+              if len(page_items) < 100:
+                  break
+
+              page += 1
+
+          selected = [
+              a for a in artifacts
+              if a["name"].startswith("stage4-")
+              and not a["expired"]
+          ]
+
+          print()
+          print(
+              "Total artifacts returned:",
+              len(artifacts)
+          )
+
+          print(
+              "Selected Stage 4 artifacts:",
+              len(selected)
+          )
+
+          if len(selected) != 279:
+              raise RuntimeError(
+                  "Expected 279 Stage 4 artifacts, "
+                  f"found {len(selected)}"
+              )
+
+          with open(
+              "stage4_artifacts/manifest.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+
+              json.dump(
+                  selected,
+                  f,
+                  indent=2
+              )
+
+          print(
+              "Manifest created successfully."
+          )
+          PY
+
+      # ==========================================================
+      # DOWNLOAD EACH ARTIFACT
+      # ==========================================================
+
+      - name: Download all 279 Stage 4 artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import zipfile
+          from pathlib import Path
+
+          with open(
+              "stage4_artifacts/manifest.json",
+              encoding="utf-8"
+          ) as f:
+
+              artifacts = json.load(f)
+
+          output = Path(
+              "stage4_artifacts"
+          )
+
+          for i, artifact in enumerate(
+              artifacts,
+              start=1
+          ):
+
+              artifact_id = artifact["id"]
+              artifact_name = artifact["name"]
+
+              print(
+                  f"[{i}/279] {artifact_name}"
+              )
+
+              url = (
+                  "https://api.github.com/repos/"
+                  "dwiharyani/laravel-cross-os-portability/"
+                  "actions/artifacts/"
+                  f"{artifact_id}/zip"
+              )
+
+              zip_file = (
+                  output /
+                  f"artifact_{artifact_id}.zip"
+              )
+
+              subprocess.run(
+                  [
+                      "curl",
+                      "--fail",
+                      "--silent",
+                      "--show-error",
+                      "--location",
+                      "--retry",
+                      "3",
+                      "--retry-delay",
+                      "2",
+                      "-H",
+                      "Accept: application/vnd.github+json",
+                      "-H",
+                      "X-GitHub-Api-Version: 2022-11-28",
+                      "-H",
+                      f"Authorization: Bearer {os.environ['GH_TOKEN']}",
+                      "-o",
+                      str(zip_file),
+                      url,
+                  ],
+                  check=True
+              )
+
+              with zipfile.ZipFile(
+                  zip_file,
+                  "r"
+              ) as archive:
+
+                  for member in archive.namelist():
+
+                      if (
+                          member.endswith(".json")
+                          and
+                          "stage4_result_" in member
+                      ):
+
+                          destination = (
+                              output /
+                              Path(member).name
+                          )
+
+                          with archive.open(
+                              member
+                          ) as source:
+
+                              destination.write_bytes(
+                                  source.read()
+                              )
+
+              zip_file.unlink()
+
+          results = list(
+              output.glob(
+                  "stage4_result_*.json"
+              )
+          )
+
+          print()
+          print(
+              "Result files:",
+              len(results)
+          )
+
+          if len(results) != 279:
+              raise RuntimeError(
+                  f"Expected 279 result files, "
+                  f"found {len(results)}"
+              )
+
+          print(
+              "ALL 279 RESULTS DOWNLOADED"
+          )
+          PY
+
+      # ==========================================================
+      # CONSOLIDATE
+      # ==========================================================
 
       - name: Consolidate 279 executions
         shell: bash
@@ -213,19 +293,20 @@ jobs:
           import pandas as pd
 
           files = sorted(
-              set(
-                  glob.glob(
-                      "stage4_artifacts/**/stage4_result_*.json",
-                      recursive=True
-                  )
+              glob.glob(
+                  "stage4_artifacts/stage4_result_*.json"
               )
           )
 
-          print("Result files:", len(files))
+          print(
+              "Result files:",
+              len(files)
+          )
 
           if len(files) != 279:
               raise RuntimeError(
-                  f"Expected 279 result files, found {len(files)}"
+                  f"Expected 279 result files, "
+                  f"found {len(files)}"
               )
 
           rows = []
@@ -243,11 +324,10 @@ jobs:
 
           df = pd.DataFrame(rows)
 
-          print("Execution rows:", len(df))
-
-          # ------------------------------------------------------
-          # Validate OS
-          # ------------------------------------------------------
+          print(
+              "Execution rows:",
+              len(df)
+          )
 
           print()
           print("OS distribution:")
@@ -270,45 +350,24 @@ jobs:
               ).sum()
 
               if count != 93:
-
                   raise RuntimeError(
-                      f"{os_name}: expected 93, found {count}"
+                      f"{os_name}: expected 93, "
+                      f"found {count}"
                   )
 
-          # ------------------------------------------------------
-          # Validate repositories
-          # ------------------------------------------------------
-
-          repository_count = (
-              df["repo_full_name"]
-              .nunique()
-          )
-
-          print()
-          print(
-              "Unique repositories:",
-              repository_count
-          )
-
-          if repository_count != 93:
+          if (
+              df["repo_full_name"].nunique()
+              != 93
+          ):
 
               raise RuntimeError(
-                  f"Expected 93 repositories, "
-                  f"found {repository_count}"
+                  "Expected 93 unique repositories."
               )
-
-          # ------------------------------------------------------
-          # Raw execution results
-          # ------------------------------------------------------
 
           df.to_csv(
               "stage4_cross_os_results.csv",
               index=False
           )
-
-          # ------------------------------------------------------
-          # Cross-OS matrix
-          # ------------------------------------------------------
 
           pivot = df.pivot_table(
               index=[
@@ -327,7 +386,6 @@ jobs:
           ]:
 
               if os_name not in pivot.columns:
-
                   pivot[os_name] = "MISSING"
 
           def classify(row):
@@ -345,7 +403,6 @@ jobs:
                   x == "REPRODUCIBLE"
                   for x in values
               ):
-
                   return "ALL_OS_REPRODUCIBLE"
 
               if (
@@ -353,7 +410,6 @@ jobs:
                   and values[1] == "FAILED"
                   and values[2] == "REPRODUCIBLE"
               ):
-
                   return "WINDOWS_FAILURE"
 
               if (
@@ -361,7 +417,6 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "FAILED"
               ):
-
                   return "MACOS_FAILURE"
 
               if (
@@ -369,11 +424,9 @@ jobs:
                   and values[1] == "REPRODUCIBLE"
                   and values[2] == "REPRODUCIBLE"
               ):
-
                   return "LINUX_FAILURE"
 
               if values.count("FAILED") >= 2:
-
                   return "MULTI_OS_FAILURE"
 
               return "INCOMPLETE_OR_OTHER"
@@ -388,14 +441,16 @@ jobs:
               index=False
           )
 
-          # ------------------------------------------------------
-          # Summary
-          # ------------------------------------------------------
-
           summary = pd.DataFrame(
               [
-                  ["Repositories", len(pivot)],
-                  ["OS executions", len(df)],
+                  [
+                      "Repositories",
+                      len(pivot)
+                  ],
+                  [
+                      "OS executions",
+                      len(df)
+                  ],
                   [
                       "Linux executions",
                       (df["os"] == "linux").sum()
@@ -455,10 +510,6 @@ jobs:
               index=False
           )
 
-          # ------------------------------------------------------
-          # Excel-safe cleaning
-          # ------------------------------------------------------
-
           illegal = re.compile(
               r"[\x00-\x08\x0B\x0C\x0E-\x1F]"
           )
@@ -466,7 +517,6 @@ jobs:
           def clean(value):
 
               if isinstance(value, str):
-
                   return illegal.sub(
                       "",
                       value
@@ -477,10 +527,6 @@ jobs:
           excel_df = df.map(clean)
           excel_pivot = pivot.map(clean)
           excel_summary = summary.map(clean)
-
-          # ------------------------------------------------------
-          # Excel
-          # ------------------------------------------------------
 
           with pd.ExcelWriter(
               "stage4_cross_os_results.xlsx",
@@ -507,30 +553,17 @@ jobs:
 
           print()
           print("=" * 70)
-          print("STAGE 4 CONSOLIDATION SUCCESS")
+          print(
+              "STAGE 4 CONSOLIDATION SUCCESS"
+          )
           print("=" * 70)
 
-          print(
-              "Execution rows:",
-              len(df)
-          )
-
-          print(
-              "Repository rows:",
-              len(pivot)
-          )
-
-          print()
           print(
               summary.to_string(
                   index=False
               )
           )
           PY
-
-      # ==========================================================
-      # UPLOAD FINAL FILES
-      # ==========================================================
 
       - name: Upload final Stage 4 results
         uses: actions/upload-artifact@v4
