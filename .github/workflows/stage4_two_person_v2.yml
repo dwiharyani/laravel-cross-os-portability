@@ -34,7 +34,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/17_prepare_stage4_execution.py "${{ inputs.batch_id }}" > matrix.json
+          echo "===== PREPARE: START ====="
+          echo "Batch ID: ${{ inputs.batch_id }}"
+          echo "Python:"
+          python3 --version
+          echo "Working directory:"
+          pwd
+          echo "Repository files:"
+          ls -lah
+          echo "Assignment file:"
+          ls -lh data/interim/stage4_two_person_execution_assignment_921.csv
+
+          echo "===== RUN SCRIPT 17 ====="
+          set +e
+          python3 scripts/17_prepare_stage4_execution.py "${{ inputs.batch_id }}"             > matrix.json             2> prepare_stderr.log
+          rc=$?
+          set -e
+
+          echo "SCRIPT EXIT CODE: $rc"
+
+          echo "===== STDERR ====="
+          cat prepare_stderr.log || true
+
+          echo "===== MATRIX FILE ====="
+          ls -lh matrix.json || true
+          wc -c matrix.json || true
+          head -c 500 matrix.json || true
+          echo
+
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::script 17 failed with exit code $rc"
+            exit "$rc"
+          fi
 
           python3 - <<'PY'
           import json
