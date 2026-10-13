@@ -590,33 +590,41 @@ def main():
             os_counts.get(x["os"], 0) + 1
         )
 
-    print("=" * 70)
-    print("STAGE 4 EXECUTION MATRIX")
-    print("=" * 70)
+    import contextlib
 
-    print("Batch:", batch)
-    print("Repositories:", len(batch_rows))
-    print("OS executions:", len(include))
+    # Diagnostic output must go to stderr.
+    # stdout is reserved exclusively for the JSON matrix consumed
+    # by GitHub Actions.
+    with contextlib.redirect_stdout(sys.stderr):
 
-    print()
-    print("OS distribution:")
+        print("=" * 70)
+        print("STAGE 4 EXECUTION MATRIX")
+        print("=" * 70)
 
-    for os_name, count in sorted(
-        os_counts.items()
-    ):
-        print(
-            f"  {os_name}: {count}"
-        )
+        print("Batch:", batch)
+        print("Repositories:", len(batch_rows))
+        print("OS executions:", len(include))
 
-    print()
-    print("PHP resolution:")
+        print()
+        print("OS distribution:")
 
-    for key, value in sorted(
-        resolution_counts.items()
-    ):
-        print(
-            f"  {key}: {value}"
-        )
+        for os_name, count in sorted(
+            os_counts.items()
+        ):
+            print(
+                f"  {os_name}: {count}"
+            )
+
+        print()
+        print("PHP resolution:")
+
+        for key, value in sorted(
+            resolution_counts.items()
+        ):
+            print(
+                f"  {key}: {value}"
+            )
+
 
     # ============================================================
     # IMPORTANT:

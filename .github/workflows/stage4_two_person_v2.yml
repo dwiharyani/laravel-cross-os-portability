@@ -50,7 +50,11 @@ jobs:
           print("OS set:", sorted(oses))
           PY
 
-          echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
+          {
+            echo "matrix<<STAGE4_MATRIX"
+            cat matrix.json
+            echo "STAGE4_MATRIX"
+          } >> "$GITHUB_OUTPUT"
 
   execute:
     needs: prepare
