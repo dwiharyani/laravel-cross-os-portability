@@ -7,13 +7,11 @@ on:
         description: "Batch: A01-A07 or B01-B07"
         required: true
         type: string
-
       max_parallel:
         description: "Maximum simultaneous repository×OS jobs"
         required: true
         default: "10"
         type: string
-
       attempt:
         description: "Attempt number (1, 2, ...)"
         required: true
@@ -39,54 +37,51 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Verify repository files
+      - name: Verify repository inputs
         shell: bash
         run: |
           set -euo pipefail
 
           echo "============================================================"
-          echo "STAGE 4 PREPARE"
+          echo "STAGE 4 PREPARE - INPUT AUDIT"
           echo "============================================================"
 
-          echo "Batch       : ${{ inputs.batch_id }}"
-          echo "Attempt     : ${{ inputs.attempt }}"
-          echo "Max parallel: ${{ inputs.max_parallel }}"
+          echo "Batch: ${{ inputs.batch_id }}"
+          echo "Attempt: ${{ inputs.attempt }}"
+          echo "Runner: $(uname -a)"
+          echo "Python: $(python3 --version)"
 
           echo
-          echo "Working directory:"
+          echo "Repository:"
           pwd
 
           echo
-          echo "Python:"
-          python3 --version
-
-          echo
-          echo "Required files:"
+          echo "Checking required files..."
 
           test -f scripts/17_prepare_stage4_execution.py
-          test -f data/interim/stage4_two_person_execution_assignment_921.csv
+          echo "OK: scripts/17_prepare_stage4_execution.py"
 
-          ls -lh \
-            scripts/17_prepare_stage4_execution.py \
-            data/interim/stage4_two_person_execution_assignment_921.csv
+          test -f data/interim/stage4_two_person_execution_assignment_921.csv
+          echo "OK: assignment CSV"
 
           echo
-          echo "STATUS: REQUIRED FILES PRESENT"
+          echo "Assignment:"
+          ls -lh data/interim/stage4_two_person_execution_assignment_921.csv
 
-      # ========================================================
-      # BUILD MATRIX
-      # ========================================================
+          echo
+          echo "Script:"
+          ls -lh scripts/17_prepare_stage4_execution.py
 
-      - name: Build execution matrix
+      - name: Build matrix
         id: build_matrix
         shell: bash
         run: |
-          set -uo pipefail
+          set -u
 
           echo "============================================================"
-          echo "BUILDING STAGE 4 MATRIX"
+          echo "STAGE 4 MATRIX GENERATION"
           echo "============================================================"
 
           rm -f matrix.json
@@ -98,50 +93,57 @@ jobs:
             > matrix.json \
             2> prepare_stderr.log
 
-          rc=$?
+          RC=$?
 
           echo
-          echo "Script exit code: $rc"
+          echo "SCRIPT EXIT CODE: $RC"
 
           echo
           echo "============================================================"
-          echo "PREPARE DIAGNOSTICS"
+          echo "PREPARE STDERR"
           echo "============================================================"
 
           cat prepare_stderr.log || true
-
-          if [ "$rc" -ne 0 ]; then
-            echo "::error::Stage 4 matrix preparation failed."
-            exit "$rc"
-          fi
 
           echo
           echo "============================================================"
           echo "MATRIX FILE"
           echo "============================================================"
 
-          test -s matrix.json
+          if [ -f matrix.json ]; then
+            ls -lh matrix.json
+            wc -c matrix.json
+            head -c 300 matrix.json
+            echo
+          else
+            echo "matrix.json DOES NOT EXIST"
+          fi
 
-          wc -c matrix.json
-          head -c 300 matrix.json
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::Stage 4 matrix generator failed with exit code $RC"
+            exit "$RC"
+          fi
+
           echo
-
-          # ----------------------------------------------------
-          # Validate that stdout is PURE JSON.
-          # ----------------------------------------------------
+          echo "============================================================"
+          echo "VALIDATING MATRIX JSON"
+          echo "============================================================"
 
           python3 - <<'PY'
           import json
+          from collections import Counter
 
           with open("matrix.json", encoding="utf-8") as f:
               data = json.load(f)
 
-          items = data.get("include", [])
+          assert isinstance(data, dict)
+          assert "include" in data
 
-          if not items:
-              raise SystemExit("ERROR: matrix include is empty")
+          items = data["include"]
 
-          execution_ids = {
+          assert len(items) > 0
+
+          repos = {
               x["execution_id"]
               for x in items
           }
@@ -151,69 +153,61 @@ jobs:
               for x in items
           }
 
-          required_oses = {
+          print("Matrix rows:", len(items))
+          print("Repositories:", len(repos))
+          print("OS:", sorted(oses))
+          print("OS distribution:", Counter(x["os"] for x in items))
+
+          assert len(items) == len(repos) * 3
+          assert oses == {
               "linux",
               "windows",
               "macos",
           }
 
-          if oses != required_oses:
-              raise SystemExit(
-                  f"ERROR: unexpected OS set: {sorted(oses)}"
-              )
+          for x in items:
+              required = [
+                  "execution_id",
+                  "execution_owner",
+                  "execution_batch",
+                  "project_id",
+                  "repo_full_name",
+                  "url",
+                  "latest_sha",
+                  "default_branch",
+                  "stars_github",
+                  "forks_count",
+                  "popularity_quartile",
+                  "docker_status",
+                  "php_runtime_requested",
+                  "php_version_constraint",
+                  "php_runtime_source",
+                  "php_runtime_resolution",
+                  "php_runtime_confidence",
+                  "laravel_version_constraint",
+                  "test_command_declared",
+                  "os",
+                  "runner",
+              ]
 
-          if len(items) != len(execution_ids) * 3:
-              raise SystemExit(
-                  "ERROR: matrix does not contain exactly 3 OS "
-                  "executions per repository"
-              )
+              for key in required:
+                  assert key in x, (
+                      f"Missing matrix field: {key}"
+                  )
 
-          required_fields = [
-              "execution_id",
-              "execution_owner",
-              "execution_batch",
-              "project_id",
-              "repo_full_name",
-              "url",
-              "latest_sha",
-              "default_branch",
-              "stars_github",
-              "forks_count",
-              "popularity_quartile",
-              "docker_status",
-              "php_runtime_requested",
-              "php_version_constraint",
-              "php_runtime_source",
-              "php_runtime_resolution",
-              "php_runtime_confidence",
-              "laravel_version_constraint",
-              "test_command_declared",
-              "os",
-              "runner",
-          ]
-
-          for i, x in enumerate(items, 1):
-              for field in required_fields:
-                  if field not in x:
-                      raise SystemExit(
-                          f"ERROR: row {i} missing field: {field}"
-                      )
-
-          print("============================================================")
-          print("MATRIX VALIDATION")
-          print("============================================================")
-          print("Repositories :", len(execution_ids))
-          print("OS executions:", len(items))
-          print("OS set       :", sorted(oses))
+              assert x["latest_sha"]
+              assert x["repo_full_name"]
+              assert x["php_runtime_requested"]
+              assert x["php_runtime_resolution"]
 
           print()
           print("STATUS: MATRIX JSON VALID")
           PY
 
-          # ----------------------------------------------------
-          # GitHub Actions multiline output.
-          # stdout remains pure JSON.
-          # ----------------------------------------------------
+          echo
+          echo "============================================================"
+          echo "EXPORTING MATRIX TO GITHUB OUTPUT"
+          echo "============================================================"
 
           {
             echo "matrix<<STAGE4_MATRIX"
@@ -221,22 +215,18 @@ jobs:
             echo "STAGE4_MATRIX"
           } >> "$GITHUB_OUTPUT"
 
-          echo
-          echo "STATUS: MATRIX OUTPUT PUBLISHED"
+          echo "STATUS: MATRIX OUTPUT EXPORTED"
 
-      # ========================================================
-      # SAVE MATRIX EVIDENCE
-      # ========================================================
-
-      - name: Upload prepare evidence
+      - name: Upload prepare diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stage4-prepare-${{ inputs.batch_id }}-attempt-${{ inputs.attempt }}
           path: |
             matrix.json
+            prepare_stdout.log
             prepare_stderr.log
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
 
@@ -245,10 +235,8 @@ jobs:
   # ============================================================
 
   execute:
-    name: ${{ matrix.execution_id }} / ${{ matrix.os }}
+    name: ${{ matrix.execution_id }} - ${{ matrix.os }}
     needs: prepare
-
-    if: needs.prepare.result == 'success'
 
     strategy:
       fail-fast: false
@@ -259,43 +247,21 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
 
-    # IMPORTANT:
-    # A repository/test failure must NOT cancel the remaining
-    # repository×OS executions.
     continue-on-error: true
 
     env:
-
-      # --------------------------------------------------------
-      # Execution identity
-      # --------------------------------------------------------
-
       STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
       STAGE4_OWNER: ${{ matrix.execution_owner }}
       STAGE4_BATCH: ${{ matrix.execution_batch }}
       STAGE4_PROJECT_ID: ${{ matrix.project_id }}
-
-      # --------------------------------------------------------
-      # Repository identity
-      # --------------------------------------------------------
-
       STAGE4_REPO: ${{ matrix.repo_full_name }}
       STAGE4_URL: ${{ matrix.url }}
       STAGE4_SHA: ${{ matrix.latest_sha }}
       STAGE4_BRANCH: ${{ matrix.default_branch }}
-
-      # --------------------------------------------------------
-      # Sampling metadata
-      # --------------------------------------------------------
-
       STAGE4_STARS: ${{ matrix.stars_github }}
       STAGE4_FORKS: ${{ matrix.forks_count }}
       STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
       STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
-
-      # --------------------------------------------------------
-      # PHP runtime evidence
-      # --------------------------------------------------------
 
       STAGE4_PHP: ${{ matrix.php_runtime_requested }}
       STAGE4_PHP_CONSTRAINT: ${{ matrix.php_version_constraint }}
@@ -303,38 +269,17 @@ jobs:
       STAGE4_PHP_RESOLUTION: ${{ matrix.php_runtime_resolution }}
       STAGE4_PHP_CONFIDENCE: ${{ matrix.php_runtime_confidence }}
 
-      # --------------------------------------------------------
-      # Laravel / testing
-      # --------------------------------------------------------
-
       STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
       STAGE4_TEST_COMMAND: ${{ matrix.test_command_declared }}
 
-      # --------------------------------------------------------
-      # OS
-      # --------------------------------------------------------
-
       STAGE4_OS: ${{ matrix.os }}
       STAGE4_RUNNER: ${{ matrix.runner }}
-
-      # --------------------------------------------------------
-      # Attempt
-      # --------------------------------------------------------
-
       STAGE4_ATTEMPT: ${{ inputs.attempt }}
 
     steps:
 
-      # ========================================================
-      # CHECKOUT
-      # ========================================================
-
-      - name: Checkout workflow repository
-        uses: actions/checkout@v5
-
-      # ========================================================
-      # PHP
-      # ========================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -344,49 +289,21 @@ jobs:
           tools: composer
           coverage: none
 
-      # ========================================================
-      # NODE
-      # ========================================================
-
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # ========================================================
-      # PYTHON
-      # ========================================================
-
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      # ========================================================
-      # PREFLIGHT
-      # ========================================================
 
       - name: Capture runner diagnostics
         if: always()
         shell: bash
         run: |
           mkdir -p preflight
-
-          {
-            echo "execution_id=${STAGE4_EXECUTION_ID}"
-            echo "project_id=${STAGE4_PROJECT_ID}"
-            echo "repository=${STAGE4_REPO}"
-            echo "os=${STAGE4_OS}"
-            echo "runner=${STAGE4_RUNNER}"
-            echo "attempt=${STAGE4_ATTEMPT}"
-            echo "php_requested=${STAGE4_PHP}"
-            echo "php_constraint=${STAGE4_PHP_CONSTRAINT}"
-            echo "php_source=${STAGE4_PHP_SOURCE}"
-            echo "php_resolution=${STAGE4_PHP_RESOLUTION}"
-            echo "php_confidence=${STAGE4_PHP_CONFIDENCE}"
-            echo "laravel_constraint=${STAGE4_LARAVEL}"
-            echo "test_command_declared=${STAGE4_TEST_COMMAND}"
-          } > preflight/execution_context.txt
 
           php --version \
             > preflight/php_version.txt 2>&1 || true
@@ -406,33 +323,17 @@ jobs:
           uname -a \
             > preflight/uname.txt 2>&1 || true
 
-          if [ "${RUNNER_OS:-}" != "" ]; then
-            echo "${RUNNER_OS}" > preflight/runner_os.txt
-          fi
-
-      # ========================================================
-      # EXECUTION
-      # ========================================================
-
-      - name: Run Stage 4 reproducibility protocol
+      - name: Run Stage 4 execution
         shell: bash
         run: |
           python3 scripts/14_cross_os_reproducibility_v2.py
 
-      # ========================================================
-      # MERGE PREFLIGHT INTO EVIDENCE
-      # ========================================================
-
-      - name: Add runner diagnostics to evidence
+      - name: Add diagnostics
         if: always()
         shell: bash
         run: |
           mkdir -p stage4_execution/diagnostics
           cp -R preflight/. stage4_execution/diagnostics/ 2>/dev/null || true
-
-      # ========================================================
-      # UPLOAD COMPLETE EXECUTION EVIDENCE
-      # ========================================================
 
       - name: Upload execution evidence
         if: always()
@@ -440,7 +341,7 @@ jobs:
         with:
           name: stage4-${{ matrix.execution_id }}-${{ matrix.os }}-attempt-${{ inputs.attempt }}
           path: stage4_execution
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
 
@@ -460,16 +361,18 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Validate batch matrix
+      - name: Validate assignment and matrix
         shell: bash
         run: |
           set -euo pipefail
 
           echo "============================================================"
-          echo "FINAL MATRIX VALIDATION"
+          echo "VALIDATION"
           echo "============================================================"
+
+          test -f data/interim/stage4_two_person_execution_assignment_921.csv
 
           python3 scripts/17_prepare_stage4_execution.py \
             "${{ inputs.batch_id }}" \
@@ -478,36 +381,29 @@ jobs:
 
           python3 - <<'PY'
           import json
+          from collections import Counter
 
           with open("matrix.json", encoding="utf-8") as f:
               data = json.load(f)
 
-          items = data.get("include", [])
+          items = data["include"]
 
           repos = {
               x["execution_id"]
               for x in items
           }
 
-          oses = {
-              x["os"]
-              for x in items
-          }
-
-          print("Repositories :", len(repos))
+          print("Repositories:", len(repos))
           print("OS executions:", len(items))
-          print("OS set       :", sorted(oses))
+          print("OS distribution:", Counter(x["os"] for x in items))
 
-          assert items
-          assert oses == {
+          assert len(items) == len(repos) * 3
+          assert {x["os"] for x in items} == {
               "linux",
               "windows",
               "macos",
           }
 
-          assert len(items) == len(repos) * 3
-
-          print()
           print("STATUS: VALIDATION PASS")
           PY
 
@@ -519,45 +415,14 @@ jobs:
           path: |
             matrix.json
             validation_stderr.log
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
-
-  # ============================================================
-  # COMPLETION
-  # ============================================================
-
-  completion:
-    name: Batch completion
-    if: always()
-    needs:
-      - prepare
-      - execute
-      - validate
-
-    runs-on: ubuntu-22.04
-
-    steps:
-
-      - name: Completion summary
-        shell: bash
+      - name: Completion notice
+        if: always()
         run: |
           echo "============================================================"
-          echo "STAGE 4 BATCH COMPLETE"
+          echo "Stage 4 batch completed"
+          echo "Batch: ${{ inputs.batch_id }}"
+          echo "Attempt: ${{ inputs.attempt }}"
           echo "============================================================"
-
-          echo "Batch        : ${{ inputs.batch_id }}"
-          echo "Attempt      : ${{ inputs.attempt }}"
-          echo "Max parallel : ${{ inputs.max_parallel }}"
-
-          echo
-          echo "Prepare      : ${{ needs.prepare.result }}"
-          echo "Execute      : ${{ needs.execute.result }}"
-          echo "Validate     : ${{ needs.validate.result }}"
-
-          echo
-          echo "Execution failures are retained as research evidence."
-          echo "Download artifacts before consolidation."
-
-          echo
-          echo "STATUS: BATCH WORKFLOW FINISHED"
