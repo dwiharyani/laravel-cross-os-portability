@@ -9,6 +9,34 @@ from pathlib import Path
 CANDIDATES=['7.4','8.0','8.1','8.2','8.3','8.4','8.5']
 PRE=Path('stage4_v3_preflight')
 
+
+def as_object(value, path, normalized=None):
+    """Composer/PHP JSON sometimes serializes an empty object as [].
+
+    Only an *empty* list is convertible without changing the meaning. Non-empty
+    arrays at object positions are invalid evidence, never silently discarded.
+    """
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return {}
+    if isinstance(value, list) and not value:
+        if normalized is not None:
+            normalized.append(path + ': EMPTY_LIST_AS_EMPTY_OBJECT')
+        return {}
+    raise ValueError('INVALID_COMPOSER_STRUCTURE: '+path+
+                     ' expected object, got '+type(value).__name__+
+                     (f' (length {len(value)})' if isinstance(value,list) else ''))
+
+
+def as_array(value, path):
+    if isinstance(value, list):
+        return value
+    if value is None or value == {}:
+        return []
+    raise ValueError('INVALID_COMPOSER_STRUCTURE: '+path+
+                     ' expected array, got '+type(value).__name__)
+
 def version(s):
     nums=re.findall(r'^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?',s.strip(),re.I)
     if not nums: raise ValueError('Unknown version token: '+s)
@@ -68,7 +96,7 @@ def main():
     dst=PRE/'repo'
     detail={'repo_full_name':repo,'latest_sha':sha,'php':'','command':'',
         'resolution_status':'UNRESOLVED','php_candidate_evidence':{},'test_selection_reason':'',
-        'php_constraint_sources':[],'errors':[], 'candidate_patch_model':'MINOR_LATEST_PATCH_APPROXIMATION'}
+        'php_constraint_sources':[],'errors':[], 'structural_normalizations':[], 'candidate_patch_model':'MINOR_LATEST_PATCH_APPROXIMATION'}
     try:
         PRE.mkdir(exist_ok=True)
         subprocess.run(['git','init',str(dst)],check=True,stdout=subprocess.DEVNULL)
@@ -77,23 +105,50 @@ def main():
         subprocess.run(['git','-C',str(dst),'checkout','--detach','FETCH_HEAD'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         got=subprocess.check_output(['git','-C',str(dst),'rev-parse','HEAD'],text=True).strip()
         if got!=sha:raise ValueError('Commit mismatch '+got+' vs '+sha)
-        data=json.loads((dst/'composer.json').read_text(encoding='utf-8'))
+        normalizations=detail['structural_normalizations']
+        data=as_object(json.loads((dst/'composer.json').read_text(encoding='utf-8')),
+                       'composer.json',normalizations)
         lockfile=dst/'composer.lock'
         if not lockfile.exists():raise ValueError('NO_COMPOSER_LOCK; strict reproduction requires composer.lock')
-        lock=json.loads(lockfile.read_text(encoding='utf-8'))
+        lock=as_object(json.loads(lockfile.read_text(encoding='utf-8')),
+                       'composer.lock',normalizations)
+        root_require=as_object(data.get('require'),'composer.json.require',normalizations)
+        root_require_dev=as_object(data.get('require-dev'),'composer.json.require-dev',normalizations)
+        packages=[]
+        for group in ('packages','packages-dev'):
+            for idx,item in enumerate(as_array(lock.get(group),'composer.lock.'+group)):
+                path=f'composer.lock.{group}[{idx}]'
+                packages.append((path,as_object(item,path,normalizations)))
         rules=[]
         def capture(source,expr,conflict=False):
-            if expr and isinstance(expr,str) and expr!='*':rules.append((source,expr,conflict))
-        capture('composer.json:require.php',data.get('require',{}).get('php'))
-        capture('composer.json:require-dev.php',data.get('require-dev',{}).get('php'))
-        for pkg in lock.get('packages',[])+lock.get('packages-dev',[]):
-            name=pkg.get('name','?')
-            capture(name+':require.php',pkg.get('require',{}).get('php'))
-            capture(name+':conflict.php',pkg.get('conflict',{}).get('php'),True)
+            if expr is None or expr == '' or expr == '*' or expr == []:
+                return
+            if not isinstance(expr,str):
+                raise ValueError('INVALID_COMPOSER_STRUCTURE: '+source+
+                                 ' expected PHP version string, got '+type(expr).__name__)
+            rules.append((source,expr,conflict))
+        capture('composer.json:require.php',root_require.get('php'))
+        capture('composer.json:require-dev.php',root_require_dev.get('php'))
+        for path,pkg in packages:
+            name=pkg.get('name',path)
+            req=as_object(pkg.get('require'),path+'.require',normalizations)
+            conflicts=as_object(pkg.get('conflict'),path+'.conflict',normalizations)
+            capture(str(name)+':require.php',req.get('php'))
+            capture(str(name)+':conflict.php',conflicts.get('php'),True)
         for part in ['platform','platform-dev']:
-            capture('composer.lock:'+part+'.php',lock.get(part,{}).get('php'))
-        override=data.get('config',{}).get('platform',{}).get('php')
-        if override:detail['platform_php_override']=override
+            platform=as_object(lock.get(part),'composer.lock.'+part,normalizations)
+            capture('composer.lock:'+part+'.php',platform.get('php'))
+        config=as_object(data.get('config'),'composer.json.config',normalizations)
+        override=as_object(config.get('platform'),'composer.json.config.platform',normalizations).get('php')
+        if override:
+            detail['platform_php_override']=override
+            # composer config.platform.php is an emulated PHP version. It must
+            # also be compatible with locked dependencies; do not silently
+            # ignore the virtual platform when selecting an actual runtime.
+            if isinstance(override,str):
+                detail['platform_override_requires_separate_validation']=True
+            else:
+                raise ValueError('INVALID_COMPOSER_STRUCTURE: composer.json.config.platform.php must be string')
         detail['php_constraint_sources']=[{'source':s,'constraint':expr,'negated':neg} for s,expr,neg in rules]
         for c in CANDIDATES:
             # Minor-version matrix selects the latest patch at setup time. A high
@@ -109,7 +164,8 @@ def main():
         if not compatible:raise ValueError('NO_COMPATIBLE_PHP among shared candidates')
         detail['php']=compatible[0]
         # Never execute assignment's human-readable "test: [...]" representation as shell.
-        if 'test' in data.get('scripts',{}):
+        scripts=as_object(data.get('scripts'),'composer.json.scripts',normalizations)
+        if 'test' in scripts:
             detail['command']='composer run-script test'
             detail['test_selection_reason']='COMPOSER_SCRIPT_TEST'
         elif (dst/'artisan').exists() and ((dst/'tests').is_dir() or (dst/'phpunit.xml').exists() or (dst/'phpunit.xml.dist').exists()):
@@ -120,7 +176,11 @@ def main():
             detail['test_selection_reason']='PHPUNIT_FALLBACK'
         else:
             detail['test_selection_reason']='NO_TEST_DISCOVERED'
-        detail['required_extensions']=sorted({k[4:].lower() for obj in ([data.get('require',{}),data.get('require-dev',{})]+[p.get('require',{}) for p in lock.get('packages',[])+lock.get('packages-dev',[])]) for k in obj if k.startswith('ext-')})
+        requirements=[root_require,root_require_dev]
+        requirements += [as_object(p.get('require'),path+'.require',normalizations)
+                         for path,p in packages]
+        detail['required_extensions']=sorted({key[4:].lower() for obj in requirements
+             for key in obj if isinstance(key,str) and key.startswith('ext-')})
         detail['resolution_status']='RESOLVED'
     except Exception as e:
         detail['errors']=[repr(e)]

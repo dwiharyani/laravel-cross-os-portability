@@ -8,6 +8,11 @@ on:
         required: true
         default: '2'
         type: string
+      execution_ids:
+        description: 'Optional execution IDs (comma separated), e.g. A-012; blank uses manifest order'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -27,6 +32,7 @@ jobs:
         id: make
         env:
           MAX_REPOSITORIES: ${{ inputs.max_repositories }}
+          EXECUTION_IDS: ${{ inputs.execution_ids }}
         run: |
           python - <<'PY'
           import csv, json, os
@@ -34,6 +40,13 @@ jobs:
           path=Path('data/interim/stage4_v3_rerun_manifest.csv')
           if not path.exists(): raise RuntimeError('Missing rerun manifest. Generate and git add it first.')
           with path.open(encoding='utf-8-sig',newline='') as f: records=list(csv.DictReader(f))
+          raw_ids=os.environ.get('EXECUTION_IDS','').strip()
+          if raw_ids:
+            requested=set(x.strip() for x in raw_ids.split(',') if x.strip())
+            available={r['execution_id'] for r in records}
+            missing=requested-available
+            if missing:raise RuntimeError('IDs not present in v3 manifest: '+','.join(sorted(missing)))
+            records=[r for r in records if r['execution_id'] in requested]
           count=int(os.environ.get('MAX_REPOSITORIES') or '0')
           if count>0: records=records[:count]
           if not records: raise RuntimeError('Empty rerun manifest')
