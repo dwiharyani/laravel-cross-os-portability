@@ -1,0 +1,150 @@
+name: Stage 4 v3 - Corrective Selective Rerun
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_repositories:
+        description: '0=all selected repositories; 2 for initial smoke test'
+        required: true
+        default: '2'
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.make.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and create selective matrix
+        id: make
+        env:
+          MAX_REPOSITORIES: ${{ inputs.max_repositories }}
+        run: |
+          python - <<'PY'
+          import csv, json, os
+          from pathlib import Path
+          path=Path('data/interim/stage4_v3_rerun_manifest.csv')
+          if not path.exists(): raise RuntimeError('Missing rerun manifest. Generate and git add it first.')
+          with path.open(encoding='utf-8-sig',newline='') as f: records=list(csv.DictReader(f))
+          count=int(os.environ.get('MAX_REPOSITORIES') or '0')
+          if count>0: records=records[:count]
+          if not records: raise RuntimeError('Empty rerun manifest')
+          matrix=[]
+          for r in records:
+            for os_name,runner in [('linux','ubuntu-22.04'),('windows','windows-2022'),('macos','macos-15')]:
+              item=dict(r);item.update({'os':os_name,'runner':runner})
+              matrix.append(item)
+          out=json.dumps({'include':matrix},separators=(',',':'))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('matrix<<EOF_MATRIX\n'+out+'\nEOF_MATRIX\n')
+          print('Selected repositories:',len(records),'cross-OS executions:',len(matrix))
+          if len(out)>900000:raise RuntimeError('Matrix output over safe limit')
+          PY
+
+  execute:
+    needs: prepare
+    timeout-minutes: 55
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: '${{ matrix.execution_id }} / ${{ matrix.os }}'
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Exact SHA PHP/test preflight
+        id: preflight
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_preflight.py
+
+      - name: Setup resolved PHP
+        id: php_setup
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.preflight.outputs.php }}
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Capture installed PHP extensions
+        if: steps.php_setup.outcome == 'success'
+        run: |
+          mkdir -p stage4_v3_preflight
+          php -m > stage4_v3_preflight/php_modules.txt
+          php --version
+          composer --version
+
+      - name: Run existing Stage 4 v2 protocol with corrected inputs
+        id: protocol
+        if: steps.preflight.outcome == 'success' && steps.php_setup.outcome == 'success' && steps.preflight.outputs.command != ''
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ steps.preflight.outputs.php }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ steps.preflight.outputs.command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_STARS: ${{ matrix.stars_github }}
+          STAGE4_FORKS: ${{ matrix.forks_count }}
+          STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
+          STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
+          STAGE4_PHP_CONSTRAINT: ${{ matrix.php_runtime_constraint }}
+          STAGE4_PHP_SOURCE: composer.json+composer.lock
+          STAGE4_ATTEMPT: '2'
+        run: |
+          test -f scripts/14_cross_os_reproducibility_v2.py
+          python scripts/14_cross_os_reproducibility_v2.py
+
+      - name: Finalize audited result even on failure
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_V3_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_V3_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_finalize.py
+
+      - name: Upload v3 immutable corrective artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-v3-${{ matrix.execution_id }}-${{ matrix.os }}
+          path: |
+            stage4_execution/
+            stage4_v3_preflight/
+          if-no-files-found: error
+          retention-days: 90
