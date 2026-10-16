@@ -1,0 +1,206 @@
+name: Stage 4 v3.2 - Database-Aware Selective Rerun
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_repositories:
+        description: 'Number of selected repositories; default 1 for A-012'
+        required: true
+        default: '1'
+        type: string
+      execution_ids:
+        description: 'Execution IDs from existing v3 manifest (default A-012); use explicit IDs'
+        required: false
+        default: 'A-012'
+        type: string
+      database_mode:
+        description: 'audit_only (safe default) or remote_tls (requires isolated MySQL 5.7 endpoint)'
+        type: choice
+        required: true
+        default: audit_only
+        options:
+          - audit_only
+          - remote_tls
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.make.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and create selective matrix
+        id: make
+        env:
+          MAX_REPOSITORIES: ${{ inputs.max_repositories }}
+          EXECUTION_IDS: ${{ inputs.execution_ids }}
+        run: |
+          python - <<'PY'
+          import csv, json, os
+          from pathlib import Path
+          path=Path('data/interim/stage4_v3_rerun_manifest.csv')
+          if not path.exists(): raise RuntimeError('Missing rerun manifest. Generate and git add it first.')
+          with path.open(encoding='utf-8-sig',newline='') as f: records=list(csv.DictReader(f))
+          raw_ids=os.environ.get('EXECUTION_IDS','').strip()
+          if raw_ids:
+            requested=set(x.strip() for x in raw_ids.split(',') if x.strip())
+            available={r['execution_id'] for r in records}
+            missing=requested-available
+            if missing:raise RuntimeError('IDs not present in v3 manifest: '+','.join(sorted(missing)))
+            records=[r for r in records if r['execution_id'] in requested]
+          count=int(os.environ.get('MAX_REPOSITORIES') or '0')
+          if count>0: records=records[:count]
+          if not records: raise RuntimeError('Empty rerun manifest')
+          matrix=[]
+          for r in records:
+            for os_name,runner in [('linux','ubuntu-22.04'),('windows','windows-2022'),('macos','macos-15')]:
+              item=dict(r);item.update({'os':os_name,'runner':runner})
+              matrix.append(item)
+          out=json.dumps({'include':matrix},separators=(',',':'))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('matrix<<EOF_MATRIX\n'+out+'\nEOF_MATRIX\n')
+          print('Selected repositories:',len(records),'cross-OS executions:',len(matrix))
+          if len(out)>900000:raise RuntimeError('Matrix output over safe limit')
+          PY
+
+  execute:
+    needs: prepare
+    timeout-minutes: 55
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    name: '${{ matrix.execution_id }} / ${{ matrix.os }}'
+    steps:
+      - name: Checkout methodology repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install database inspection tools
+        run: python -m pip install 'PyYAML==6.0.2' 'PyMySQL==1.1.1'
+
+      - name: Exact SHA PHP/test preflight
+        id: preflight
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_preflight.py
+
+      - name: Inspect and validate original database (no source modifications)
+        id: database
+        if: steps.preflight.outcome == 'success'
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_DB_MODE: ${{ inputs.database_mode }}
+          STAGE4_MYSQL57_HOST: ${{ secrets.STAGE4_MYSQL57_HOST }}
+          STAGE4_MYSQL57_PORT: ${{ vars.STAGE4_MYSQL57_PORT }}
+          STAGE4_MYSQL57_USER: ${{ secrets.STAGE4_MYSQL57_USER }}
+          STAGE4_MYSQL57_PASSWORD: ${{ secrets.STAGE4_MYSQL57_PASSWORD }}
+          STAGE4_MYSQL57_TLS_CA_B64: ${{ secrets.STAGE4_MYSQL57_TLS_CA_B64 }}
+          STAGE4_APPROVED_DB_SHA: ${{ vars.STAGE4_APPROVED_DB_SHA }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_2_database.py
+
+      - name: Setup resolved PHP
+        id: php_setup
+        if: steps.preflight.outcome == 'success' && steps.database.outputs.run_protocol == 'true'
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.preflight.outputs.php }}
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Capture installed PHP extensions
+        if: steps.php_setup.outcome == 'success'
+        run: |
+          mkdir -p stage4_v3_preflight
+          php -m > stage4_v3_preflight/php_modules.txt
+          php --version
+          composer --version
+
+      - name: Run existing Stage 4 v2 protocol with corrected inputs
+        id: protocol
+        if: steps.preflight.outcome == 'success' && steps.database.outputs.run_protocol == 'true' && steps.php_setup.outcome == 'success' && steps.preflight.outputs.command != ''
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ steps.preflight.outputs.php }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ steps.preflight.outputs.command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_STARS: ${{ matrix.stars_github }}
+          STAGE4_FORKS: ${{ matrix.forks_count }}
+          STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
+          STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
+          STAGE4_PHP_CONSTRAINT: ${{ matrix.php_runtime_constraint }}
+          STAGE4_PHP_SOURCE: composer.json+composer.lock
+          STAGE4_ATTEMPT: '3'
+          STAGE4_DB_MODE: ${{ inputs.database_mode }}
+          STAGE4_MYSQL57_HOST: ${{ secrets.STAGE4_MYSQL57_HOST }}
+          STAGE4_MYSQL57_PORT: ${{ vars.STAGE4_MYSQL57_PORT }}
+          STAGE4_MYSQL57_USER: ${{ secrets.STAGE4_MYSQL57_USER }}
+          STAGE4_MYSQL57_PASSWORD: ${{ secrets.STAGE4_MYSQL57_PASSWORD }}
+        run: |
+          test -f scripts/14_cross_os_reproducibility_v2.py
+          python scripts/stage4_v3_2_run_protocol.py
+
+      - name: Finalize audited result even on failure
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_V3_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_V3_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_finalize.py
+
+      - name: Overlay database-specific audit status
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+        run: python scripts/stage4_v3_2_finalize.py
+
+      - name: Upload v3 immutable corrective artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-v3-2-${{ matrix.execution_id }}-${{ matrix.os }}
+          path: |
+            stage4_execution/
+            stage4_v3_preflight/
+            stage4_v3_2_database/
+          if-no-files-found: error
+          retention-days: 90
