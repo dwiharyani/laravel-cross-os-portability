@@ -42,8 +42,11 @@ jobs:
           path=Path('data/interim/stage4_B02_manifest.csv')
           if not path.is_file():raise RuntimeError('Generate and commit B02 manifest first')
           with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
-          if not 1<=len(rows)<=70:raise RuntimeError('B02 manifest must have between 1 and 70 rows')
+          if len(rows)!=75:raise RuntimeError('B02 frozen original assignment must have exactly 75 rows')
+          if len({r.get('execution_id') for r in rows})!=75 or len({r.get('repo_full_name','').lower() for r in rows})!=75:
+              raise RuntimeError('Duplicate IDs or repository names in B02 manifest')
           for r in rows:
+              if r.get('execution_owner')!='B' or r.get('execution_batch')!='B02':raise RuntimeError('Wrong owner/batch in frozen B02 manifest')
               if not re.fullmatch(r'B-\d{3}',r.get('execution_id','')):raise RuntimeError('Invalid B02 ID')
               if not re.fullmatch(r'[a-f0-9]{40}',r.get('latest_sha','')):raise RuntimeError('Invalid exact SHA')
               if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',r.get('repo_full_name','')):raise RuntimeError('Invalid repository name')

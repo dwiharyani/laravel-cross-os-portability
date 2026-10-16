@@ -1,0 +1,26 @@
+{
+  "source": "ORIGINAL_TWO_PERSON_ASSIGNMENT",
+  "master": "data/interim/stage4_two_person_execution_assignment_921.csv",
+  "master_sha256": "7bbff8122765a37c1c831dc6636e4f537d5f70324af8f82dcbcd4088e2c26387",
+  "master_rows": 921,
+  "owner_A_total": 460,
+  "owner_B_total": 461,
+  "batch": "B02",
+  "selected_repositories": 75,
+  "planned_os_jobs": 225,
+  "original_execution_ids_preserved": true,
+  "selection_order": "ORIGINAL_B02_ASSIGNMENT_ORDER",
+  "A01_baseline_repositories": 70,
+  "A01_overlap": 0,
+  "first_3_ids": [
+    "B-060",
+    "B-076",
+    "B-078"
+  ],
+  "first_3_repositories": [
+    "thulaninhla/ecommerce-laravel-react",
+    "viniciusrvcruz/bibleasy-backend",
+    "ajithnow/hotel-manager-laravel"
+  ],
+  "warning": "B02 is the ORIGINAL owner-B second batch, NOT simply the next repositories after A01. B01 is a different batch."
+}
