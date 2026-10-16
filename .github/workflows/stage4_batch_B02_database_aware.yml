@@ -1,0 +1,193 @@
+name: Stage 4 B02 - Database-Aware Cross-OS Batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_repositories:
+        description: 'First N manifest rows; start with 3, then continue in partitions to avoid duplicate reruns'
+        required: true
+        type: string
+        default: '3'
+      execution_ids:
+        description: 'Optional comma-separated IDs. Set max_repositories=0 when using this.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build exact-SHA B02 matrix
+        id: generate
+        env:
+          MAX_REPOSITORIES: ${{ inputs.max_repositories }}
+          EXECUTION_IDS: ${{ inputs.execution_ids }}
+        run: |
+          python - <<'PY'
+          import csv,json,os,re
+          from pathlib import Path
+          path=Path('data/interim/stage4_B02_manifest.csv')
+          if not path.is_file():raise RuntimeError('Generate and commit B02 manifest first')
+          with path.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
+          if not 1<=len(rows)<=70:raise RuntimeError('B02 manifest must have between 1 and 70 rows')
+          for r in rows:
+              if not re.fullmatch(r'B-\d{3}',r.get('execution_id','')):raise RuntimeError('Invalid B02 ID')
+              if not re.fullmatch(r'[a-f0-9]{40}',r.get('latest_sha','')):raise RuntimeError('Invalid exact SHA')
+              if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',r.get('repo_full_name','')):raise RuntimeError('Invalid repository name')
+          ids=os.environ.get('EXECUTION_IDS','').strip()
+          requested={v.strip() for v in ids.split(',') if v.strip()}
+          count=int(os.environ.get('MAX_REPOSITORIES') or 0)
+          if count<0:raise RuntimeError('Invalid max_repositories')
+          if requested:
+              missing=requested-{r['execution_id'] for r in rows}
+              if missing:raise RuntimeError('Unknown IDs: '+str(sorted(missing)))
+              if count>0:raise RuntimeError('Use max_repositories=0 with execution_ids to prevent ambiguous selection')
+              rows=[r for r in rows if r['execution_id'] in requested]
+          elif count:
+              rows=rows[:count]
+          if not rows:raise RuntimeError('Empty selected matrix')
+          matrix=[{**r,'os':os_name,'runner':label}
+              for r in rows for os_name,label in [('linux','ubuntu-22.04'),('windows','windows-2022'),('macos','macos-15')]]
+          if len(matrix)>256:raise RuntimeError('Matrix exceeds 256 GitHub Actions combinations')
+          s=json.dumps({'include':matrix},separators=(',',':'))
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
+              f.write('matrix<<MATRIX\n'+s+'\nMATRIX\n')
+          print('B02 selected:',len(rows),'repositories,',len(matrix),'OS jobs')
+          PY
+
+  execute:
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    name: '${{ matrix.execution_id }} / ${{ matrix.os }}'
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout research workflow (no persisted credential)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install inspection dependencies (no external DB access)
+        run: python -m pip install 'PyYAML==6.0.2'
+
+      - name: Inspect exact repository SHA for PHP and test command
+        id: preflight
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_preflight.py
+
+      - name: Audit original database (do not substitute versions)
+        id: db
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_database.py
+
+      - name: Setup selected PHP
+        id: php_setup
+        if: steps.preflight.outcome == 'success' && steps.db.outputs.run_protocol == 'true'
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.preflight.outputs.php }}
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Capture PHP module evidence
+        if: steps.php_setup.outcome == 'success'
+        run: |
+          mkdir -p stage4_v3_preflight
+          php -m > stage4_v3_preflight/php_modules.txt
+          php --version
+          composer --version
+
+      - name: Execute unchanged Stage 4 v2 protocol
+        id: protocol
+        if: steps.preflight.outcome == 'success' && steps.db.outputs.run_protocol == 'true' && steps.php_setup.outcome == 'success' && steps.preflight.outputs.command != ''
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ steps.preflight.outputs.php }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ steps.preflight.outputs.command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_STARS: ${{ matrix.stars_github }}
+          STAGE4_FORKS: ${{ matrix.forks_count }}
+          STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
+          STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
+          STAGE4_PHP_CONSTRAINT: ${{ matrix.php_runtime_constraint }}
+          STAGE4_PHP_SOURCE: composer.json+composer.lock
+          STAGE4_ATTEMPT: '1'
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_run_protocol.py
+
+      - name: Finalize protocol audit
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_V3_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_V3_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_finalize.py
+
+      - name: Finalize database-aware classification
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+        run: python scripts/stage4_v3_2_finalize.py
+
+      - name: Upload curated immutable result (exclude third-party checkout)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-B02-${{ matrix.execution_id }}-${{ matrix.os }}
+          path: |
+            stage4_execution/
+            stage4_v3_preflight/preflight.json
+            stage4_v3_preflight/php_modules.txt
+            stage4_v3_2_database/database_audit.json
+          if-no-files-found: error
+          retention-days: 90
