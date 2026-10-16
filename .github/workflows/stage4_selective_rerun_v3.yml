@@ -158,6 +158,7 @@ jobs:
           name: stage4-v3-${{ matrix.execution_id }}-${{ matrix.os }}
           path: |
             stage4_execution/
-            stage4_v3_preflight/
+            stage4_v3_preflight/preflight.json
+            stage4_v3_preflight/php_modules.txt
           if-no-files-found: error
           retention-days: 90
