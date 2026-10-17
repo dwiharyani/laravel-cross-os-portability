@@ -1,0 +1,267 @@
+name: Stage 4 Recovery - PHP Scope Pilot A02-B2 (2 Repos)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: stage4-recovery-php-scope-a02b2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout research pipeline
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify recovery script is present
+        run: |
+          test -f scripts/stage4_v3_preflight_recovery.py
+          test -f scripts/stage4_recovery_php_scope_b2_finalize.py
+          test -f scripts/stage4_recovery_php_scope_b2_patch_runner.py
+          test -f scripts/14_cross_os_reproducibility_v2.py
+          test -f data/interim/stage4_v3_3_A02_manifest.csv
+          python -m py_compile scripts/stage4_v3_preflight_recovery.py scripts/stage4_recovery_php_scope_b2_finalize.py scripts/stage4_recovery_php_scope_b2_patch_runner.py
+
+      - name: Build exact-SHA matrix for two A02-B2 recovery candidates
+        id: matrix
+        env:
+          BATCH_ID: A02
+          MAX_REPOSITORIES: '0'
+          EXECUTION_IDS: A-108,A-129
+        run: |
+          python scripts/stage4_v3_3_prepare_batch.py \
+            --validate-only \
+            --batch "$BATCH_ID" \
+            --max-repositories "$MAX_REPOSITORIES" \
+            --execution-ids "$EXECUTION_IDS"
+
+      - name: Fail closed unless matrix contains exactly two frozen A02-B2 candidates across all OS
+        env:
+          MATRIX_JSON: ${{ steps.matrix.outputs.matrix }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          matrix = json.loads(os.environ['MATRIX_JSON'])
+          rows = matrix.get('include') if isinstance(matrix, dict) else None
+          targets = {
+              'A-108': 'tsukumijima/weather-api',
+                            'A-129': 'Coyote-OSS/coyote',
+          }
+          if not isinstance(rows, list) or len(rows) != 6:
+              raise SystemExit('Expected exactly 6 matrix entries (2 repos x 3 OS)')
+          pairs = set()
+          sha_per_id = {}
+          for row in rows:
+              eid, osname = row.get('execution_id'), row.get('os')
+              sha = row.get('latest_sha', '')
+              if eid not in targets or row.get('repo_full_name') != targets[eid]:
+                  raise SystemExit('Unexpected ID/repository in recovery matrix')
+              if row.get('execution_batch') != 'A02':
+                  raise SystemExit('Unexpected frozen batch')
+              if osname not in {'linux', 'windows', 'macos'}:
+                  raise SystemExit('Unexpected OS in matrix')
+              if not re.fullmatch(r'[a-fA-F0-9]{40}', sha):
+                  raise SystemExit('Invalid frozen SHA')
+              if eid in sha_per_id and sha_per_id[eid] != sha:
+                  raise SystemExit('Inconsistent frozen SHA across OS')
+              sha_per_id[eid] = sha
+              if (eid, osname) in pairs:
+                  raise SystemExit('Duplicate execution_id/OS')
+              pairs.add((eid, osname))
+          expected = {(eid, osname) for eid in targets for osname in ('linux','windows','macos')}
+          if pairs != expected:
+              raise SystemExit('Missing or unexpected repository/OS pair')
+          print('RECOVERY MATRIX VALIDATED: 2 A02-B2 repositories, 6 exact-SHA OS pairs')
+          PY
+
+  execute:
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ${{ matrix.runner }}
+    name: 'Recovery ${{ matrix.execution_id }} / ${{ matrix.os }}'
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout research pipeline (no persisted credentials)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install static inspection dependency
+        run: python -m pip install 'PyYAML==6.0.2'
+
+      - name: Recovery preflight - fixed Composer hyphen range only
+        id: preflight
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_preflight_recovery.py
+
+      - name: Static audit of original database requirements
+        id: db
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_database.py
+
+      - name: Setup selected PHP independently of DB readiness
+        id: php_setup
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.preflight.outputs.php }}
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Capture PHP module evidence
+        if: steps.php_setup.outcome == 'success'
+        run: |
+          mkdir -p stage4_v3_preflight
+          php -m > stage4_v3_preflight/php_modules.txt
+          php --version
+          composer --version
+
+      - name: Independent Composer lock install diagnostic (no scripts/plugins)
+        id: composer_diag
+        if: always()
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_PHP_SETUP_OK: ${{ steps.php_setup.outcome == 'success' }}
+        run: python scripts/stage4_v3_3_composer.py
+
+      # Correct ONLY the common v2 failure recorder bug, in ephemeral runners.
+      # Never provision application-specific databases in this generic pilot.
+      - name: Safely repair v2 failure recording in ephemeral runner
+        id: patch_protocol
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RECOVERY_PATCH_RUNNER_ONLY: 'true'
+        run: python scripts/stage4_recovery_php_scope_b2_patch_runner.py --apply-runner-only
+
+      - name: Run original full test protocol only when DB audit permits
+        id: protocol
+        if: >-
+          steps.preflight.outcome == 'success' &&
+          steps.patch_protocol.outcome == 'success' &&
+          steps.php_setup.outcome == 'success' &&
+          steps.db.outputs.run_protocol == 'true' &&
+          steps.preflight.outputs.command != ''
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ steps.preflight.outputs.php }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ steps.preflight.outputs.command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_STARS: ${{ matrix.stars_github }}
+          STAGE4_FORKS: ${{ matrix.forks_count }}
+          STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
+          STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
+          STAGE4_PHP_CONSTRAINT: ${{ matrix.php_runtime_constraint }}
+          STAGE4_PHP_SOURCE: composer.json+composer.lock
+          STAGE4_ATTEMPT: '1'
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_run_protocol.py
+
+      - name: Finalize v3 protocol metadata
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_V3_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_V3_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_finalize.py
+
+      - name: Finalize DB gate without inventing test success
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+        run: python scripts/stage4_v3_2_finalize.py
+
+      - name: Merge independent Composer evidence with provenance
+        if: always()
+        env:
+          STAGE4_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_3_finalize.py
+
+      - name: Tag isolated A02-B recovery evidence without changing original statuses
+        if: always()
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RECOVERY_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_RECOVERY_PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+          STAGE4_RECOVERY_PHP_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_RECOVERY_DB_OUTCOME: ${{ steps.db.outcome }}
+          STAGE4_RECOVERY_COMPOSER_OUTCOME: ${{ steps.composer_diag.outcome }}
+          STAGE4_RECOVERY_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+          STAGE4_RECOVERY_PATCH_OUTCOME: ${{ steps.patch_protocol.outcome }}
+        run: python scripts/stage4_recovery_php_scope_b2_finalize.py
+
+      - name: Upload isolated recovery artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-recovery-php-scope-a02b2-${{ matrix.execution_id }}-${{ matrix.os }}
+          path: |
+            stage4_execution/
+            stage4_recovery/provenance_b2.json
+            stage4_recovery/pilot_b2_protocol_patch.json
+            stage4_v3_preflight/preflight.json
+            stage4_v3_preflight/php_modules.txt
+            stage4_v3_2_database/database_audit.json
+            stage4_v3_3_composer/composer_diagnostic.json
+            stage4_v3_3_composer/composer_install.log
+          if-no-files-found: error
+          retention-days: 90
