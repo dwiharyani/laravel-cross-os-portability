@@ -1,0 +1,14 @@
+{
+  "batch": "A02",
+  "master": "data/interim/stage4_two_person_execution_assignment_921.csv",
+  "master_sha256": "7bbff8122765a37c1c831dc6636e4f537d5f70324af8f82dcbcd4088e2c26387",
+  "source_rows": 921,
+  "original_batch_count": 75,
+  "selected_repositories": 75,
+  "excluded_in_batch_count": 0,
+  "excluded_repo_full_names": [],
+  "selection_order": "ORIGINAL_FROZEN_ASSIGNMENT_ORDER",
+  "original_ids_and_shas_preserved": true,
+  "manifest_path": "data/interim/stage4_v3_3_A02_manifest.csv",
+  "warning": "A01 comprises 75 frozen assignments, but only 70 analyzed in the previous A01 baseline; use exclude CSV to select the remaining five."
+}
