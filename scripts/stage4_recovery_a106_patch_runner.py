@@ -69,6 +69,32 @@ def recover_source(original):
     return patched, dict(stages)
 
 
+def verify_checkout_source(working_tree: bytes, committed_blob: bytes) -> str:
+    """Accept only byte-identical source or Git checkout newline conversion.
+
+    Windows git checkout may produce CRLF from a committed LF blob
+    (core.autocrlf=true). Never allow arbitrary source modifications:
+    comparison is exact after normalizing *only* CRLF to LF.
+    """
+    if working_tree == committed_blob:
+        return 'BYTE_IDENTICAL'
+
+    def valid_newlines(blob: bytes) -> bool:
+        # Reject stray CR, including uncommon classic-Mac CR-only files.
+        return blob.count(b'\r') == blob.count(b'\r\n')
+
+    if (valid_newlines(working_tree) and valid_newlines(committed_blob)
+            and working_tree.replace(b'\r\n', b'\n') == committed_blob.replace(b'\r\n', b'\n')):
+        return 'EOL_CRLF_LF_ONLY'
+
+    raise RuntimeError(
+        'Checked-out source has non-EOL changes relative to HEAD; refusing patch '
+        f'(working_sha256={sha256(working_tree).hexdigest()}, '
+        f'head_sha256={sha256(committed_blob).hexdigest()}). '
+        'Inspect git diff and .gitattributes; no patch has been applied.'
+    )
+
+
 def run(mode):
     if not SOURCE.is_file():
         raise FileNotFoundError(f'Source not found: {SOURCE}')
@@ -83,11 +109,13 @@ def run(mode):
             or os.getenv('STAGE4_EXECUTION_ID') != 'A-106'
             or os.getenv('STAGE4_OS') not in ('linux', 'windows', 'macos')):
         raise RuntimeError('Runner-only patch guard failed; no Mac/local in-place changes permitted')
-    # Refuse any source modified relative to the checked-out commit.
+    # Verify exact committed source, accepting ONLY Git's CRLF/LF checkout
+    # normalization on Windows. Non-EOL drift remains a hard failure.
     git_source = subprocess.check_output(['git', 'show', 'HEAD:scripts/14_cross_os_reproducibility_v2.py'])
-    if original != git_source:
-        raise RuntimeError('Checked-out source differs from HEAD; refusing patch')
+    checkout_comparison = verify_checkout_source(original, git_source)
     metadata = {
+        'checkout_to_head_verification': checkout_comparison,
+        'head_blob_sha256': sha256(git_source).hexdigest(),
         'experiment_id': 'stage4-a106-v2-set-failure-recovery-v1',
         'applied_in_ephemeral_runner': True,
         'original_sha256': before,
