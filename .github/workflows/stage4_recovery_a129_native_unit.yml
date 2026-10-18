@@ -1,0 +1,113 @@
+name: Stage 4 Recovery - A-129 Native Unit In-Memory
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: stage4-recovery-a129-native-unit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout research pipeline without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate required scripts and frozen A02 matrix
+        run: |
+          test -f scripts/stage4_recovery_a129_native_unit_runner.py
+          test -f scripts/stage4_recovery_a129_native_unit_review.py
+          test -f data/interim/stage4_v3_3_A02_manifest.csv
+          python -m py_compile scripts/stage4_recovery_a129_native_unit_runner.py scripts/stage4_recovery_a129_native_unit_review.py
+      - name: Build strict A-129 frozen SHA matrix
+        id: matrix
+        env:
+          BATCH_ID: A02
+          MAX_REPOSITORIES: '0'
+          EXECUTION_IDS: A-129
+        run: |
+          python scripts/stage4_v3_3_prepare_batch.py \
+            --validate-only --batch "$BATCH_ID" \
+            --max-repositories "$MAX_REPOSITORIES" \
+            --execution-ids "$EXECUTION_IDS"
+      - name: Guard exact identity and three-OS coverage
+        env:
+          MATRIX_JSON: ${{ steps.matrix.outputs.matrix }}
+        run: |
+          python - <<'PY'
+          import json, os
+          rows=json.loads(os.environ['MATRIX_JSON']).get('include',[])
+          if len(rows)!=3: raise SystemExit('Exactly 3 OS rows required')
+          got=set()
+          for r in rows:
+              if (r.get('execution_id')!='A-129' or r.get('repo_full_name')!='Coyote-OSS/coyote' or
+                  r.get('latest_sha')!='0ead8b60f68f3acac974000357b73b4a89049d76' or
+                  r.get('execution_batch')!='A02'):
+                  raise SystemExit('Frozen identity or assignment mismatch')
+              if r.get('os') not in ('linux','windows','macos'): raise SystemExit('Unexpected OS')
+              if r['os'] in got: raise SystemExit('Duplicate OS')
+              got.add(r['os'])
+          if got!={'linux','windows','macos'}: raise SystemExit('Missing OS')
+          print('A-129 MATRIX VALIDATED: 3 OS and exact immutable SHA')
+          PY
+
+  execute:
+    name: 'A-129 Unit / ${{ matrix.os }}'
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout pipeline (source repo will be fetched by SHA separately)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Setup selected PHP 8.5
+        id: php_setup
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+      - name: Run upstream-CI native unit and in-memory commands with isolated provenance
+        if: always()
+        id: targeted_tests
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_PHP_SETUP_OK: ${{ steps.php_setup.outcome == 'success' }}
+        run: python scripts/stage4_recovery_a129_native_unit_runner.py --output stage4_recovery_a129_native_unit
+      - name: Upload only curated evidence, not third-party source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-recovery-a129-native-unit-${{ matrix.os }}
+          path: |
+            stage4_recovery_a129_native_unit/result.json
+            stage4_recovery_a129_native_unit/logs/*.log
+          if-no-files-found: warn
+          retention-days: 30
