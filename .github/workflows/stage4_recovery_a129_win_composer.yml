@@ -1,0 +1,128 @@
+name: Stage 4 Recovery - A-129 Windows Composer Command Resolution
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: stage4-recovery-a129-win-composer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      windows_matrix: ${{ steps.single.outputs.windows_matrix }}
+    steps:
+      - name: Checkout research pipeline without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify independent Windows runner and original immutable assignment
+        run: |
+          test -f scripts/stage4_recovery_a129_win_composer_runner.py
+          test -f scripts/stage4_recovery_a129_win_composer_review.py
+          test -f data/interim/stage4_v3_3_A02_manifest.csv
+          python -m py_compile scripts/stage4_recovery_a129_win_composer_runner.py scripts/stage4_recovery_a129_win_composer_review.py
+      - name: Rebuild and validate original three-OS frozen A-129 matrix
+        id: full
+        env:
+          BATCH_ID: A02
+          MAX_REPOSITORIES: '0'
+          EXECUTION_IDS: A-129
+        run: |
+          python scripts/stage4_v3_3_prepare_batch.py \
+            --validate-only --batch "$BATCH_ID" \
+            --max-repositories "$MAX_REPOSITORIES" \
+            --execution-ids "$EXECUTION_IDS"
+      - name: Select only original Windows row; refuse altered frozen identity
+        id: single
+        env:
+          FULL_MATRIX: ${{ steps.full.outputs.matrix }}
+        run: |
+          python - <<'PY'
+          import json, os
+          rows=json.loads(os.environ['FULL_MATRIX']).get('include',[])
+          if len(rows)!=3 or {r.get('os') for r in rows}!={'linux','windows','macos'}:
+              raise SystemExit('Original A02 must have exactly three unique OS rows')
+          for r in rows:
+              if (r.get('execution_id')!='A-129' or
+                  r.get('repo_full_name')!='Coyote-OSS/coyote' or
+                  r.get('latest_sha')!='0ead8b60f68f3acac974000357b73b4a89049d76' or
+                  r.get('execution_batch')!='A02'):
+                  raise SystemExit('Original manifest identity/SHA/batch mismatch')
+          win=next(r for r in rows if r['os']=='windows')
+          if not str(win.get('runner','')).lower().startswith('windows'):
+              raise SystemExit('Unexpected Windows runner label')
+          matrix={'include':[win]}
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
+              f.write('windows_matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+          print('SELECTED ONE WINDOWS ROW FROM IMMUTABLE A02:',win['execution_id'],win['latest_sha'],win['runner'])
+          PY
+
+  execute:
+    name: 'A-129 Windows-only native unit Composer fix'
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.windows_matrix) }}
+    steps:
+      - name: Checkout research pipeline without credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Setup selected PHP 8.5 and Composer v2
+        id: php_setup
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_pgsql, pgsql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+      - name: Record actual Composer resolution in Git Bash (diagnostic only)
+        if: always()
+        continue-on-error: true
+        run: |
+          echo '=== PHP ==='
+          php --version || true
+          echo '=== Composer via Git Bash ==='
+          type -a composer || true
+          command -v composer || true
+          composer --version || true
+          echo '=== Windows executable lookup ==='
+          where.exe composer || true
+      - name: Execute targeted upstream-CI unit/in-memory commands on Windows only
+        if: always()
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_PHP_SETUP_OK: ${{ steps.php_setup.outcome == 'success' }}
+        run: python scripts/stage4_recovery_a129_win_composer_runner.py --output stage4_recovery_a129_windows_composer
+      - name: Upload Windows recovery evidence, not third-party source tree
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-recovery-a129-windows-composer-v2
+          path: |
+            stage4_recovery_a129_windows_composer/result.json
+            stage4_recovery_a129_windows_composer/logs/*.log
+          if-no-files-found: error
+          retention-days: 30
