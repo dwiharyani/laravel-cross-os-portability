@@ -204,6 +204,43 @@ def find_artifacts(run_id):
     return [item['name'] for item in items if not item.get('expired')]
 
 
+def get_run_details_with_502_fallback(run_id):
+    """Keep exact artifact verification even when GitHub jobs API is down.
+
+    Status is taken from the official run endpoint as a fallback; individual
+    jobs remain explicitly UNAUDITED, rather than being labelled successful.
+    Only 502/503/504 job-endpoint failures are eligible for fallback.
+    """
+    cmd = ['gh', 'run', 'view', str(run_id), '--json',
+           'status,conclusion,jobs,attempt']
+    view = call(cmd, capture=True, allow_fail=True)
+    if view.returncode == 0:
+        return json.loads(view.stdout), 'JOBS_RETRIEVED'
+
+    err = (view.stderr or '') + '\n' + (view.stdout or '')
+    if not any(f'HTTP {code}' in err for code in (502, 503, 504)):
+        fail(f'Cannot audit jobs for run {run_id}; unexpected GitHub CLI '
+             f'error (not 502/503/504): {err[-1200:]}')
+
+    print(f'WARNING: GitHub jobs endpoint returned 502/503/504 for run {run_id}. '
+          'Using verified workflow metadata; job outcomes UNAVAILABLE.', flush=True)
+    url = f'repos/{EXPECTED_REPO}/actions/runs/{run_id}'
+    response = call(['gh', 'api', '-X', 'GET', url], capture=True)
+    metadata = json.loads(response.stdout)
+    if str(metadata.get('id')) != str(run_id):
+        fail(f'GitHub returned unexpected run ID for {run_id}')
+    if metadata.get('name') != 'Stage 4 v3.3 - Composer-First Cross-OS':
+        fail(f'Unexpected workflow name for run {run_id}: {metadata.get("name")}')
+    if metadata.get('head_branch') != 'main':
+        fail(f'Unexpected branch for run {run_id}: {metadata.get("head_branch")}')
+    if metadata.get('status') not in ('completed', 'queued', 'in_progress', 'waiting', 'pending', 'requested'):
+        fail(f'Unexpected workflow status for run {run_id}: {metadata.get("status")}')
+    return {'status': metadata['status'],
+            'conclusion': metadata.get('conclusion'),
+            'attempt': metadata.get('run_attempt'),
+            'jobs': []}, 'JOBS_UNAVAILABLE_GITHUB_HTTP_502_503_504'
+
+
 def process_run(args, state, item):
     key = item['key']
     if item.get('collected_at'):
@@ -234,12 +271,13 @@ def process_run(args, state, item):
     run_id = item['run_id']
     print(f'WAITING: {key} run={run_id}')
     call(['gh','run','watch',str(run_id),'--interval','30'],allow_fail=True)
-    view = call(['gh','run','view',str(run_id),'--json','status,conclusion,jobs'],capture=True)
-    data = json.loads(view.stdout)
+    data, job_audit_status = get_run_details_with_502_fallback(run_id)
     item['run_status'] = data['status']
     item['conclusion'] = data['conclusion']
     item['job_outcomes'] = [{'name':j['name'],'conclusion':j.get('conclusion')}
                             for j in data.get('jobs',[])]
+    item['job_audit_status'] = job_audit_status
+    item['run_attempt'] = data.get('attempt')
     atomic_json(statepath(args),state)
     if data['status'] != 'completed':
         fail(f'{key}: workflow not completed; rerun controller to continue watching')
