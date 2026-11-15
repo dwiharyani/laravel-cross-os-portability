@@ -1,0 +1,294 @@
+name: Stage 4.5 - B032 Frozen-SHA Cross-OS Reproduction
+
+# Manual only; no pushes or schedules trigger executions.
+on:
+  workflow_dispatch:
+
+# This file does not patch third-party code or edit Stage 4 artifacts.
+# It reproduces the full baseline protocol for the single allowlisted B-032 triplet.
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout research pipeline
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate immutable assignment and build exact-SHA matrix
+        id: matrix
+        env:
+          BATCH_ID: 'B01'
+          MAX_REPOSITORIES: '0'
+          EXECUTION_IDS: 'B-032'
+        run: |
+          python scripts/stage4_v3_3_prepare_batch.py \
+            --validate-only \
+            --batch "$BATCH_ID" \
+            --max-repositories "$MAX_REPOSITORIES" \
+            --execution-ids "$EXECUTION_IDS"
+
+      - name: Block unexpected repositories, revisions, or OS runners
+        env:
+          STAGE45_MATRIX: ${{ steps.matrix.outputs.matrix }}
+        run: |
+          python - <<'PY'
+          import json, os
+          rows = json.loads(os.environ['STAGE45_MATRIX'])['include']
+          runners = {'linux': 'ubuntu-22.04', 'windows': 'windows-2022', 'macos': 'macos-15'}
+          sha = '4ef5d0fab5d5f05b3b47b04814c3d1aae3316d8c'
+          if len(rows) != 3 or {r['os'] for r in rows} != set(runners):
+              raise SystemExit('Unsafe matrix: require exactly B-032 on three OS')
+          for row in rows:
+              if (row['execution_id'] != 'B-032' or
+                  row['repo_full_name'] != 'Solutionmax/pharos' or
+                  row['latest_sha'] != sha or
+                  row['runner'] != runners[row['os']] or
+                  row['execution_batch'] != 'B01'):
+                  raise SystemExit('Unsafe matrix member: '+repr(row))
+          print('Validated frozen three-OS B-032 matrix; SHA:',sha)
+          PY
+
+  execute:
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    runs-on: ${{ matrix.runner }}
+    name: '${{ matrix.execution_id }} / ${{ matrix.os }}'
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout research pipeline (no persisted credentials)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install static inspection dependency
+        run: python -m pip install 'PyYAML==6.0.2'
+
+      - name: Inspect exact repository SHA and resolve PHP
+        id: preflight
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+        run: python scripts/stage4_v3_preflight.py
+
+      - name: Static audit of original database requirements
+        id: db
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_database.py
+
+      # Deliberately independent of DB-audit run_protocol: this fixes B02's 46x3 Composer skips.
+      - name: Setup selected PHP independent of database readiness
+        id: php_setup
+        if: steps.preflight.outcome == 'success'
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ steps.preflight.outputs.php }}
+          extensions: mbstring, curl, dom, fileinfo, intl, zip, gd, bcmath, pdo_mysql, pdo_sqlite, sqlite3, openssl, sodium, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Capture PHP module evidence
+        if: steps.php_setup.outcome == 'success'
+        run: |
+          mkdir -p stage4_v3_preflight
+          php -m > stage4_v3_preflight/php_modules.txt
+          php --version
+          composer --version
+
+      - name: Independent Composer lock install diagnostic (no scripts/plugins)
+        id: composer_diag
+        if: always()
+        continue-on-error: true
+        env:
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_PHP_SETUP_OK: ${{ steps.php_setup.outcome == 'success' }}
+        run: python scripts/stage4_v3_3_composer.py
+
+      - name: Run unchanged v2 full test protocol only when DB audit permits
+        id: protocol
+        if: >-
+          steps.preflight.outcome == 'success' &&
+          steps.php_setup.outcome == 'success' &&
+          steps.db.outputs.run_protocol == 'true' &&
+          steps.preflight.outputs.command != ''
+        continue-on-error: true
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_URL: ${{ matrix.url }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_PHP: ${{ steps.preflight.outputs.php }}
+          STAGE4_LARAVEL: ${{ matrix.laravel_version_constraint }}
+          STAGE4_TEST_COMMAND: ${{ steps.preflight.outputs.command }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_RUNNER: ${{ matrix.runner }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_STARS: ${{ matrix.stars_github }}
+          STAGE4_FORKS: ${{ matrix.forks_count }}
+          STAGE4_POPULARITY_QUARTILE: ${{ matrix.popularity_quartile }}
+          STAGE4_DOCKER_STATUS: ${{ matrix.docker_status }}
+          STAGE4_PHP_CONSTRAINT: ${{ matrix.php_runtime_constraint }}
+          STAGE4_PHP_SOURCE: composer.json+composer.lock
+          STAGE4_ATTEMPT: '1'
+          STAGE4_DB_MODE: audit_only
+        run: python scripts/stage4_v3_2_run_protocol.py
+
+      - name: Finalize v3 protocol metadata
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_OWNER: ${{ matrix.execution_owner }}
+          STAGE4_BATCH: ${{ matrix.execution_batch }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+          STAGE4_V3_SETUP_OUTCOME: ${{ steps.php_setup.outcome }}
+          STAGE4_V3_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_finalize.py
+
+      - name: Finalize database gating without claiming test success
+        if: always()
+        env:
+          STAGE4_REPO: ${{ matrix.repo_full_name }}
+          STAGE4_SHA: ${{ matrix.latest_sha }}
+          STAGE4_OS: ${{ matrix.os }}
+          STAGE4_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE4_PROJECT_ID: ${{ matrix.project_id }}
+        run: python scripts/stage4_v3_2_finalize.py
+
+      - name: Merge independent Composer evidence with provenance
+        if: always()
+        env:
+          STAGE4_PROTOCOL_OUTCOME: ${{ steps.protocol.outcome }}
+        run: python scripts/stage4_v3_3_finalize.py
+
+      - name: Capture Stage 4.5 provenance and verify result identity
+        if: always()
+        env:
+          STAGE45_EXPECTED_OS: ${{ matrix.os }}
+          STAGE45_EXPECTED_RUNNER: ${{ matrix.runner }}
+          STAGE45_EXECUTION_ID: ${{ matrix.execution_id }}
+          STAGE45_EXPECTED_SHA: ${{ matrix.latest_sha }}
+          STAGE45_PREPARE_RESULT: ${{ steps.preflight.outcome }}
+          STAGE45_DB_RESULT: ${{ steps.db.outcome }}
+          STAGE45_PHP_RESULT: ${{ steps.php_setup.outcome }}
+          STAGE45_FULL_PROTOCOL_RESULT: ${{ steps.protocol.outcome }}
+          STAGE45_COMPOSER_DIAGNOSTIC_RESULT: ${{ steps.composer_diag.outcome }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, platform, subprocess
+          from pathlib import Path
+          dest=Path('stage4_5_evidence')
+          dest.mkdir(exist_ok=True)
+          p=Path('stage4_execution/result.json')
+          def cmd(*args):
+              try:
+                  q=subprocess.run(args,capture_output=True,text=True,timeout=15,check=False)
+                  return (q.stdout or q.stderr).strip().splitlines()[0]
+              except (OSError, subprocess.TimeoutExpired, IndexError):
+                  return 'UNAVAILABLE'
+          m={
+              'experiment':'STAGE4_5_B032_FULL_PROTOCOL_REPRODUCTION',
+              'interpretation':'observational repetition, NOT causal confirmation',
+              'baseline_run_id':'42010561913',
+              'baseline_pipeline':'stage4-v3.3',
+              'baseline_php_actual':'8.3.36',
+              'baseline_composer':'2.11.1',
+              'baseline_lock_sha256':'302516110cafe1a2eccab10aac792634bdc3edddec33994fcc71420721238019',
+              'baseline_test_command':'composer run-script test',
+              'execution_id':os.environ['STAGE45_EXECUTION_ID'],
+              'expected_os':os.environ['STAGE45_EXPECTED_OS'],
+              'expected_runner':os.environ['STAGE45_EXPECTED_RUNNER'],
+              'expected_repo':'Solutionmax/pharos',
+              'expected_sha':os.environ['STAGE45_EXPECTED_SHA'],
+              'github_run_id':os.environ.get('GITHUB_RUN_ID'),
+              'github_run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),
+              'runner_os':os.environ.get('RUNNER_OS'),
+              'image_os':os.environ.get('ImageOS'),
+              'image_version':os.environ.get('ImageVersion'),
+              'php_version_output':cmd('php','--version'),
+              'composer_version_output':cmd('composer','--version'),
+              'git_version_output':cmd('git','--version'),
+              'python_version':platform.python_version(),
+              'step_outcomes':{k:os.environ.get('STAGE45_'+k) for k in ('PREPARE_RESULT','DB_RESULT','PHP_RESULT','FULL_PROTOCOL_RESULT','COMPOSER_DIAGNOSTIC_RESULT')},
+              'result_available':p.is_file(),
+          }
+          errors=[]
+          if p.is_file():
+              try:
+                  raw=p.read_bytes()
+                  r=json.loads(raw)
+                  m['result_sha256']=hashlib.sha256(raw).hexdigest()
+                  m['result_fields']={k:r.get(k) for k in (
+                      'execution_id','repo_full_name','latest_sha','os','runner',
+                      'php_runtime_requested','php_version_actual','composer_version',
+                      'composer_lock_hash','test_command','test_execution',
+                      'tests_total','tests_passed','tests_failed','tests_skipped',
+                      'test_metrics_status','test_exit_code','composer_install',
+                      'composer_evidence_source','database_audit_status','run_id'
+                  )}
+                  for k,expected in [('execution_id','B-032'),('repo_full_name','Solutionmax/pharos'),
+                                     ('latest_sha',m['expected_sha']),('os',m['expected_os'])]:
+                      if str(r.get(k))!=str(expected):
+                          errors.append(f'{k}: expected {expected!r}, got {r.get(k)!r}')
+                  if r.get('composer_lock_hash') != m['baseline_lock_sha256']:
+                      errors.append('composer_lock_hash changed from Stage 4 baseline')
+                  if r.get('test_command') != m['baseline_test_command']:
+                      errors.append('test_command differs from Stage 4 baseline')
+                  m['runtime_patch_changed']=(r.get('php_version_actual')!=m['baseline_php_actual'])
+                  m['composer_version_changed']=(r.get('composer_version')!=m['baseline_composer'])
+              except (ValueError, OSError) as e:
+                  errors.append('Unable to inspect result.json: '+repr(e))
+          else:
+              errors.append('stage4_execution/result.json was not produced')
+          m['identity_and_lock_verification_errors']=errors
+          (dest/'provenance.json').write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('Stage 4.5 provenance recorded; validity errors:',errors)
+          if errors:
+              raise SystemExit('Stage 4.5 evidence identity/lock check failed')
+          PY
+
+      - name: Upload Stage 4.5 evidence separately (no source tree)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage4-5-B-032-${{ matrix.os }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            stage4_5_evidence/provenance.json
+            stage4_execution/
+            stage4_v3_preflight/preflight.json
+            stage4_v3_preflight/php_modules.txt
+            stage4_v3_2_database/database_audit.json
+            stage4_v3_3_composer/composer_diagnostic.json
+            stage4_v3_3_composer/composer_install.log
+          if-no-files-found: error
+          retention-days: 90
