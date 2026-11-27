@@ -1,0 +1,54 @@
+{
+  "dataset": "Stage 4 Laravel matched cross-OS evidence",
+  "repositories": 921,
+  "repository_os_records": 2763,
+  "operating_systems": [
+    "linux",
+    "windows",
+    "macos"
+  ],
+  "analytical_state_counts": {
+    "PASS_VERIFIED": 364,
+    "PASS_UNVERIFIED": 18,
+    "FAIL_PARSED": 276,
+    "FAIL_RECORDED": 376,
+    "NOT_RUN": 1651,
+    "INTERRUPTED": 78
+  },
+  "scope": "Stage 4 baseline evidence, with manuscript-level interpretive findings; not an LLM benchmark",
+  "sources": [
+    {
+      "role": "Manuscript PDF",
+      "filename": "Haryani_Mehdawi_Laravel_CrossOS_JSS (3).pdf",
+      "sha256": "e98238152d46298bf902136bf2990d0bdb825b1cd39039d60762ae148e6c133d"
+    },
+    {
+      "role": "Stage 4 repo-level CSV",
+      "filename": "Stage4_Detail_921_Repositories.csv",
+      "sha256": "7f4170117ee357ec552f5a7c11c5a2942bb2aa8dd6600191e50bc3ca5d413af7"
+    },
+    {
+      "role": "Stage 4 OS-level CSV",
+      "filename": "Stage4_Detail_2763_Repository_OS_Records.csv",
+      "sha256": "9df2fd54e1b9740081ed772f9c703834940428b354cac11a5bae37493e5f07aa"
+    },
+    {
+      "role": "Supplemental initial crawling and screening provenance",
+      "filename": "laravel_cross_os_portability_experiment_documentation.xlsx; 2026-09-10 prefilter terminal log; Stage4 sample",
+      "scope": "initial source list and eligibility funnel—not a single search API result count"
+    }
+  ],
+  "initial_collection_funnel": {
+    "initial_repository_records": 5353,
+    "github_api_accessible": 5349,
+    "php_prefilter_candidates": 5171,
+    "laravel_api_verified": {
+      "confirmed_application": 1094,
+      "package_or_incomplete": 710,
+      "not_laravel": 3367
+    },
+    "docker_inclusive_candidates": 923,
+    "final_frozen_sample": 921,
+    "source": "Project documentation workbook and September 2026 prefilter logs; 923→921 follows final Stage 4 sample"
+  }
+}

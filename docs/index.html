@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#332b36" />
+  <meta name="description" content="Interactive research explorer for 921 Laravel repositories tested on Linux, Windows, and macOS." />
+  <title>Laravel Cross-OS | Evidence Atlas</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/expanded.css" />
+</head>
+<body>
+<svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+ <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 4 3 5-7"/></symbol>
+ <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 6-10 6L2 8l10-6zm-10 11 10 6 10-6M2 18l10 5 10-5"/></symbol>
+ <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18M7 12h10M10 19h4"/></symbol>
+ <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14zM4 19.5A2.5 2.5 0 0 0 6.5 22H20"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+ <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6m0-10v.3"/></symbol>
+ <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 18v3h16v-3"/></symbol>
+ <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+ <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4a8 8 0 1 0 11.5 11.5Z"/></symbol>
+ <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+ <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+ <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6M11 13l8-8M19 13v6H5V5h6"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+</defs></svg>
+<div class="site-shell" id="top">
+ <main class="main">
+  <button type="button" class="icon-btn floating-theme" id="themeSwitch" title="Toggle light and dark mode" aria-label="Toggle light and dark mode"><svg><use href="#i-moon"/></svg></button>
+  <section class="section overview-section" id="overview">
+    <div class="hero">
+      <div class="hero-text">
+        <div class="eyebrow"><span class="eyebrow-line"></span> AN INTERACTIVE RESEARCH EXPLORER <span class="issue-no">RESEARCH EDITION / 03</span></div>
+        <h1>When code is portable,<br><em>is the application?</em></h1>
+        <p>Discover the research pipeline, sampling characteristics, issue mechanisms and LLM-assisted findings for <strong>921 Laravel applications</strong> on Linux, Windows, and macOS. From installation barriers to the reproducibility of test verdicts—without conflating <i>NOT_RUN</i> with <i>FAIL</i>.</p>
+        <div class="hero-actions"><a class="primary-btn" href="#outcomes">Explore results <svg><use href="#i-arrow"/></svg></a><button type="button" class="ghost-btn" data-modal="study">About the study <svg><use href="#i-info"/></svg></button></div>
+        <div class="hero-authors">Dwi Haryani · Dimah Mehdawi <span> / </span> King Fahd University of Petroleum and Minerals</div>
+      </div>
+      <div class="hero-art" aria-label="Visual representation of three connected operating systems">
+        <div class="art-grid"></div><div class="art-orbit art-orbit-one"></div><div class="art-orbit art-orbit-two"></div><div class="art-center"><span>921</span><small>FROZEN<br>REVISIONS</small></div>
+        <div class="art-node node-linux"><span class="node-led"></span><b>LINUX</b><small>40.17% reached test</small></div>
+        <div class="art-node node-windows"><span class="node-led"></span><b>WINDOWS</b><small>32.46% reached test</small></div>
+        <div class="art-node node-macos"><span class="node-led"></span><b>macOS</b><small>39.63% reached test</small></div>
+        <span class="art-coordinate coord-one">03 OS · MATCHED</span><span class="art-coordinate coord-two">EVIDENCE > ASSUMPTION</span>
+      </div>
+    </div>
+    <div class="metric-grid" id="metricCards">
+      <button class="metric-tile" type="button" data-metric="repositories"><span class="metric-label">REPOSITORIES <svg><use href="#i-info"/></svg></span><strong data-number="921">921</strong><span class="metric-bottom">Frozen commit per project <span>↗</span></span></button>
+      <button class="metric-tile" type="button" data-metric="runs"><span class="metric-label">CROSS-OS RUNS <svg><use href="#i-info"/></svg></span><strong data-number="2763">2,763</strong><span class="metric-bottom">921 × Linux / Windows / macOS <span>↗</span></span></button>
+      <button class="metric-tile" type="button" data-metric="trr"><span class="metric-label">RECORDED VERDICTS <svg><use href="#i-info"/></svg></span><strong data-number="37.42">37.42<span class="sm-percent">%</span></strong><span class="metric-bottom">1,034 / 2,763 runs <span>↗</span></span></button>
+      <button class="metric-tile" type="button" data-metric="notrun"><span class="metric-label">TESTS NOT REACHED <svg><use href="#i-info"/></svg></span><strong data-number="1651">1,651</strong><span class="metric-bottom">Withheld before tests—not FAIL <span>↗</span></span></button>
+    </div>
+    <div class="narrative-line"><span class="narrative-kicker">THE CENTRAL FINDING</span><p>The Windows gap emerges primarily <strong>before tests can reach a verdict</strong>, rather than among fully executed tests. See how the conclusion changes with the strength of evidence.</p><a href="#evidence">Explore evidence <svg><use href="#i-arrow"/></svg></a></div>
+  </section>
+
+  <!-- EXPANDED: INTERACTIVE RESEARCH DESIGN -->
+  <section class="section expanded-section" id="study-design">
+   <div class="section-heading"><div><div class="overline">01 / EXPERIMENTAL DESIGN</div><h2>From GitHub discovery <i>to evidence.</i></h2><p>Follow the exact study pipeline. Select a stage to reveal its operational criteria, counts, and interpretive limits.</p></div><span class="small-tag emphasis">INTERACTIVE RESEARCH STAGES</span></div>
+   <div class="explanation-banner"><b>What was actually collected?</b><span>The source dataset initially contained <strong>5,353 GitHub repository records</strong>. After API enrichment, PHP pre-filtering, Laravel verification and eligibility screening, <strong>921 applications</strong> entered the final three-OS experiment. These early-stage counts come from the original research tracker and screening logs, complementing the manuscript.</span></div>
+   <div class="pipeline-stage-grid" id="researchPipeline" aria-label="Interactive research pipeline"></div>
+   <div class="pipeline-detail panel" id="pipelineDetail" aria-live="polite"></div>
+   <figure class="methodology-figure panel" aria-labelledby="methodologyFigureTitle">
+     <div class="methodology-head">
+       <div><span class="panel-index">MANUSCRIPT FIGURE 1 · STUDY METHODOLOGY</span><h3 id="methodologyFigureTitle">From repository selection to root-cause analysis</h3></div>
+       <span class="small-tag">921 repositories · 2,763 runs</span>
+     </div>
+     <button class="methodology-image-button" type="button" id="openMethodology" aria-label="Enlarge the study methodology figure">
+       <span class="methodology-image-scroll"><img src="assets/methodology-figure.png" alt="Study methodology flowchart with four stages: GitHub API mining and screening of 921 Laravel repositories; pinned re-execution on Ubuntu Linux, Windows and macOS with Composer, database and test gates; evidence ladder of 2,763 records, 1,034 verdicts, 640 parser-backed outcomes and 364 verified passes; and primary-evidence audit followed by Claude-assisted local repair." loading="lazy" decoding="async" /></span>
+       <span class="methodology-expand">↗ &nbsp; Enlarge methodology figure</span>
+     </button>
+     <figcaption>Manuscript methodology, reproduced from the supplied image. <strong>NOT_RUN (1,651)</strong> and <strong>INTERRUPTED (78)</strong> are never counted as failed tests. On smaller screens, swipe horizontally or enlarge the figure.</figcaption>
+   </figure>
+  </section>
+
+  <!-- EXPANDED: SAMPLING AND POPULATION -->
+  <section class="section expanded-section" id="sample-profile">
+   <div class="section-heading"><div><div class="overline">02 / CRAWLING, ELIGIBILITY & SAMPLING</div><h2>Who made it <i>into the sample?</i></h2><p>Interactive exploration of final sample construction, popularity, forks, container definitions, Laravel versions, and source cohorts.</p></div><span class="small-tag emphasis">TABLES 2, 3 & 20 · FIG. 2</span></div>
+   <div class="panel discovery-panel" id="discovery-section">
+     <div class="panel-head"><div><span class="panel-index">RECONSTRUCTED SOURCE DATA · SEPTEMBER 2026</span><h3>From 5,353 repository records to 921 applications</h3></div><span class="small-tag">SELECT A STAGE</span></div>
+     <p class="discovery-intro">The original crawling and verification logs were available in the project records even though the manuscript does not state the initial denominator. Click any bar to see the filtering decision and its provenance.</p>
+     <div class="discovery-steps" id="discoveryFunnel" aria-label="Interactive repository selection funnel"></div>
+     <div class="discovery-detail" id="discoveryDetail" aria-live="polite"></div>
+     <div class="verification-wrap">
+       <div><span class="panel-index">5,171 PHP CANDIDATES · LARAVEL API VERIFICATION</span><h4>What happened to the PHP candidates?</h4></div>
+       <div class="verification-split" id="verificationSplit"></div>
+     </div>
+     <div class="discovery-provenance">Sources: September 2026 experiment documentation and original pre-filtering logs; Stage 4 eligibility and frozen-sample records. <b>5,353 is the source-list count, not an independently verified count of search API hits.</b></div>
+   </div>
+   <div class="panel eligibility-panel"><div class="panel-head"><div><span class="panel-index">SCREENING CRITERIA</span><h3>Seven eligibility and recording checks</h3></div><span class="small-tag">11 SEPTEMBER 2026</span></div><div class="eligibility-row" id="eligibilityChecks"></div><div class="eligibility-insight" id="eligibilityDetail" aria-live="polite"></div></div>
+   <div class="sampling-kpis"><button type="button" class="sampling-kpi" data-extended-modal="sample.total"><span>FINAL FROZEN SAMPLE</span><b>921</b><small>Public Laravel applications</small></button><button type="button" class="sampling-kpi" data-extended-modal="sample.docker"><span>DOCKER / COMPOSE</span><b>368</b><small>39.96% of repositories</small></button><button type="button" class="sampling-kpi" data-extended-modal="sample.stars"><span>STARS RANGE</span><b>1–62,645</b><small>Per-repository GitHub stars</small></button><button type="button" class="sampling-kpi" data-extended-modal="sample.forks"><span>FORKS RANGE</span><b>0–5,594</b><small>Per-repository GitHub forks</small></button></div>
+   <div class="two-col sample-pair">
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">SAMPLE COMPOSITION</span><h3>Container definitions</h3></div><span class="small-tag">n = 921</span></div><div class="container-donut-wrap"><button type="button" class="container-donut" id="containerDonut" aria-label="Explore container presence"></button><div id="containerLegend" class="container-legend"></div></div><div class="container-selected" id="containerDetail"></div></div>
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">CROSS-CLASSIFICATION</span><h3>Popularity quartiles</h3></div><span class="small-tag">Stars + forks score</span></div><div class="quartile-choice" id="quartileChoice"></div><div id="quartileDetail" class="quartile-detail"></div><div class="micro-note">Quartiles are defined by the study’s combined popularity score; their raw stars and forks ranges overlap. They are not four bins of stars alone.</div></div>
+   </div>
+   <div class="two-col sample-pair">
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE · POPULARITY DISTRIBUTION</span><h3>Stars, forks and OS gap</h3></div><div class="segmented ext-segmented" id="popularityMetric"><button type="button" class="selected" data-pop="stars">Stars</button><button type="button" data-pop="forks">Forks</button><button type="button" data-pop="gap">L–W gap</button></div></div><div class="pop-chart" id="popularityChart"></div><div class="micro-note" id="popularityNote"></div></div>
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">CROSS-OS SAMPLE</span><h3>Docker and no-Docker outcomes</h3></div><span class="small-tag">Manuscript Table 20</span></div><div id="dockerComparison" class="docker-comparison"></div><div class="micro-note">The larger Windows deficit among containerized projects is descriptive, not proof that Docker itself causes portability issues.</div></div>
+   </div>
+   <div class="two-col sample-pair">
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">DATA COLLECTION WAVES</span><h3>Evidence-richness cohorts</h3></div></div><div id="cohortChart" class="cohort-list"></div><div class="panel-foot">445 historical, 471 harmonized, and five supplemental repositories. Cohorts carry different evidence quality.</div></div>
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">909 METADATA RECORDS</span><h3>Laravel major versions</h3></div><span class="small-tag">Click a bar</span></div><div id="laravelVersionChart" class="version-plot"></div><div class="micro-note">Metadata were available for 909 repositories; this chart intentionally does not infer values for the other 12.</div></div>
+   </div>
+   <div class="panel metadata-cards-panel"><div class="panel-head"><div><span class="panel-index">REPOSITORY CHARACTERISTICS</span><h3>What the static metadata reveal</h3></div><span class="small-tag">Tap to inspect</span></div><div id="metadataFacts" class="metadata-fact-grid"></div></div>
+  </section>
+
+  <section class="section" id="outcomes">
+   <div class="section-heading"><div><div class="overline">03 / EXECUTION RESULTS</div><h2>What happened <i>on each OS?</i></h2><p>Six mutually exclusive outcomes for every run. Select a colored segment to see its definition and research interpretation.</p></div><div class="segmented" id="statusMode"><button data-mode="six" class="selected">6 evidence states</button><button data-mode="four">Simplified view</button></div></div>
+   <div class="panel panel-large"><div class="panel-head"><div><span class="panel-index">FIGURE 01</span><h3>Distribution of outcomes <button class="info-inline" data-modal="states" aria-label="Definition of the six outcome states"><svg><use href="#i-info"/></svg></button></h3></div><span class="small-tag">n = 921 per OS</span></div><div id="statusChart" class="status-chart"></div><div id="statusLegend" class="legend"></div><div class="panel-foot">Each row represents 921 repositories; <strong>NOT_RUN</strong> is not counted as an application-test failure. <span class="source-ref">Manuscript · Table 5, p. 11</span></div></div>
+   <div class="two-col">
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 02</span><h3>The evidence ladder <button class="info-inline" data-modal="ladder" aria-label="About the evidence ladder"><svg><use href="#i-info"/></svg></button></h3></div></div><div id="ladderChart" class="ladder-chart"></div><div class="panel-foot">Every bar uses the full denominator of 2,763 repository–OS records.</div></div>
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 03</span><h3>Verdict patterns <button class="info-inline" data-modal="agreement"><svg><use href="#i-info"/></svg></button></h3></div><span class="small-tag">Harmonized n = 132</span></div><div class="verdict-ring-layout"><div id="verdictDonut" class="verdict-donut"></div><div class="ring-summary"><strong>96.97<span>%</span></strong><span>verdict agreement</span><p>Includes <b>73 repositories that FAIL on all three OS</b>. Agreement ≠ success rate.</p><button class="text-action" type="button" data-modal="agreement">Read interpretation <svg><use href="#i-arrow"/></svg></button></div></div><div class="panel-foot">55 all PASS · 73 all FAIL · 4 mixed PASS/FAIL.</div></div>
+   </div>
+  </section>
+
+  <section class="section stats-section" id="statistics">
+   <div class="section-heading"><div><div class="overline">04 / STATISTICAL EVIDENCE</div><h2>What do the statistical tests <i>actually show?</i></h2><p>This section translates the manuscript’s matched comparisons into plain language. Select an endpoint to compare effect size, discordant pairs, and corrected p-values across Linux, Windows, and macOS.</p></div><div class="heading-aside">MATCHED
+COMPARISONS</div></div>
+   <div class="stats-lesson-grid" id="statsLessonGrid"></div>
+   <div class="two-col uneven">
+    <div class="panel stats-focus-panel">
+      <div class="panel-head"><div><span class="panel-index">INTERACTIVE SUMMARY · TABLES 8–13</span><h3>Matched cross-OS comparison explorer</h3></div><span class="small-tag">Choose an endpoint</span></div>
+      <div class="select-row stats-select-row"><label for="statsEndpointSelect">Endpoint:</label><select id="statsEndpointSelect"><option value="trr">Recorded verdict reachability (n=921)</option><option value="composerFull">Composer full installation (n=350)</option><option value="composerDiag">Composer diagnostic only (n=320)</option><option value="pass">Parser-verified PASS (n=132)</option></select></div>
+      <div id="statsEndpointHeadline" class="stats-endpoint-headline"></div>
+      <div id="statsRateBars" class="stats-rate-bars"></div>
+      <div id="statsPairCards" class="stats-pair-cards"></div>
+      <div id="statsFocusNote" class="micro-note"></div>
+    </div>
+    <div class="panel stats-agreement-panel">
+      <div class="panel-head"><div><span class="panel-index">CONDITIONAL AGREEMENT</span><h3>How to read agreement correctly</h3></div><span class="small-tag">Harmonized n = 132</span></div>
+      <div id="statsAgreementGrid" class="stats-agreement-grid"></div>
+      <div class="stats-interpret-box">
+        <h4>Plain-language interpretation</h4>
+        <p><strong>High agreement does not mean high success.</strong> In the harmonized subset, most repositories agree because they either pass on all OS or fail on all OS. Only <strong>four repositories</strong> show parser-backed PASS/FAIL disagreement, so strict cross-OS verdict conflicts are rare in this conditioned subset.</p>
+      </div>
+      <div class="micro-note">Agreement statistics are conditioned on repositories that reached parser-backed verdicts on all three operating systems. They do not summarize all 921 sampled repositories.</div>
+    </div>
+   </div>
+   <div class="panel stats-reading-panel">
+      <div class="panel-head"><div><span class="panel-index">HOW TO READ THE STATISTICS</span><h3>Three simple rules for interpretation</h3></div></div>
+      <div id="statsTakeaways" class="stats-takeaways"></div>
+      <div class="panel-foot">Effect size, matched discordances, and evidence scope should be interpreted together. A small p-value does not by itself prove a source-code portability defect.</div>
+   </div>
+  </section>
+
+  <section class="section" id="evidence">
+   <div class="section-heading"><div><div class="overline">05 / UNCERTAINTY IS DATA</div><h2>One study. <i>Four definitions.</i></h2><p>Estimates of OS-dependent behavior depend on evidence strength and the treatment of unobserved verdicts.</p></div><div class="heading-aside">INTERACTIVE<br>ESTIMANDS</div></div>
+   <div class="panel evidence-panel"><div class="evidence-top"><div class="tiers" id="tierButtons"></div><div class="tier-summary"><div class="tier-big" id="tierBig">0.43%</div><span class="tier-sub" id="tierCount">4 / 921 repositories</span><div class="tier-name" id="tierName"></div><p id="tierDesc"></p><button class="text-action" type="button" id="tierExplain">Why do these figures differ? <svg><use href="#i-arrow"/></svg></button></div></div><div class="prevalence-scale"><div class="scale-top"><span>0%</span><span>25%</span><span>50%</span><span>75%</span></div><div class="scale-track"><div class="scale-fill" id="tierFill"></div><span class="scale-marker" style="left:14.933%">11.2%<small>Python reference*</small></span></div></div><div class="panel-foot">T1–T4 are nested definitions, not four independent prevalence rates. T4 is a worst-case bound, not observed prevalence. *The reference uses a different estimand. <span class="source-ref">Table 7 · p. 12</span></div></div>
+   <div class="three-insight"><button data-modal="t1" class="insight-card"><span>01 / STRICTEST</span><strong>4</strong><b>Parser-backed divergence</b><p>Parser-backed PASS/FAIL conflicts for the same frozen revision.</p></button><button data-modal="t3" class="insight-card"><span>02 / EXECUTION-AWARE</span><strong>86</strong><b>Observed cross-OS difference</b><p>Includes both verdict differences and whether a test verdict was reachable.</p></button><button data-modal="t4" class="insight-card"><span>03 / UNCERTAINTY</span><strong>636</strong><b>Conservative upper bound</b><p>Includes repositories whose test verdicts remain unobserved.</p></button></div>
+  </section>
+
+  <section class="section" id="barriers">
+   <div class="section-heading"><div><div class="overline">06 / WHERE PORTABILITY BREAKS</div><h2>Barriers <i>before the verdict.</i></h2><p>Paired comparisons of the same repositories locate the largest Windows gaps at dependency installation and test-result reachability.</p></div></div>
+   <div class="two-col">
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 04</span><h3>Matched OS gap</h3></div></div><div class="select-row"><label for="endpointSelect">Select endpoint:</label><select id="endpointSelect"><option value="trr">Test-result reachability (n=921)</option><option value="composerFull">Composer full install (n=350)</option><option value="composerDiag">Composer diagnostic (n=320)</option><option value="pass">Parser-verified PASS (n=132)</option></select></div><div id="pairedChart" class="paired-chart"></div><div id="pairedNote" class="micro-note"></div><div class="panel-foot">Paired risk differences in percentage points (pp). Select a bar for counts, denominators, and statistical tests.</div></div>
+    <div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 05</span><h3>Where NOT_RUN stopped</h3></div><span class="small-tag">1,651 NR runs</span></div><div id="stopChart" class="stop-chart"></div><div class="legend stop-legend" id="stageLegend"></div><div class="panel-foot">1,333 runs stopped during database preflight; most were shared operational gates, not verified code failures.</div></div>
+   </div>
+   <div class="two-col uneven">
+    <div class="panel composer-panel"><div class="panel-head"><div><span class="panel-index">FIGURE 06</span><h3>Composer readiness by OS</h3></div><button data-modal="composer" class="info-inline" aria-label="Composer protocols"><svg><use href="#i-info"/></svg></button></div><div class="segmented" id="composerMode"><button data-mode="full" class="selected">Full installation</button><button data-mode="diag">Diagnostic only</button></div><div id="composerBars" class="composer-bars"></div><div class="panel-foot">Each protocol is compared only within its own matched subset; full installation ≠ diagnostic installation.</div></div>
+    <div class="panel insight-panel"><div class="panel-head"><div><span class="panel-index">FINDING 01</span><h3>Windows-only verdict losses</h3></div></div><div class="big-stat">71<span> : 0</span></div><p><strong>71 repositories</strong> reached a verdict on Linux but not Windows; none showed the reverse pattern in that matched pair.</p><div class="callout"><span class="callout-symbol">↘</span><div>Windows trailed Linux by <strong>7.71 percentage points</strong> in test-result reachability. <button class="text-action" data-modal="dominance">Interpretation <svg><use href="#i-arrow"/></svg></button></div></div><div class="panel-foot">Observational association; this does not prove the Windows kernel caused every difference.</div></div>
+   </div>
+   <div class="panel mechanism-panel"><div class="panel-head"><div><span class="panel-index">FIGURE 07</span><h3>Inside the audited portability barriers</h3></div><span class="small-tag">Targeted review · n = 75</span></div><div class="mechanism-layout"><div id="auditStack" class="audit-stack"></div><div class="audit-text"><div class="audit-headline"><span class="audit-num">32<span>/35</span></span><span>cases with available primary evidence trace to PHP extension availability</span></div><p>13 required native-unavailable Windows extensions <code>pcntl/posix</code>. Another 40 historical cases lacked sufficient primary evidence for adjudication.</p><button class="text-action" type="button" data-modal="audit">See the audit method <svg><use href="#i-arrow"/></svg></button></div></div><div class="panel-foot">Not an estimate of code-defect prevalence across all 921 repositories. <span class="source-ref">Table 17 · p. 18</span></div></div>
+   <div class="two-col"><div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 08</span><h3>Which projects lose more on Windows?</h3></div></div><div class="stratum-chart" id="dockerChart"></div><div class="panel-foot">Linux–Windows TRR gap; Docker presence was recorded as a feature, not used for exclusion.</div></div><div class="panel"><div class="panel-head"><div><span class="panel-index">FIGURE 09</span><h3>How trustworthy are automated labels?</h3></div></div><div class="label-chart" id="labelChart"></div><div class="micro-note">7 of 39 automated labels were contradicted by primary logs; pipeline labels are hypotheses, not verified causes.</div></div></div>
+  </section>
+
+  <!-- EXPANDED: ISSUE TAXONOMY -->
+  <section class="section expanded-section" id="issue-taxonomy">
+   <div class="section-heading"><div><div class="overline">07 / PORTABILITY ISSUE TAXONOMY</div><h2>Which issues <i>were actually found?</i></h2><p>Separate execution barriers from test-verdict divergences, and distinguish observed mechanisms from automatic labels.</p></div><span class="small-tag emphasis">TABLES 16–19 & 25</span></div>
+   <div class="issue-summary-grid"><button type="button" data-extended-modal="issue.nr" class="issue-count"><small>DIFFERENTIAL NOT_RUN RECORDS</small><b>75</b><span>68 repositories · targeted review</span></button><button type="button" data-extended-modal="issue.primary" class="issue-count"><small>PRIMARY ARTIFACTS AVAILABLE</small><b>35</b><span>40 historical cases unadjudicated</span></button><button type="button" data-extended-modal="issue.parser" class="issue-count"><small>PARSER-BACKED DIVERGENCES</small><b>4</b><span>Four matched repos, distinct mechanisms</span></button><button type="button" data-extended-modal="issue.labels" class="issue-count"><small>LABELS CONTRADICTED</small><b>7/39</b><span>17.9% of 39 audited records</span></button></div>
+   <div class="panel"><div class="panel-head"><div><span class="panel-index">EVIDENCE STRATIFICATION</span><h3>75 differential NOT_RUN records</h3></div><div class="segmented ext-segmented" id="issueView"><button type="button" class="selected" data-issueview="blocks">Root-cause evidence</button><button type="button" data-issueview="extensions">Extensions named in logs</button><button type="button" data-issueview="loci">Laravel architecture</button></div></div><div id="issueCategoryChart" class="issue-category-chart"></div><div id="issueCategoryDetail" class="issue-category-detail"></div><div class="micro-note">Mechanism counts use a targeted review, not all 921 repositories. Extensions may co-occur within the same Composer log; do not sum them as distinct failures.</div></div>
+   <div class="issue-family-panel panel"><div class="panel-head"><div><span class="panel-index">MECHANISM LIBRARY · INTERACTIVE</span><h3>How portability issues manifest</h3></div><span class="small-tag">Click any category</span></div><div id="issueFamilyGrid" class="issue-family-grid"></div></div>
+   <div class="two-col"><div class="panel"><div class="panel-head"><div><span class="panel-index">STATIC PLATFORM SIGNALS</span><h3>Can lock files predict a Windows barrier?</h3></div></div><div id="lockSignalChart" class="lock-signal-chart"></div><div class="micro-note">Exploratory rule on 365 repositories that reached a verdict on Linux or macOS (71 Windows-only losses). Evaluation used the same data that informed the rule, not a held-out test.</div></div><div class="panel"><div class="panel-head"><div><span class="panel-index">FAILURE LABEL RELIABILITY</span><h3>Automated labels vs primary logs</h3></div></div><div class="label-concordance" id="extendedLabelChart"></div><div class="micro-note">24 corroborated · 8 refined · 7 contradicted among 39 audited runs. Not a ground-truth assessment of all pipeline labels.</div></div></div>
+  </section>
+
+  <section class="section" id="cases">
+   <div class="section-heading"><div><div class="overline">08 / FROM EVIDENCE TO EXPLANATION</div><h2>Cases behind <i>the numbers.</i></h2><p>In-depth cases show that divergence can originate in application code, test harnesses, dependencies, or network conditions.</p></div><span class="small-tag emphasis">Manual audit / manuscript</span></div>
+   <div class="cases-grid" id="caseGrid"></div>
+   <div class="paper-note"><svg><use href="#i-info"/></svg><p><strong>Evidence boundary:</strong> the manuscript reports limited Claude-assisted local fixes for B-061 and B-343, and an architectural barrier for A-057. It also notes that the repaired revisions <em>were not re-executed under the complete three-runner protocol</em>. The separate B-032 pilot is not included in the manuscript’s repair claims.</p></div>
+  </section>
+
+  <!-- EXPANDED: REPORTED LLM RESULTS -->
+  <section class="section expanded-section" id="llm-results">
+   <div class="section-heading"><div><div class="overline">09 / LLM-ASSISTED REPAIR IN THE MANUSCRIPT</div><h2>From divergent tests <i>to targeted repair.</i></h2><p>The manuscript’s actual Claude-assisted analysis: three selected repositories, four investigated findings, three local fixes, and one architectural constraint.</p></div><span class="small-tag emphasis">TABLE 22 · PP. 20–21</span></div>
+   <div class="llm-lead-panel"><div class="llm-lead-left"><span>THE REPORTED EXPERIMENT</span><h3>What did the LLM fix?</h3><p>Claude reviewed primary logs and frozen repositories, localized root causes, and produced small source or test changes. Select a case to follow the finding and reported outcome.</p><div class="llm-glance"><div><b>3</b><small>repositories</small></div><div><b>4</b><small>findings</small></div><div><b>3</b><small>local fixes</small></div><div><b>1</b><small>architectural barrier</small></div></div></div><div class="llm-lead-right"><div class="llm-ring" aria-label="Three of four investigated findings had local fixes"><strong>3<small>/4</small></strong><span>LOCAL FIXES</span></div><div class="llm-ring-caption">Descriptive outcomes among purposively selected cases—<strong>not</strong> a population success rate or a three-runner validation result.</div></div></div>
+   <div class="llm-case-select" id="llmCaseSelect"></div><div class="llm-case-detail panel" id="llmCaseDetail" aria-live="polite"></div>
+   <div class="llm-evidence-note"><span class="evidence-note-icon">!</span><p><strong>Validation boundary.</strong> According to the manuscript, the local fixes and regression tests were reported, but repaired revisions were <strong>not re-executed through the full three-runner protocol</strong>. The separate GPT/Claude/Gemini B-032 E2 prompt experiment is <strong>not</strong> used to claim these manuscript results.</p></div>
+  </section>
+
+  <section class="section" id="explorer">
+   <div class="section-heading"><div><div class="overline">10 / PRIMARY DATA</div><h2>Explore all <i>921 projects.</i></h2><p>Search repositories, filter by OS outcome, and select a row to inspect evidence and the stopping stage. Records come from the Stage 4 dataset—not simulated examples.</p></div><button id="exportBtn" class="outline-btn" type="button"><svg><use href="#i-download"/></svg> Export filtered CSV</button></div>
+   <div class="panel explorer-panel"><div class="filters-row"><div class="search-wrap"><svg><use href="#i-search"/></svg><input id="repoSearch" type="search" placeholder="Search repository, ID (B-032), or commit SHA…" autocomplete="off" aria-label="Search repositories" /></div><label class="select-wrap">Outcome<select id="repoFilter"><option value="all">All repositories</option><option value="allpass">Verified PASS on all OS</option><option value="hasnr">Any NOT_RUN</option><option value="windowsnr">Windows NOT_RUN</option><option value="mixed">Mixed parsed PASS/FAIL</option><option value="differential">Differential NOT_RUN</option><option value="allrecorded">Verdicts on all three OS</option></select></label><label class="select-wrap">Cohort<select id="cohortFilter"><option value="all">All cohorts</option><option value="PRIOR_445">Historical (445)</option><option value="BULK_471">Harmonized (471)</option><option value="A01_SUPPLEMENTAL_V3_3">Supplemental (5)</option></select></label></div><div class="explorer-meta"><span id="resultCount">921 projects</span><span>Click row for evidence <span class="arrow-down-small">↗</span></span></div><div class="table-scroller"><table class="repo-table"><thead><tr><th>Repository / ID</th><th>Linux</th><th>Windows</th><th>macOS</th><th>Cohort</th><th>Inspect</th></tr></thead><tbody id="repoBody"></tbody></table></div><div class="table-footer"><span id="pageInfo">Showing 1–20 of 921</span><div class="paging"><button type="button" id="prevPage" aria-label="Previous page">← Prev</button><button type="button" id="nextPage">Next →</button></div></div></div>
+  </section>
+
+  <section class="section" id="method">
+   <div class="section-heading"><div><div class="overline">11 / TRANSPARENCY & REPRODUCIBILITY</div><h2>Read the <i>evidence carefully.</i></h2><p>Each visualization provides its denominator, evidence scope, and interpretation limits consistent with the manuscript.</p></div></div>
+   <div class="method-grid"><div class="method-card"><span>01</span><h3>Matched design</h3><p>Each project uses a single frozen commit with observations on Linux, Windows, and macOS. Every run records its outcome and evidence.</p></div><div class="method-card"><span>02</span><h3>Six outcome states</h3><p>PASS_VERIFIED, PASS_UNVERIFIED, FAIL_PARSED, FAIL_RECORDED, NOT_RUN, and INTERRUPTED are kept separate.</p></div><div class="method-card"><span>03</span><h3>Tiered inference</h3><p>Observed differences, parser-backed verdicts, and causal explanations have different evidential strengths. T4 is a bound, not the number of confirmed issues.</p></div><div class="method-card"><span>04</span><h3>Selective adjudication</h3><p>Audits of 75 differential NOT_RUN records and four verdict divergences cannot be generalized into a population-wide root-cause prevalence.</p></div></div>
+   <div class="source-panel"><div class="source-heading"><div><span class="panel-index">RESEARCH ARTIFACTS</span><h3>Sources behind this explorer</h3></div><div class="source-version">DATA FREEZE / STAGE 4</div></div><div class="source-rows"><button type="button" id="downloadAll"><span class="source-icon">CSV</span><span><strong>Repository-level evidence</strong><small>921 frozen projects · three OS statuses · original failure categories</small></span><svg><use href="#i-download"/></svg></button><a href="https://github.com/dwiharyani/laravel-cross-os-portability/tree/main/data/final" target="_blank" rel="noopener"><span class="source-icon">GIT</span><span><strong>Research data & statistical workbook</strong><small>GitHub repository, final analytical artifacts</small></span><svg><use href="#i-external"/></svg></a></div></div>
+   <footer class="main-footer"><div><span class="footer-logo">L<span>.</span>OS</span><span>Evidence speaks louder than assumptions.</span></div><div><span>Interactive companion to a research manuscript</span><a href="#top">Back to top ↑</a></div></footer>
+  </section>
+ </main>
+</div>
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+<dialog class="detail-dialog" id="detailDialog" aria-labelledby="dialogTitle"><div class="dialog-head"><span id="dialogEyebrow">EVIDENCE DETAIL</span><button type="button" id="dialogClose" aria-label="Close dialog"><svg><use href="#i-x"/></svg></button></div><h2 id="dialogTitle"></h2><div class="dialog-body" id="dialogBody"></div><div class="dialog-bottom"><span>Laravel Cross-OS · Evidence Atlas</span><button type="button" id="dialogDone">Close</button></div></dialog>
+<dialog class="methodology-lightbox" id="methodologyLightbox" aria-label="Enlarged study methodology">
+  <div class="methodology-lightbox-head"><strong>Research methodology · Figure 1</strong><button type="button" id="closeMethodology" aria-label="Close enlarged methodology">✕ &nbsp; Close</button></div>
+  <div class="methodology-lightbox-canvas"><img src="assets/methodology-figure.png" alt="Complete methodology flowchart from repository selection to evidence and root-cause analysis" /></div>
+  <p>Scroll horizontally to inspect the full figure. Press Esc or Close to return to the dashboard.</p>
+</dialog>
+<script src="data/repositories.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/expanded.js"></script>
+</body>
+</html>
